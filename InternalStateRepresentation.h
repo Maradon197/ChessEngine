@@ -1,0 +1,8 @@
+#ifndef INTERNALSPACEREPRESENTATION
+#define INTERNALSPACEREPRESENTATION
+
+#include "DataTypes.h"
+
+
+
+#endif
