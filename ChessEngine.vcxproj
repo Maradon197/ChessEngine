@@ -125,6 +125,7 @@
   <ItemGroup>
     <ClCompile Include="AttackTables.cpp" />
     <ClCompile Include="BoardState.cpp" />
+    <ClCompile Include="DebugTestStuff.cpp" />
     <ClCompile Include="IOHandler.cpp" />
     <ClCompile Include="Main.cpp" />
   </ItemGroup>

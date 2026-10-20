@@ -3,6 +3,7 @@
 #include "BoardState.h"
 #include "AttackTables.h"
 #include "IOHandler.h"
+#include <iostream>
 
 int main() {
 	initAttackTables();
@@ -11,6 +12,5 @@ int main() {
 	board.setStartingPosition();
 
 	IOHandler iohandler;
-	
 	return 0;
 }

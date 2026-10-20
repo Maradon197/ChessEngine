@@ -8,7 +8,11 @@ namespace {
 	Bitboard knight_attacks[64]{};
 	Bitboard king_attacks[64]{};
 
-	//Sliding piece lookup or magic bb?
+	Bitboard bishop_rays[64]{};
+	Bitboard rook_rays[64]{};
+	Bitboard queen_rays[64]{};
+
+	//Sliding piece magic bb?
 }
 
 void initPawnAttacks() {
@@ -96,10 +100,33 @@ void initKingAttacks() {
 	}
 }
 
+void initBishopRays() {
+	for(Square sq = 0; sq < 64; ++sq) {
+		bishop_rays[sq] = BB::getDiagonalMask(sq);
+	}
+}
+
+void initRookRays() {
+	for (Square sq = 0; sq < 64; ++sq) {
+		rook_rays[sq] = BB::getFileRankMask(sq);
+	}
+}
+
+void initQueenRays() {
+	for (Square sq = 0; sq < 64; ++sq) {
+		queen_rays[sq] = BB::getDiagonalMask(sq) | BB::getFileRankMask(sq);
+	}
+}
+
+
 void initAttackTables() {
 	initPawnAttacks();
 	initKnightAttacks();
 	initKingAttacks();
+
+	initBishopRays();
+	initRookRays();
+	initQueenRays();
 }
 
 
