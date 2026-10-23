@@ -97,6 +97,10 @@ namespace BB {
 	constexpr Bitboard getSquareFromCoords(std::uint8_t file, std::uint8_t rank) {
 		return oneSquareBB(rank * 8 + file);
 	}
+
+	inline Bitboard getLSBSquareBitboard(Bitboard bb) {
+		return bb & -bb;
+	}
 }
 	
 #endif
