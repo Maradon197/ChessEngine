@@ -35,7 +35,7 @@ namespace BB {
 		return static_cast<std::uint8_t>(__builtin_popcountll(bb));
 
 	#else
-		//this is ugly but it works for some Robin with a compiler from 1961
+		//this is ugly but it works for some Robin with a UNIX compiler from 1961
 		std::uint8_t count = 0;
 		while (bb) {
 			count += bb & 1;
@@ -84,6 +84,18 @@ namespace BB {
 
 	constexpr Bitboard getFileRankMask(Square sq) {
 		return getFileMask(sq) | getRankMask(sq);
+	}
+
+	constexpr std::uint8_t getFile(Square sq) {
+		return sq % 8;
+	}
+
+	constexpr std::uint8_t getRank(Square sq) {
+		return sq / 8;
+	}
+
+	constexpr Bitboard getSquareFromCoords(std::uint8_t file, std::uint8_t rank) {
+		return oneSquareBB(rank * 8 + file);
 	}
 }
 	

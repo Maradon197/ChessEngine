@@ -2,6 +2,7 @@
 #define DATATYPES
 
 #include <cstdint>
+#include <cstddef>
 
 //MEMORY LAYOUT OF BITBOARD:
 // one bit per square
@@ -22,8 +23,15 @@ using Bitboard = std::uint64_t;
 // 13:		is En Passant
 // 14:		is Promotion
 // 15-17:	promotion piece type (0 for no promotion)
-// 18+:		unused
+// 18-31:	unused
 using Move = std::uint32_t;
+
+constexpr std::size_t MAX_MOVES = 256;
+
+struct MoveList {
+	Move moves[MAX_MOVES];
+	std::size_t count = 0;
+};
 
 //MEMORY LAYOUT OF CASTLING RIGHTS:
 // 0 / 1:	allow White long (0) / short (1) castle
@@ -34,7 +42,7 @@ using CastlingRights = std::uint8_t;
 //MEMORY LAYOUT OF SQUARE:
 // 0-5:		source square (0-63)
 // 6:		flag: is EP allowed? (NO_SQUARE)
-// 7+:		must be zero! otherwise BB logic might break
+// 7+:		should be zero! otherwise BB logic is inefficient (2^x downshift)
 using Square = std::uint8_t;
 constexpr Square NO_SQUARE = 64;
 

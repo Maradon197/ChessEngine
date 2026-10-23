@@ -12,7 +12,7 @@ namespace {
 	Bitboard rook_rays[64]{};
 	Bitboard queen_rays[64]{};
 
-	//Sliding piece magic bb?
+	//TODO: Magic Bitboards for sliding pieces
 }
 
 void initPawnAttacks() {
@@ -140,4 +140,16 @@ Bitboard getKnightAttacks(Square sq) {
 
 Bitboard getKingAttacks(Square sq) {
 	return king_attacks[sq];
+}
+
+Bitboard getBishopAttacks(Square sq, Bitboard occupancy) {
+	//TODO
+}
+
+Bitboard getRookAttacks(Square sq, Bitboard occupancy) {
+	//TODO
+}
+
+Bitboard getQueenAttacks(Square sq, Bitboard occupancy) {
+	return getBishopAttacks(sq, occupancy) | getBishopAttacks(sq, occupancy);
 }

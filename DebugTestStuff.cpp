@@ -14,7 +14,7 @@ Bitboard getBishopAttacksSlow(Square sq, Bitboard occupancy) {
         { 1, -1},  //down-right
         {-1, -1}   //down-left
     };
-
+    
     for (const auto& dir : directions) {
         int f = file + dir[0];
         int r = rank + dir[1];
@@ -25,8 +25,7 @@ Bitboard getBishopAttacksSlow(Square sq, Bitboard occupancy) {
 
             attacks |= targetBB;
 
-            if (occupancy & targetBB)
-                break;
+            if (occupancy & targetBB) break;
 
             f += dir[0];
             r += dir[1];

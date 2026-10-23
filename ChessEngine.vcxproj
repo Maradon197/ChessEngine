@@ -123,19 +123,24 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="AttackDetector.cpp" />
     <ClCompile Include="AttackTables.cpp" />
     <ClCompile Include="BoardState.cpp" />
     <ClCompile Include="DebugTestStuff.cpp" />
     <ClCompile Include="IOHandler.cpp" />
     <ClCompile Include="Main.cpp" />
+    <ClCompile Include="MoveGenerator.cpp" />
+    <ClCompile Include="PseudoLegalMoveGenerator.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="AttackDetector.h" />
     <ClInclude Include="AttackTables.h" />
     <ClInclude Include="Bitboard.h" />
     <ClInclude Include="BoardState.h" />
     <ClInclude Include="DataTypes.h" />
     <ClInclude Include="IOHandler.h" />
     <ClInclude Include="MoveGenerator.h" />
+    <ClInclude Include="PseudoLegalMoveGenerator.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
