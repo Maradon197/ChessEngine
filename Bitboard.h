@@ -101,6 +101,25 @@ namespace BB {
 	inline Bitboard getLSBSquareBitboard(Bitboard bb) {
 		return bb & -bb;
 	}
+
+	inline Square getSquareFromOneSquareBitboard(Bitboard bb) {
+		//use compiler-owned bit scan forward function
+	#if defined(_MSC_VER)
+		unsigned long index;
+		_BitScanForward64(&index, bb);
+		return static_cast<Square>(index);
+	}
+	#elif defined(__GNUC__) || defined(__clang__)
+		return static_cast<Square>(__builtin_ctzll(bb));
+	#else
+		//ugly version
+		Square index = 0;
+		while (!(bb & 1)) {
+			bb = bb >> 1;
+			++index;
+		}
+		return index;
+	#endif
 }
 	
 #endif
