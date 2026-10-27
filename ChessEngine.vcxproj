@@ -138,6 +138,7 @@
     <ClInclude Include="Bitboard.h" />
     <ClInclude Include="BoardState.h" />
     <ClInclude Include="DataTypes.h" />
+    <ClInclude Include="DebugTestStuff.hpp" />
     <ClInclude Include="IOHandler.h" />
     <ClInclude Include="MoveGenerator.h" />
     <ClInclude Include="PseudoLegalMoveGenerator.h" />

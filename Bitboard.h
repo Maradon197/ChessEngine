@@ -99,7 +99,7 @@ namespace BB {
 	}
 
 	inline Bitboard getLSBSquareBitboard(Bitboard bb) {
-		return bb & -bb;
+		return bb & (static_cast<Bitboard>(0)) - bb;
 	}
 
 	inline Square getSquareFromOneSquareBitboard(Bitboard bb) {

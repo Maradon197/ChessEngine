@@ -4,6 +4,8 @@
 #include "AttackDetector.h"
 #include "Bitboard.h"
 
-MoveGenerator::generateMoves(const Position& pos) {
-	
+MoveList MoveGenerator::generateMoves(const Position& pos) {
+	MoveList move_candidates{};
+
+	return move_candidates;
 }

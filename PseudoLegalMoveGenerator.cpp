@@ -9,7 +9,9 @@
 //We do not account for: 	(double) checks, pins, ...
 
 MoveList PseudoLegalMoveGenerator::getMovesAtPosition(const Position& pos, Square source) {
+	MoveList pseudo_legal_piece_moves{};
 
+	return pseudo_legal_piece_moves;
 }
 
 MoveList PseudoLegalMoveGenerator::getAllMovesForPieceType(const Position& pos, PieceType pieceType) {
@@ -23,7 +25,7 @@ MoveList PseudoLegalMoveGenerator::getAllMovesForPieceType(const Position& pos, 
 
 			Bitboard currentSquare;
 			while(side_to_moves_pieces) {
-				Move current_move_candidate;
+				Move current_move_candidate{};
 
 				//get current square and consume it
 				currentSquare = BB::getLSBSquareBitboard(side_to_moves_pieces);
