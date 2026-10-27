@@ -1,6 +1,7 @@
 #include "DataTypes.h"
 #include "Bitboard.h"
 #include "AttackTables.h"
+#include "DebugTestStuff.hpp"
 
 namespace {
 	//lookup tables for piece attacks
@@ -16,7 +17,6 @@ namespace {
 }
 
 void initPawnAttacks() {
-	//how I would do it:
 	for (Square sq = 0; sq < 64; ++sq) {
 		if (sq % 8 != 0) { //not on left edge: add left attack
 			pawn_attacks[WHITE][sq] |= BB::oneSquareBB(sq + 7);
@@ -143,11 +143,13 @@ Bitboard getKingAttacks(Square sq) {
 }
 
 Bitboard getBishopAttacks(Square sq, Bitboard occupancy) {
-	//TODO
+	//TODO: magic bitboards
+	return getBishopAttacksSlow(sq, occupancy);
 }
 
 Bitboard getRookAttacks(Square sq, Bitboard occupancy) {
-	//TODO
+	//TODO: magic bitboards
+	return getRookAttacksSlow(sq, occupancy);
 }
 
 Bitboard getQueenAttacks(Square sq, Bitboard occupancy) {

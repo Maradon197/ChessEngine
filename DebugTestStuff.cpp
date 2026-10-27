@@ -1,5 +1,6 @@
 #include "DataTypes.h"
 #include "Bitboard.h"
+#include "DebugTestStuff.hpp"
 #include <iostream>
 
 Bitboard getBishopAttacksSlow(Square sq, Bitboard occupancy) {
@@ -59,4 +60,8 @@ Bitboard getRookAttacksSlow(Square sq, Bitboard occupancy) {
         }
     }
     return attacks;
+}
+
+Bitboard getQueenAttacksSlow(Square sq, Bitboard occupancy) {
+    return getBishopAttacksSlow(sq, occupancy) & getRookAttacksSlow(sq, occupancy);
 }

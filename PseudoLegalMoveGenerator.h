@@ -7,9 +7,13 @@
 #include "BoardState.h"
 
 class PseudoLegalMoveGenerator {
+private:
+	
+	MoveList getAllMovesForPieceType(const Position& pos, PieceType pieceType);
 public:
+	MoveList getMovesAtPosition(const Position& pos, Square source);
+
 	MoveList getPseudoLegalMoves(const Position& pos);
-	MoveList getPseudoLegalMovesForPiece(Square sq, const Position& pos);
 };
 
 #endif
