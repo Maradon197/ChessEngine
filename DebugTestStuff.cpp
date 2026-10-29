@@ -3,7 +3,7 @@
 #include "DebugTestStuff.hpp"
 #include <iostream>
 
-Bitboard getBishopAttacksSlow(Square sq, Bitboard occupancy) {
+Bitboard getBishopAttacksSlow(Square sq, Bitboard own_occupancy, Bitboard enemy_occupancy) {
     Bitboard attacks = 0;
 
     const int file = sq % 8;
@@ -22,11 +22,14 @@ Bitboard getBishopAttacksSlow(Square sq, Bitboard occupancy) {
 
         while (f >= 0 && f < 8 && r >= 0 && r < 8) {
             Square target = r * 8 + f;
-            Bitboard targetBB = Bitboard{ 1 } << target;
+            Bitboard targetBB = BB::oneSquareBB(target);
 
+            //own piece on current square? stop!
+            if(own_occupancy & targetBB) break;
+            //else: add and potentially stop if opponents piece
             attacks |= targetBB;
 
-            if (occupancy & targetBB) break;
+            if(enemy_occupancy & targetBB) break;
 
             f += dir[0];
             r += dir[1];
@@ -36,7 +39,7 @@ Bitboard getBishopAttacksSlow(Square sq, Bitboard occupancy) {
     return attacks;
 }
 
-Bitboard getRookAttacksSlow(Square sq, Bitboard occupancy) {
+Bitboard getRookAttacksSlow(Square sq, Bitboard own_occupancy, Bitboard enemy_occupancy) {
     Bitboard attacks = 0;
     const int file = sq % 8;
     const int rank = sq / 8;
@@ -49,12 +52,19 @@ Bitboard getRookAttacksSlow(Square sq, Bitboard occupancy) {
     for (const auto& dir : directions) {
         int f = file + dir[0];
         int r = rank + dir[1];
+        
         while (f >= 0 && f < 8 && r >= 0 && r < 8) {
             Square target = r * 8 + f;
-            Bitboard targetBB = Bitboard{ 1 } << target;
+            Bitboard targetBB = BB::oneSquareBB(target);
+
+            //own piece on current square? stop!
+            if(own_occupancy & targetBB) break;
+
+            //else: add and potentially stop if opponents piece
             attacks |= targetBB;
-            if (occupancy & targetBB)
+            if (enemy_occupancy & targetBB)
                 break;
+
             f += dir[0];
             r += dir[1];
         }

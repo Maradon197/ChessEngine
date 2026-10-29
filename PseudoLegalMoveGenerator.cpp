@@ -11,6 +11,8 @@
 MoveList PseudoLegalMoveGenerator::getMovesAtPosition(const Position& pos, Square source) {
 	MoveList pseudo_legal_piece_moves{};
 
+
+
 	return pseudo_legal_piece_moves;
 }
 
@@ -47,7 +49,7 @@ MoveList PseudoLegalMoveGenerator::getAllMovesForPieceType(const Position& pos, 
 				}
 			}
 		}
-		else {
+		else {//pos.side_to_move == BLACK
 			//TODO: black pawns mirror logic
 		}
 
@@ -55,21 +57,78 @@ MoveList PseudoLegalMoveGenerator::getAllMovesForPieceType(const Position& pos, 
 
 		case PieceType::KNIGHT:
 		while(side_to_moves_pieces) {
-			Move current_move_candidate;
+			Move current_move_candidate{};
 
 			//get current square and consume it
-			Square current_square = BB::getSquareFromOneSquareBitboard(BB::getLSBSquareBitboard(side_to_moves_pieces));
+			Square current_source_square = BB::getSquareFromOneSquareBitboard(BB::getLSBSquareBitboard(side_to_moves_pieces));
 			side_to_moves_pieces &= !BB::getLSBSquareBitboard(side_to_moves_pieces);
 
-			Bitboard attackPattern = getKnightAttacks(current_square);
+			//find legal moves: knight cannot capture own pieces
+			Bitboard attackPattern = getKnightAttacks(current_source_square);
+			Bitboard move_candidates = attackPattern & !(pos.color_occupancy[pos.side_to_move]);
 
-			//TODO: intersect with !(own occupancy)
-			//		add corresponding moves to the remaining squares to move list
+			//convert bitboard to movelist entries
+			while(move_candidates) {
+				//get current square and consume it
+				Square current_destination_square = BB::getSquareFromOneSquareBitboard(BB::getLSBSquareBitboard(move_candidates));
+				move_candidates &= !(BB::getLSBSquareBitboard(move_candidates));
+
+				current_destination_square & pos.color_occupancy(!pos.side_to_move) ? //placeholders for move encoding so this compiles
+					/*moving on opponents piece? TODO: Build move encoding for capture!*/ pos.side_to_move = pos.side_to_move :
+					/*moving on emptysquare? TODO: Build move encoding for move!*/ pos.side_to_move = pos.side_to_move ;
+				
+				pseudo_legal_piece_moves.moves[pseudo_legal_piece_moves.count++] = current_move_candidate;
+			}
 		}
+		break;
 		case PieceType::BISHOP:
-		//TODO
+		while(side_to_moves_pieces) {
+			Move current_move_candidate{};
+
+			//get current square and consume it
+			Square current_source_square = BB::getSquareFromOneSquareBitboard(BB::getLSBSquareBitboard(side_to_moves_pieces));
+			side_to_moves_pieces &= !BB::getLSBSquareBitboard(side_to_moves_pieces);
+
+			//find legal moves
+			Bitboard move_candiates = getBishopAttacks(current_source_square, pos.color_occupancy[pos.side_to_move],
+				pos.color_occupancy[!pos.side_to_move]);
+
+			while(move_candiates) {
+				Square current_destination_square = BB::getSquareFromOneSquareBitboard(BB::getLSBSquareBitboard(move_candidates));
+				move_candidates &= !(BB::getLSBSquareBitboard(move_candidates));
+
+				current_destination_square & pos.color_occupancy(!pos.side_to_move) ? //placeholders for move encoding so this compiles
+					/*moving on opponents piece? TODO: Build move encoding for capture!*/ pos.side_to_move = pos.side_to_move :
+					/*moving on emptysquare? TODO: Build move encoding for move!*/ pos.side_to_move = pos.side_to_move ;
+				
+				pseudo_legal_piece_moves.moves[pseudo_legal_piece_moves.count++] = current_move_candidate;
+			}
+		}
+		break;
 		case PieceType::ROOK:
-		//TODO
+		while(side_to_moves_pieces) {
+			Move current_move_candidate{};
+
+			//get current square and consume it
+			Square current_source_square = BB::getSquareFromOneSquareBitboard(BB::getLSBSquareBitboard(side_to_moves_pieces));
+			side_to_moves_pieces &= !BB::getLSBSquareBitboard(side_to_moves_pieces);
+
+			//find legal moves
+			Bitboard move_candiates = getRookAttacks(current_source_square, pos.color_occupancy[pos.side_to_move],
+				pos.color_occupancy[!pos.side_to_move]);
+
+			while(move_candiates) {
+				Square current_destination_square = BB::getSquareFromOneSquareBitboard(BB::getLSBSquareBitboard(move_candidates));
+				move_candidates &= !(BB::getLSBSquareBitboard(move_candidates));
+
+				current_destination_square & pos.color_occupancy(!pos.side_to_move) ? //placeholders for move encoding so this compiles
+					/*moving on opponents piece? TODO: Build move encoding for capture!*/ pos.side_to_move = pos.side_to_move :
+					/*moving on emptysquare? TODO: Build move encoding for move!*/ pos.side_to_move = pos.side_to_move ;
+				
+				pseudo_legal_piece_moves.moves[pseudo_legal_piece_moves.count++] = current_move_candidate;
+			}
+		}
+		break;
 		case PieceType::QUEEN:
 		//TODO
 		case PieceType::KING:

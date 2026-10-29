@@ -142,16 +142,16 @@ Bitboard getKingAttacks(Square sq) {
 	return king_attacks[sq];
 }
 
-Bitboard getBishopAttacks(Square sq, Bitboard occupancy) {
+Bitboard getBishopAttacks(Square sq, Bitboard own_occupancy, Bitboard enemy_occupancy) {
 	//TODO: magic bitboards
-	return getBishopAttacksSlow(sq, occupancy);
+	return getBishopAttacksSlow(sq, own_occupancy, enemy_occupancy);
 }
 
-Bitboard getRookAttacks(Square sq, Bitboard occupancy) {
+Bitboard getRookAttacks(Square sq, Bitboard own_occupancy, Bitboard enemy_occupancy) {
 	//TODO: magic bitboards
-	return getRookAttacksSlow(sq, occupancy);
+	return getRookAttacksSlow(sq, own_occupancy, enemy_occupancy);
 }
 
-Bitboard getQueenAttacks(Square sq, Bitboard occupancy) {
-	return getBishopAttacks(sq, occupancy) | getBishopAttacks(sq, occupancy);
+Bitboard getQueenAttacks(Square sq, Bitboard own_occupancy, Bitboard enemy_occupancy) {
+	return getBishopAttacks(sq, own_occupancy, enemy_occupancy) | getBishopAttacks(sq, own_occupancy, enemy_occupancy);
 }
