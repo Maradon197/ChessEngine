@@ -41,28 +41,28 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="DataTypes.h">
+    <ClInclude Include="DataTypes.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="BoardState.h">
+    <ClInclude Include="BoardState.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="MoveGenerator.h">
+    <ClInclude Include="MoveGenerator.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Bitboard.h">
+    <ClInclude Include="Bitboard.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="AttackTables.h">
+    <ClInclude Include="AttackTables.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="IOHandler.h">
+    <ClInclude Include="IOHandler.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="AttackDetector.h">
+    <ClInclude Include="AttackDetector.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="PseudoLegalMoveGenerator.h">
+    <ClInclude Include="PseudoLegalMoveGenerator.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="DebugTestStuff.hpp">

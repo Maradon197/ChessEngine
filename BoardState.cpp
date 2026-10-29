@@ -1,4 +1,4 @@
-#include "BoardState.h"
+#include "BoardState.hpp"
 
 void BoardState::setStartingPosition() {
     //white pieces

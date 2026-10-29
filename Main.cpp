@@ -1,8 +1,8 @@
-#include "DataTypes.h"
-#include "Bitboard.h"
-#include "BoardState.h"
-#include "AttackTables.h"
-#include "IOHandler.h"
+#include "DataTypes.hpp"
+#include "Bitboard.hpp"
+#include "BoardState.hpp"
+#include "AttackTables.hpp"
+#include "IOHandler.hpp"
 #include <iostream>
 
 int main() {

@@ -1,7 +1,7 @@
 #ifndef ATTACKDETECTOR
 #define ATTACKDETECTOR
 
-#include "DataTypes.h"
+#include "DataTypes.hpp"
 class AttackDetector {
 	bool isSquareAttacked(Square sq, Color byColor, const Position& pos);
 	Bitboard attackersToSquare(Square sq, Color byColor, const Position& pos);

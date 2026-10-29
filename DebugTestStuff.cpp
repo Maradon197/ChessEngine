@@ -1,5 +1,5 @@
-#include "DataTypes.h"
-#include "Bitboard.h"
+#include "DataTypes.hpp"
+#include "Bitboard.hpp"
 #include "DebugTestStuff.hpp"
 #include <iostream>
 

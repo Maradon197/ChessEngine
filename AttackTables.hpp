@@ -1,8 +1,8 @@
 #ifndef ATTACKTABLES
 #define ATTACKTABLES
 
-#include "DataTypes.h"
-#include "Bitboard.h"
+#include "DataTypes.hpp"
+#include "Bitboard.hpp"
 #include <cstdint>
 
 void initAttackTables();

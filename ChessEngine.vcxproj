@@ -133,15 +133,15 @@
     <ClCompile Include="PseudoLegalMoveGenerator.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="AttackDetector.h" />
-    <ClInclude Include="AttackTables.h" />
-    <ClInclude Include="Bitboard.h" />
-    <ClInclude Include="BoardState.h" />
-    <ClInclude Include="DataTypes.h" />
+    <ClInclude Include="AttackDetector.hpp" />
+    <ClInclude Include="AttackTables.hpp" />
+    <ClInclude Include="Bitboard.hpp" />
+    <ClInclude Include="BoardState.hpp" />
+    <ClInclude Include="DataTypes.hpp" />
     <ClInclude Include="DebugTestStuff.hpp" />
-    <ClInclude Include="IOHandler.h" />
-    <ClInclude Include="MoveGenerator.h" />
-    <ClInclude Include="PseudoLegalMoveGenerator.h" />
+    <ClInclude Include="IOHandler.hpp" />
+    <ClInclude Include="MoveGenerator.hpp" />
+    <ClInclude Include="PseudoLegalMoveGenerator.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

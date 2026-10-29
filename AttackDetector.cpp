@@ -1,7 +1,7 @@
-#include "AttackDetector.h"
-#include "AttackTables.h"
-#include "Bitboard.h"
-#include "DataTypes.h"
+#include "AttackDetector.hpp"
+#include "AttackTables.hpp"
+#include "Bitboard.hpp"
+#include "DataTypes.hpp"
 #include <cstdint>
 
 

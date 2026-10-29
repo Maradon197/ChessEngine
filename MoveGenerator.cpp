@@ -1,8 +1,8 @@
-#include "DataTypes.h"
-#include "MoveGenerator.h"
-#include "PseudoLegalMoveGenerator.h"
-#include "AttackDetector.h"
-#include "Bitboard.h"
+#include "DataTypes.hpp"
+#include "MoveGenerator.hpp"
+#include "PseudoLegalMoveGenerator.hpp"
+#include "AttackDetector.hpp"
+#include "Bitboard.hpp"
 
 MoveList MoveGenerator::generateMoves(const Position& pos) {
 	MoveList move_candidates{};

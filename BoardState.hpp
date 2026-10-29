@@ -1,6 +1,6 @@
 #ifndef BOARDSTATE
 #define BOARDSTATE
-#include "DataTypes.h"
+#include "DataTypes.hpp"
 
 class BoardState {
 private:

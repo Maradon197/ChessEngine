@@ -1,7 +1,7 @@
-#include "DataTypes.h"
-#include "PseudoLegalMoveGenerator.h"
-#include "AttackTables.h"
-#include "Bitboard.h"
+#include "DataTypes.hpp"
+#include "PseudoLegalMoveGenerator.hpp"
+#include "AttackTables.hpp"
+#include "Bitboard.hpp"
 
 //the moves generated here are PSEUDO legal. This means:
 //We account for: 			piece movement rules, board boundaries & occupancy, 

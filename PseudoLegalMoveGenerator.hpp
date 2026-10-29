@@ -1,10 +1,10 @@
 #ifndef PSEUDOLEGALMOVEGENERATOR
 #define PSEUDOLEGALMOVEGENERATOR
 
-#include "DataTypes.h"
-#include "Bitboard.h"
-#include "AttackTables.h"
-#include "BoardState.h"
+#include "DataTypes.hpp"
+#include "Bitboard.hpp"
+#include "AttackTables.hpp"
+#include "BoardState.hpp"
 
 class PseudoLegalMoveGenerator {
 private:

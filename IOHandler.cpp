@@ -1,6 +1,6 @@
-#include "DataTypes.h"
-#include "IOHandler.h"
-#include "Bitboard.h"
+#include "DataTypes.hpp"
+#include "IOHandler.hpp"
+#include "Bitboard.hpp"
 #include <iostream>
 #include "string"
 

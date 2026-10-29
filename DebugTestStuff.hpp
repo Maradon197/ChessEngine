@@ -1,8 +1,8 @@
 #ifndef DEBUGTESTSTUFF
 #define DEBUGTESTSTUFF
 
-#include "DataTypes.h"
-#include "Bitboard.h"
+#include "DataTypes.hpp"
+#include "Bitboard.hpp"
 #include <iostream>
 
 Bitboard getBishopAttacksSlow(Square source, Bitboard occupancy);

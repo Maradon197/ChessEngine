@@ -1,7 +1,7 @@
 #ifndef BITBOARD
 #define BITBOARD
 
-#include "DataTypes.h"
+#include "DataTypes.hpp"
 #include <cstdint>
 #if defined(_MSC_VER)
   #include <intrin.h>
