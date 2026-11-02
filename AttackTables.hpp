@@ -3,7 +3,6 @@
 
 #include "DataTypes.hpp"
 #include "Bitboard.hpp"
-#include <cstdint>
 
 void initAttackTables();
 

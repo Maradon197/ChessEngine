@@ -3,8 +3,6 @@
 
 #include "DataTypes.hpp"
 #include "Bitboard.hpp"
-#include "AttackTables.hpp"
-#include "BoardState.hpp"
 
 class PseudoLegalMoveGenerator {
 private:

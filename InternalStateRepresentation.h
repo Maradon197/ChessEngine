@@ -1,7 +1,7 @@
 #ifndef INTERNALSPACEREPRESENTATION
 #define INTERNALSPACEREPRESENTATION
 
-#include "DataTypes.h"
+#include "DataTypes.hpp"
 
 
 
