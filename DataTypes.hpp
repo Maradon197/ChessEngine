@@ -23,7 +23,8 @@ using Bitboard = std::uint64_t;
 // 13:		is En Passant
 // 14:		is Promotion
 // 15-17:	promotion piece type (0 for no promotion)
-// 18-31:	unused
+// 18:		is capture
+// 19-31:	unused
 using Move = std::uint32_t;
 
 constexpr std::size_t MAX_MOVES = 256;

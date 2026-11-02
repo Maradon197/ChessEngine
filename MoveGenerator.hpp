@@ -8,8 +8,8 @@
 
 class MoveGenerator {
 public:
-	MoveList generateMoves(const Position& pos);
-	MoveList generateMovesForPiece(Square sq, const Position& pos);
+	MoveList generateLegalMoves(const Position& pos);
+	MoveList generateLegalMovesForSquare(const Position& pos, Square sq);
 };
 
 #endif

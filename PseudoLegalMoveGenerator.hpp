@@ -6,10 +6,9 @@
 
 class PseudoLegalMoveGenerator {
 private:
-	
 	MoveList getAllMovesForPieceType(const Position& pos, PieceType pieceType);
 public:
-	MoveList getMovesAtPosition(const Position& pos, Square source);
+	MoveList getMovesAtSquare(const Position& pos, Square source);
 
 	MoveList getPseudoLegalMoves(const Position& pos);
 };

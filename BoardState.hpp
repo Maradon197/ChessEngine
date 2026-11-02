@@ -7,10 +7,11 @@ private:
 	Position position{};
 public:
 	void setStartingPosition();
-	//void setNewWholePosition(Position new_position);
 
-	//void acceptMove(Move);
+	//TODO: 
+	bool makeMove(Move m);
+	void unmakeMove();
 
-	const Position& getPosition() const;
+	const Position& getPosition();
 };
 #endif

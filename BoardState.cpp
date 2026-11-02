@@ -45,6 +45,6 @@ void BoardState::setStartingPosition() {
     position.fullmove_counter = 1;
 }
 
-const Position& BoardState::getPosition() const {
+const Position& BoardState::getPosition() {
     return position;
 }

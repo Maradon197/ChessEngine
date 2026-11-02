@@ -12,5 +12,6 @@ int main() {
 	board.setStartingPosition();
 
 	IOHandler iohandler;
+	iohandler.printPosition(board.getPosition());
 	return 0;
 }

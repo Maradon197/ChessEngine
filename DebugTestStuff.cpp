@@ -1,7 +1,6 @@
 #include "DataTypes.hpp"
 #include "Bitboard.hpp"
 #include "DebugTestStuff.hpp"
-#include <iostream>
 
 Bitboard getBishopAttacksSlow(Square sq, Bitboard own_occupancy, Bitboard enemy_occupancy) {
     Bitboard attacks = 0;
