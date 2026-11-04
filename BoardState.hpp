@@ -8,7 +8,7 @@ private:
 public:
 	void setStartingPosition();
 
-	//TODO: 
+	//TODO: implement
 	bool makeMove(Move m);
 	void unmakeMove();
 

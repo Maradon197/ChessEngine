@@ -6,10 +6,7 @@
 #include "AttackTables.hpp"
 #include "BoardState.hpp"
 
-class MoveGenerator {
-public:
-	MoveList generateLegalMoves(const Position& pos);
-	MoveList generateLegalMovesForSquare(const Position& pos, Square sq);
-};
+MoveList generateLegalMovesInPosition(const Position& pos, BoardState& board_state);
+MoveList generateLegalMovesForSquare(const Position& pos, Square sq, BoardState& board_state);
 
 #endif

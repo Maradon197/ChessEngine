@@ -8,9 +8,9 @@
 //							general castling rights, en passant
 //We do not account for: 	(double) checks, pins, ...
 
-MoveList PseudoLegalMoveGenerator::getMovesAtSquare(const Position& pos, Square source) {
+MoveList getPseudoLegalMovesAtSquare(const Position& pos, Square source) {
 	MoveList pseudo_legal_piece_moves{};
-	MoveList all_moves = getPseudoLegalMoves(pos);
+	MoveList all_moves = getPseudoLegalMovesInPosition(pos);
 
 	for(std::uint16_t i = 0; i < all_moves.count; ++i) {
 
@@ -23,7 +23,7 @@ MoveList PseudoLegalMoveGenerator::getMovesAtSquare(const Position& pos, Square 
 	return pseudo_legal_piece_moves;
 }
 
-MoveList PseudoLegalMoveGenerator::getAllMovesForPieceType(const Position& pos, PieceType pieceType) {
+MoveList getAllMovesForPieceType(const Position& pos, PieceType pieceType) {
 	Bitboard to_consider_pieces = pos.pieces[pos.side_to_move][pieceType];
 	MoveList pseudo_legal_piece_moves{};
 
@@ -283,7 +283,7 @@ MoveList PseudoLegalMoveGenerator::getAllMovesForPieceType(const Position& pos, 
 }
 
 
-MoveList PseudoLegalMoveGenerator::getPseudoLegalMoves(const Position& pos) {
+MoveList getPseudoLegalMovesInPosition(const Position& pos) {
 	MoveList pseudoLegalMoves{};
 
 	for(int piece_type = PAWN; piece_type <= KING; ++piece_type) {

@@ -4,13 +4,7 @@
 #include "DataTypes.hpp"
 #include "Bitboard.hpp"
 
-class PseudoLegalMoveGenerator {
-private:
-	MoveList getAllMovesForPieceType(const Position& pos, PieceType pieceType);
-public:
-	MoveList getMovesAtSquare(const Position& pos, Square source);
-
-	MoveList getPseudoLegalMoves(const Position& pos);
-};
+MoveList getPseudoLegalMovesAtSquare(const Position& pos, Square source);
+MoveList getPseudoLegalMovesInPosition(const Position& pos);
 
 #endif
