@@ -3,6 +3,8 @@
 
 #include <cstdint>
 #include <cstddef>
+//All memory layouts count up from the LSB
+
 
 //MEMORY LAYOUT OF BITBOARD:
 // one bit per square
@@ -39,6 +41,8 @@ struct MoveList {
 // 2 / 3:	allow Black long (2) / short (3) castle
 // 4+:		unused
 using CastlingRights = std::uint8_t;
+constexpr CastlingRights NO_MORE_WHITE_CASTLES = 0b1100;
+constexpr CastlingRights NO_MORE_BLACK_CASTLES = 0b0011;
 
 //MEMORY LAYOUT OF SQUARE:
 // 0-5:		source square (0-63)
@@ -74,7 +78,7 @@ struct UndoState {
 	Square previous_destination;
 
 	PieceType captured_piece;
-	Square en_passant_capture;
+	Square ep_square;
 
 	CastlingRights castling_rights;
 

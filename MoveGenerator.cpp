@@ -4,6 +4,8 @@
 #include "AttackDetector.hpp"
 #include "Bitboard.hpp"
 
+//MASSIVE TODO: Scan Castling moves for checks!
+
 MoveList generateLegalMovesForSquare(const Position& pos, Square sq, BoardState& board_state) {
 
 	MoveList legal_moves{};
