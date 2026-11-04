@@ -10,8 +10,9 @@ private:
 public:
 	void setStartingPosition();
 
-	//TODO: implement
 	bool makeMove(Move m);
+
+	//TODO: implement
 	void unmakeMove();
 
 	const Position& getPosition();

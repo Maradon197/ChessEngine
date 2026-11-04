@@ -57,6 +57,10 @@ constexpr Square NO_SQUARE = 64;
 using Clock = std::uint16_t;
 
 enum Color {WHITE, BLACK};
+constexpr Color operator!(Color color) {//opposite color
+	return color == Color::WHITE ? Color::BLACK : Color::WHITE;
+}
+
 enum PieceType {PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING, NONE};
 
 struct Position {

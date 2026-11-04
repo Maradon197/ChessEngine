@@ -43,6 +43,8 @@ void BoardState::setStartingPosition() {
     position.castling_rights = 0b1111;
     position.ep_square = NO_SQUARE;
     position.reversible_halfmove_clock = 0;
+
+    
     position.fullmove_counter = 1;
 }
 
@@ -164,4 +166,8 @@ bool BoardState::makeMove(Move m) {
 
     if(position.side_to_move == WHITE) ++position.fullmove_counter;
     return true;
+}
+
+void BoardState::unmakeMove() {
+
 }
