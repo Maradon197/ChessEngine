@@ -4,7 +4,7 @@
 #include "AttackDetector.hpp"
 #include "Bitboard.hpp"
 
-//MASSIVE TODO: Scan Castling moves for checks!
+//MASSIVE TODO: Scan Castling moves for checks in the way!
 
 MoveList generateLegalMovesForSquare(const Position& pos, Square sq, BoardState& board_state) {
 
@@ -21,7 +21,7 @@ MoveList generateLegalMovesForSquare(const Position& pos, Square sq, BoardState&
 		board_state.unmakeMove();
 	}
 
-	return move_candidates;
+	return legal_moves;
 }
 
 MoveList generateLegalMovesInPosition(const Position& pos, BoardState& board_state) {
@@ -39,5 +39,5 @@ MoveList generateLegalMovesInPosition(const Position& pos, BoardState& board_sta
 		board_state.unmakeMove();
 	}
 
-	return move_candidates;
+	return legal_moves;
 }

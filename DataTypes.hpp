@@ -41,8 +41,12 @@ struct MoveList {
 // 2 / 3:	allow Black long (2) / short (3) castle
 // 4+:		unused
 using CastlingRights = std::uint8_t;
-constexpr CastlingRights NO_MORE_WHITE_CASTLES = 0b1100;
-constexpr CastlingRights NO_MORE_BLACK_CASTLES = 0b0011;
+constexpr CastlingRights REVOKE_WHITE_LONG_CASTLE = 0b1110;
+constexpr CastlingRights REVOKE_WHITE_SHORT_CASTLE = 0b1101;
+constexpr CastlingRights REVOKE_BLACK_LONG_CASTLE = 0b1011;
+constexpr CastlingRights REVOKE_BLACK_SHORT_CASTLE = 0b0111;
+constexpr CastlingRights REVOKE_WHITE_CASTLES = 0b1100;
+constexpr CastlingRights REVOKE_BLACK_CASTLES = 0b0011;
 
 //MEMORY LAYOUT OF SQUARE:
 // 0-5:		source square (0-63)
@@ -50,6 +54,10 @@ constexpr CastlingRights NO_MORE_BLACK_CASTLES = 0b0011;
 // 7+:		should be zero! otherwise BB logic is inefficient (2^x downshift)
 using Square = std::uint8_t;
 constexpr Square NO_SQUARE = 64;
+constexpr Square WHITE_LEFT_ROOK_HOME_SQUARE = 0;
+constexpr Square WHITE_RIGHT_ROOK_HOME_SQUARE = 7;
+constexpr Square BLACK_LEFT_ROOK_HOME_SQUARE = 56;
+constexpr Square BLACK_RIGHT_ROOK_HOME_SQUARE = 63;
 
 //simple integer counting up moves for ply / fullmove clock
 //the hypothetical maximum is ~8k, so std::uint8_t is not sufficient
