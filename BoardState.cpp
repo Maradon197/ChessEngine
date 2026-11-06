@@ -175,4 +175,13 @@ bool BoardState::makeMove(Move m) {
 
 void BoardState::unmakeMove() {
 	UndoState undo_state = undoable_history.top();
+
+    //todo: undo actual piece movement
+    position.side_to_move = !position.side_to_move;
+    position.ep_square = undo_state.ep_square;
+    position.castling_rights = undo_state.castling_rights;
+    position.reversible_halfmove_clock = undo_state.reversible_halfmove_clock;
+    position.fullmove_counter = undo_state.fullmove_counter;
+
+    undoable_history.pop();
 }
