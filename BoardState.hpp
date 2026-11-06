@@ -7,6 +7,8 @@ class BoardState {
 private:
 	Position position{};
 	std::stack<UndoState> undoable_history{};
+
+	void updateOccupanciesToMatchPieceBB();
 public:
 	void setStartingPosition();
 

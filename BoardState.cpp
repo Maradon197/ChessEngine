@@ -1,6 +1,14 @@
 #include "BoardState.hpp"
 #include "Bitboard.hpp"
 
+void BoardState::updateOccupanciesToMatchPieceBB() {
+    position.color_occupancy[WHITE] = position.color_occupancy[BLACK] = 0;
+	for (int color = WHITE; color <= BLACK; ++color)
+		for (int piece = PAWN; piece <= KING; ++piece)
+			position.color_occupancy[color] |= position.pieces[color][piece];
+	position.total_occupancy = position.color_occupancy[WHITE] | position.color_occupancy[BLACK];
+}
+
 void BoardState::setStartingPosition() {
 	//white pieces
 	position.pieces[WHITE][PAWN] = 0x000000000000FF00ULL;  //Pawns
@@ -89,6 +97,7 @@ bool BoardState::makeMove(Move m) {
 	undo_state.fullmove_counter = position.fullmove_counter;
 	undo_state.reversible_halfmove_clock = position.reversible_halfmove_clock;
 	undo_state.ep_square = position.ep_square;
+    undo_state.moved_piece = moving_piece_type;
 	if (is_capture)
 		undo_state.captured_piece = captured_piece_type;
 	undo_state.castling_rights = position.castling_rights;
@@ -109,8 +118,13 @@ bool BoardState::makeMove(Move m) {
 		position.pieces[position.side_to_move][ROOK] |= BB::oneSquareBB(rook_destination);
 
 		position.castling_rights &= position.side_to_move == WHITE ? REVOKE_WHITE_CASTLES : REVOKE_BLACK_CASTLES;
+        
+        undo_state.castled_side = (is_castling_king_side) ? SHORT_CASTLE : LONG_CASTLE;
 	}
-	else if (is_promo) {
+	else {//TODO: fix indentation
+        undo_state.castled_side = NO_CASTLE;
+
+        if (is_promo) {
 		if (is_capture)
 			position.pieces[!position.side_to_move][captured_piece_type] &= ~BB::oneSquareBB(destination);
 		position.pieces[position.side_to_move][promo_piece_type] |= BB::oneSquareBB(destination);
@@ -145,11 +159,8 @@ bool BoardState::makeMove(Move m) {
 		}
 	}
 
-	position.color_occupancy[WHITE] = position.color_occupancy[BLACK] = 0;
-	for (int color = WHITE; color <= BLACK; ++color)
-		for (int piece = PAWN; piece <= KING; ++piece)
-			position.color_occupancy[color] |= position.pieces[color][piece];
-	position.total_occupancy = position.color_occupancy[WHITE] | position.color_occupancy[BLACK];
+    //TODO: assert wether this is too runtime inefficient
+	updateOccupanciesToMatchPieceBB();
 	position.ep_square = NO_SQUARE;
 
 	if (moving_piece_type == PAWN && destination > source + 8 &&
@@ -171,15 +182,31 @@ bool BoardState::makeMove(Move m) {
 
 	undoable_history.push(undo_state);
 	return true;
+    }
 }
 
 void BoardState::unmakeMove() {
 	UndoState undo_state = undoable_history.top();
 
-    //todo: undo actual piece movement
     position.side_to_move = !position.side_to_move;
-    position.ep_square = undo_state.ep_square;
-    position.castling_rights = undo_state.castling_rights;
+
+    if(undo_state.castled_side != NO_CASTLE) {
+        //TODO: revert castling
+    }
+    else {
+        if(undo_state.captured_piece != PieceType::NONE) { //TODO: populate this correctly in makeMove
+            position.pieces[!position.side_to_move][undo_state.captured_piece] |= //TODO: integrate EP check into ternary here
+                BB::oneSquareBB(undo_state.previous_destination);
+        }
+        //quiet moves:
+        position.pieces[position.side_to_move][undo_state.moved_piece] &= 
+            ~BB::oneSquareBB(undo_state.previous_destination);
+        position.pieces[position.side_to_move][undo_state.moved_piece] |= 
+            BB::oneSquareBB(undo_state.previous_move_source);
+    }    
+    //TODO: check wether this is too runtime inefficient
+    updateOccupanciesToMatchPieceBB();
+
     position.reversible_halfmove_clock = undo_state.reversible_halfmove_clock;
     position.fullmove_counter = undo_state.fullmove_counter;
 
