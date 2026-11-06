@@ -41,16 +41,16 @@ struct MoveList {
 // 0 / 1:	allow White long (0) / short (1) castle
 // 2 / 3:	allow Black long (2) / short (3) castle
 // 4+:		unused
-using CastlingRights = std::uint8_t;
-constexpr CastlingRights NO_CASTLE = 0b0000;
-constexpr CastlingRights SHORT_CASTLE = 0b1010;
-constexpr CastlingRights LONG_CASTLE = 0b0101;
-constexpr CastlingRights REVOKE_WHITE_LONG_CASTLE = 0b1110;
-constexpr CastlingRights REVOKE_WHITE_SHORT_CASTLE = 0b1101;
-constexpr CastlingRights REVOKE_BLACK_LONG_CASTLE = 0b1011;
-constexpr CastlingRights REVOKE_BLACK_SHORT_CASTLE = 0b0111;
-constexpr CastlingRights REVOKE_WHITE_CASTLES = 0b1100;
-constexpr CastlingRights REVOKE_BLACK_CASTLES = 0b0011;
+using CastlingInfo = std::uint8_t;
+constexpr CastlingInfo NO_CASTLE = 0b0000;
+constexpr CastlingInfo SHORT_CASTLE = 0b1010;
+constexpr CastlingInfo LONG_CASTLE = 0b0101;
+constexpr CastlingInfo REVOKE_WHITE_LONG_CASTLE = 0b1110;
+constexpr CastlingInfo REVOKE_WHITE_SHORT_CASTLE = 0b1101;
+constexpr CastlingInfo REVOKE_BLACK_LONG_CASTLE = 0b1011;
+constexpr CastlingInfo REVOKE_BLACK_SHORT_CASTLE = 0b0111;
+constexpr CastlingInfo REVOKE_WHITE_CASTLES = 0b1100;
+constexpr CastlingInfo REVOKE_BLACK_CASTLES = 0b0011;
 
 //MEMORY LAYOUT OF SQUARE:
 // 0-5:		source square (0-63)
@@ -82,25 +82,11 @@ struct Position {
 	Bitboard color_occupancy[2];
 	
 	Color side_to_move;
-	CastlingRights castling_rights;
+	CastlingInfo castling_rights;
 	Square ep_square;
 
 	Clock reversible_halfmove_clock;
 	Clock fullmove_counter;
 };
 
-struct UndoState {
-	Square previous_move_source;
-	Square previous_destination;
-	PieceType moved_piece;
-
-	PieceType captured_piece;
-	Square ep_square;
-
-	CastlingRights castled_side;
-	CastlingRights castling_rights;
-
-	Clock reversible_halfmove_clock;
-	Clock fullmove_counter;
-};
 #endif

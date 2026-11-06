@@ -60,7 +60,8 @@ const Position& BoardState::getPosition() {
 }
 
 bool BoardState::makeMove(Move m) {
-	UndoState undo_state{};
+	Position undo_state{ this->position };
+	undoable_history.push(undo_state);
 
 	//decode move
 	Square source = m & 0x3f;
@@ -85,22 +86,11 @@ bool BoardState::makeMove(Move m) {
 	}
 
 	bool is_ep = (moving_piece_type == PAWN && destination == position.ep_square);
-	bool is_capture = ((m >> 14) & 0b1) && is_ep;
+	bool is_capture = ((m >> 14) & 0b1) || is_ep;
 	bool is_castle = moving_piece_type == KING &&
 		(destination == source + 2 || source == destination + 2);
 	bool is_promo = moving_piece_type == PAWN &&
 		(destination >= 56 || destination < 8);
-
-	//push back move information
-	undo_state.previous_move_source = source;
-	undo_state.previous_destination = destination;
-	undo_state.fullmove_counter = position.fullmove_counter;
-	undo_state.reversible_halfmove_clock = position.reversible_halfmove_clock;
-	undo_state.ep_square = position.ep_square;
-    undo_state.moved_piece = moving_piece_type;
-	if (is_capture)
-		undo_state.captured_piece = captured_piece_type;
-	undo_state.castling_rights = position.castling_rights;
 
 	//remove old piece
 	position.color_occupancy[position.side_to_move] &= ~BB::oneSquareBB(source);
@@ -118,51 +108,48 @@ bool BoardState::makeMove(Move m) {
 		position.pieces[position.side_to_move][ROOK] |= BB::oneSquareBB(rook_destination);
 
 		position.castling_rights &= position.side_to_move == WHITE ? REVOKE_WHITE_CASTLES : REVOKE_BLACK_CASTLES;
-        
-        undo_state.castled_side = (is_castling_king_side) ? SHORT_CASTLE : LONG_CASTLE;
 	}
-	else {//TODO: fix indentation
-        undo_state.castled_side = NO_CASTLE;
-
-        if (is_promo) {
-		if (is_capture)
-			position.pieces[!position.side_to_move][captured_piece_type] &= ~BB::oneSquareBB(destination);
-		position.pieces[position.side_to_move][promo_piece_type] |= BB::oneSquareBB(destination);
-	}
-	else {
-		if (is_capture && !is_ep)
-			position.pieces[!position.side_to_move][captured_piece_type] &= ~BB::oneSquareBB(destination);
-		else if (is_ep) {
-			const Square captured_square = position.side_to_move == WHITE ? destination - 8 : destination + 8;
-			position.pieces[!position.side_to_move][PAWN] &= ~BB::oneSquareBB(captured_square);
+	else {//!is_castle
+		if (is_promo) {
+			if (is_capture)
+				position.pieces[!position.side_to_move][captured_piece_type] &= ~BB::oneSquareBB(destination);
+			position.pieces[position.side_to_move][promo_piece_type] |= BB::oneSquareBB(destination);
 		}
+		else {
+			if (is_capture && !is_ep)
+				position.pieces[!position.side_to_move][captured_piece_type] &= ~BB::oneSquareBB(destination);
+			else if (is_ep) {
+				const Square captured_square = position.side_to_move == WHITE ? destination - 8 : destination + 8;
+				position.pieces[!position.side_to_move][PAWN] &= ~BB::oneSquareBB(captured_square);
+			}
 
-		//quiet move
-		position.pieces[position.side_to_move][moving_piece_type] |= BB::oneSquareBB(destination);
+			//quiet move
+			position.pieces[position.side_to_move][moving_piece_type] |= BB::oneSquareBB(destination);
 
-		//keep in mind we are not castling right now
-		if (moving_piece_type == KING)
-			position.castling_rights &= position.side_to_move == WHITE ?
-			REVOKE_WHITE_CASTLES :
-			REVOKE_BLACK_CASTLES;
-		else if (moving_piece_type == ROOK) {
-			if (source == (position.side_to_move == WHITE ? WHITE_LEFT_ROOK_HOME_SQUARE : BLACK_LEFT_ROOK_HOME_SQUARE))
-				position.castling_rights &= (position.side_to_move == WHITE) ? REVOKE_WHITE_LONG_CASTLE : REVOKE_BLACK_LONG_CASTLE;
-			if (source == (position.side_to_move == WHITE ? WHITE_RIGHT_ROOK_HOME_SQUARE : BLACK_RIGHT_ROOK_HOME_SQUARE))
-				position.castling_rights &= (position.side_to_move == WHITE) ? REVOKE_WHITE_SHORT_CASTLE : REVOKE_BLACK_SHORT_CASTLE;
-		}
-		if (is_capture && captured_piece_type == ROOK) {
-			if (destination == (position.side_to_move == WHITE ? 56 : 0))
-				position.castling_rights &= position.side_to_move == WHITE ? 0b1011 : 0b1110;
-			if (destination == (position.side_to_move == WHITE ? 63 : 7))
-				position.castling_rights &= position.side_to_move == WHITE ? 0b0111 : 0b1101;
+			//keep in mind we are not castling right now
+			if (moving_piece_type == KING)
+				position.castling_rights &= position.side_to_move == WHITE ?
+				REVOKE_WHITE_CASTLES :
+				REVOKE_BLACK_CASTLES;
+			else if (moving_piece_type == ROOK) {
+				if (source == (position.side_to_move == WHITE ? WHITE_LEFT_ROOK_HOME_SQUARE : BLACK_LEFT_ROOK_HOME_SQUARE))
+					position.castling_rights &= (position.side_to_move == WHITE) ? REVOKE_WHITE_LONG_CASTLE : REVOKE_BLACK_LONG_CASTLE;
+				if (source == (position.side_to_move == WHITE ? WHITE_RIGHT_ROOK_HOME_SQUARE : BLACK_RIGHT_ROOK_HOME_SQUARE))
+					position.castling_rights &= (position.side_to_move == WHITE) ? REVOKE_WHITE_SHORT_CASTLE : REVOKE_BLACK_SHORT_CASTLE;
+			}
+			if (is_capture && captured_piece_type == ROOK) {
+				if (destination == (position.side_to_move == WHITE ? 56 : 0))
+					position.castling_rights &= position.side_to_move == WHITE ? 0b1011 : 0b1110;
+				if (destination == (position.side_to_move == WHITE ? 63 : 7))
+					position.castling_rights &= position.side_to_move == WHITE ? 0b0111 : 0b1101;
+			}
 		}
 	}
 
-    //TODO: assert wether this is too runtime inefficient
+	//TODO: assert wether this is too runtime inefficient
 	updateOccupanciesToMatchPieceBB();
-	position.ep_square = NO_SQUARE;
 
+	position.ep_square = NO_SQUARE;
 	if (moving_piece_type == PAWN && destination > source + 8 &&
 		destination == source + 16)
 		position.ep_square = source + 8;
@@ -175,40 +162,18 @@ bool BoardState::makeMove(Move m) {
 	else
 		++position.reversible_halfmove_clock;
 
-	position.side_to_move = position.side_to_move == WHITE ? BLACK : WHITE;
+	position.side_to_move = !position.side_to_move;
 
 	if (position.side_to_move == WHITE)
 		++position.fullmove_counter;
 
-	undoable_history.push(undo_state);
 	return true;
-    }
 }
 
 void BoardState::unmakeMove() {
-	UndoState undo_state = undoable_history.top();
+	Position undo_state = undoable_history.top();
 
-    position.side_to_move = !position.side_to_move;
+	this->position = undo_state;
 
-    if(undo_state.castled_side != NO_CASTLE) {
-        //TODO: revert castling
-    }
-    else {
-        if(undo_state.captured_piece != PieceType::NONE) { //TODO: populate this correctly in makeMove
-            position.pieces[!position.side_to_move][undo_state.captured_piece] |= //TODO: integrate EP check into ternary here
-                BB::oneSquareBB(undo_state.previous_destination);
-        }
-        //quiet moves:
-        position.pieces[position.side_to_move][undo_state.moved_piece] &= 
-            ~BB::oneSquareBB(undo_state.previous_destination);
-        position.pieces[position.side_to_move][undo_state.moved_piece] |= 
-            BB::oneSquareBB(undo_state.previous_move_source);
-    }    
-    //TODO: check wether this is too runtime inefficient
-    updateOccupanciesToMatchPieceBB();
-
-    position.reversible_halfmove_clock = undo_state.reversible_halfmove_clock;
-    position.fullmove_counter = undo_state.fullmove_counter;
-
-    undoable_history.pop();
+	undoable_history.pop();
 }
