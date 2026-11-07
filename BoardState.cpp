@@ -170,10 +170,12 @@ bool BoardState::makeMove(Move m) {
 	return true;
 }
 
-void BoardState::unmakeMove() {
+int BoardState::unmakeMove() {
 	Position undo_state = undoable_history.top();
 
 	this->position = undo_state;
 
 	undoable_history.pop();
+
+	return true;
 }

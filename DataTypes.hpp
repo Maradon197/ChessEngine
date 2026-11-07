@@ -36,19 +36,21 @@ struct MoveList {
 	std::size_t count = 0;
 };
 
-//TODO: refactor this name to CastlingInfo
-//MEMORY LAYOUT OF CASTLING RIGHTS:
+//MEMORY LAYOUT OF CASTLING INFO:
 // 0 / 1:	allow White long (0) / short (1) castle
 // 2 / 3:	allow Black long (2) / short (3) castle
 // 4+:		unused
 using CastlingInfo = std::uint8_t;
+
 constexpr CastlingInfo NO_CASTLE = 0b0000;
 constexpr CastlingInfo SHORT_CASTLE = 0b1010;
 constexpr CastlingInfo LONG_CASTLE = 0b0101;
+
 constexpr CastlingInfo REVOKE_WHITE_LONG_CASTLE = 0b1110;
 constexpr CastlingInfo REVOKE_WHITE_SHORT_CASTLE = 0b1101;
 constexpr CastlingInfo REVOKE_BLACK_LONG_CASTLE = 0b1011;
 constexpr CastlingInfo REVOKE_BLACK_SHORT_CASTLE = 0b0111;
+
 constexpr CastlingInfo REVOKE_WHITE_CASTLES = 0b1100;
 constexpr CastlingInfo REVOKE_BLACK_CASTLES = 0b0011;
 

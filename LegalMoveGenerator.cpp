@@ -1,12 +1,12 @@
 #include "DataTypes.hpp"
-#include "MoveGenerator.hpp"
+#include "LegalMoveGenerator.hpp"
 #include "PseudoLegalMoveGenerator.hpp"
 #include "AttackDetector.hpp"
 #include "Bitboard.hpp"
 
 //MASSIVE TODO: Scan Castling moves for checks in the way!
 
-MoveList generateLegalMovesForSquare(const Position& pos, Square sq, BoardState& board_state) {
+MoveList LegalMoveGenerator::generateLegalMovesForSquare(const Position& pos, Square sq, BoardState& board_state) {
 
 	MoveList legal_moves{};
 	MoveList move_candidates = getPseudoLegalMovesAtSquare(pos, sq);
@@ -24,7 +24,7 @@ MoveList generateLegalMovesForSquare(const Position& pos, Square sq, BoardState&
 	return legal_moves;
 }
 
-MoveList generateLegalMovesInPosition(const Position& pos, BoardState& board_state) {
+MoveList LegalMoveGenerator::generateLegalMovesInPosition(const Position& pos, BoardState& board_state) {
 
 	MoveList legal_moves{};
 	MoveList move_candidates = getPseudoLegalMovesInPosition(pos);

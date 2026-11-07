@@ -33,7 +33,7 @@
     <ClCompile Include="AttackDetector.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="MoveGenerator.cpp">
+    <ClCompile Include="LegalMoveGenerator.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="PseudoLegalMoveGenerator.cpp">
@@ -47,7 +47,7 @@
     <ClInclude Include="BoardState.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="MoveGenerator.hpp">
+    <ClInclude Include="LegalMoveGenerator.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Bitboard.hpp">

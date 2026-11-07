@@ -7,12 +7,16 @@
 #include <string>
 
 std::string buildStringFromSquare(Square sq) {
+	if (sq == NO_SQUARE || sq < 0 || sq > 64) {
+		return "invalid";
+	}
+
 	int rank = sq / 8;
 	int file = sq % 8;
 
 	std::string squareString;
 	squareString += static_cast<char>('a' + file);
-	squareString += std::to_string(rank + 1);
+	squareString += static_cast<char>('1' + rank);
 
 	return squareString;
 }
@@ -68,14 +72,22 @@ Move IOHandler::attemptMove() {
 	Square source;
 	Square destination;
 
-	std::cout << "\n\nIOHandler::attemptMove: Input tile coordinates from square: \n";
+	std::cout << "\n\nIOHandler::attemptMove: Input tile coordinates from square (lowercase letters): \n";
 
-	//fancy lambda sponsored by ChatGPT
+	//fancy lambdas sponsored by ChatGPT
 	source = buildSquareFromString([]() {
 		std::string input;
 		std::getline(std::cin, input);
 		return input;
 		}());
+
+	/*	std::cout << "Iohandler::attemptMove: understood location " << static_cast<int>(source) << "\n";	*/
+	//^ interestingly, this returns complete garbage for the contents of source. By some miracle I am not
+	//able to break anything with this, though. So it may stay for now and we pray it stays as compliant as it is of now.
+	//if you're still reading this in the final version, hopefully in an inactive preprocessor block, I am a happy man.
+
+	//... and please put it in such a block if it isn't. I wrote this at 2am. My compiler is no use if it gets PTSD
+
 
 	std::cout << "IOHandler::attemptMove: To square: \n";
 	destination = buildSquareFromString([]() {
@@ -83,11 +95,8 @@ Move IOHandler::attemptMove() {
 		std::getline(std::cin, input);
 		return input;
 		}());
-	
 
-	Move move{};
+	std::cout << "Iohandler::attemptMove: understood location " << source << "\n";
 
-
-	move = static_cast<Move>(source | (destination << 6));
-	return move;
+	return static_cast<Move>(source | (destination << 6));
 }

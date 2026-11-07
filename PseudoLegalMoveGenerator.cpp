@@ -10,6 +10,7 @@
 
 //MASSIVE TODO: check for EP rights!
 
+
 MoveList getPseudoLegalMovesAtSquare(const Position& pos, Square source) {
 	MoveList pseudo_legal_piece_moves{};
 	MoveList all_moves = getPseudoLegalMovesInPosition(pos);

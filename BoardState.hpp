@@ -13,9 +13,7 @@ public:
 	void setStartingPosition();
 
 	bool makeMove(Move m);
-
-	//TODO: implement
-	void unmakeMove();
+	int unmakeMove();
 
 	const Position& getPosition();
 };

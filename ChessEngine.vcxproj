@@ -129,7 +129,7 @@
     <ClCompile Include="DebugTestStuff.cpp" />
     <ClCompile Include="IOHandler.cpp" />
     <ClCompile Include="Main.cpp" />
-    <ClCompile Include="MoveGenerator.cpp" />
+    <ClCompile Include="LegalMoveGenerator.cpp" />
     <ClCompile Include="PseudoLegalMoveGenerator.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -140,7 +140,7 @@
     <ClInclude Include="DataTypes.hpp" />
     <ClInclude Include="DebugTestStuff.hpp" />
     <ClInclude Include="IOHandler.hpp" />
-    <ClInclude Include="MoveGenerator.hpp" />
+    <ClInclude Include="LegalMoveGenerator.hpp" />
     <ClInclude Include="PseudoLegalMoveGenerator.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
