@@ -12,3 +12,13 @@ endif()
 # console: the console test program
 add_subdirectory(core)
 add_subdirectory(console)
+
+# gui: Qt widgets + Doorman
+# app: the GUI program that connects core and gui
+option(CHESS_BUILD_GUI "Build the Qt GUI (needs Qt 6.5 or newer)" ON)
+if(CHESS_BUILD_GUI)
+    find_package(Qt6 6.5 REQUIRED COMPONENTS Core Widgets)
+    qt_standard_project_setup()
+    add_subdirectory(gui)
+    add_subdirectory(app)
+endif()
