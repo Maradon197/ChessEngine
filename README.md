@@ -3,15 +3,15 @@
 A bitboard chess engine in C++ with a Qt GUI.
 
 ```
-core/      engine library (ChessCore), Qt-free: board state, attack tables, move generation
-console/   console test program (ChessEngineConsole)
-gui/       Qt widgets + Doorman (ChessGui), see gui/README.md
-app/       the GUI program (ChessEngineGUI): connects core and gui
+core/      engine library (ChessCore): simple, runtime efficient implementation. At least in my dreams
+console/   console test program (ChessEngineConsole): A leftover from early testing. Still works but wouldnt use
+gui/       Qt widgets + Doorman (ChessGui): see gui/README.md
+app/       the GUI program (ChessEngineGUI): the starter
 ```
 
-Dependencies only point one way: `app → gui → core`. The core never knows about the GUI.
+Dependencies only point one way: `app` → `gui` → `core`
 
-## Building
+## Versions and build
 
 CMake 3.19+, a C++20 compiler and, for the GUI, Qt 6.5+.
 
