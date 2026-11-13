@@ -1,10 +1,12 @@
+#include <iostream>
+
 #include "DataTypes.hpp"
 #include "Bitboard.hpp"
+
 #include "BoardState.hpp"
 #include "AttackTables.hpp"
 #include "IOHandler.hpp"
 #include "LegalMoveGenerator.hpp"
-#include <iostream>
 
 //TODO next:
 //fix: quiet moves that are not from pawns sometimes dont remove the old piece
@@ -23,7 +25,10 @@ int main() {
 
 	while (true) {
 
-		const Move input_move = IOHandler::attemptMove();
+		Move input_move{};
+		//input_move = IOHandler::attemptMove();
+
+
 
 		if (input_move == 0) {
 			std::cout << "main.cpp: Invalid input\n";
@@ -31,12 +36,17 @@ int main() {
 		}
 		MoveList legal_moves = legal_move_generator.generateLegalMovesForSquare(board.getPosition(), static_cast<Square>(input_move >>6), board);
 
+		bool move_found = false;
+
 		for (int i = 0; i < legal_moves.count; ++i) {
 			if (legal_moves.moves[i] == input_move) {
+				move_found = true;
 				board.makeMove(input_move);
 				break;
 			}
-			//not in legal moves:
+		}
+
+		if (!move_found) {
 			std::cout << "main.cpp: Illegal move\n";
 		}
 		

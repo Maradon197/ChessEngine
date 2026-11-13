@@ -2,6 +2,7 @@
 #define ATTACKDETECTOR
 
 #include "DataTypes.hpp"
+#include "Bitboard.hpp"
 
 bool isSquareAttacked(Square sq, Color byColor, const Position& pos);
 Bitboard attackersToSquare(Square sq, Color byColor, const Position& pos);

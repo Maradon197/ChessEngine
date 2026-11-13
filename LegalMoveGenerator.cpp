@@ -1,8 +1,10 @@
-#include "DataTypes.hpp"
 #include "LegalMoveGenerator.hpp"
+
+#include "DataTypes.hpp"
+#include "Bitboard.hpp"
+
 #include "PseudoLegalMoveGenerator.hpp"
 #include "AttackDetector.hpp"
-#include "Bitboard.hpp"
 
 //MASSIVE TODO: Scan Castling moves for checks in the way!
 

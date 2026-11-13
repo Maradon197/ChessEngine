@@ -3,6 +3,7 @@
 
 #include "DataTypes.hpp"
 #include "Bitboard.hpp"
+
 #include "AttackTables.hpp"
 #include "BoardState.hpp"
 class LegalMoveGenerator {

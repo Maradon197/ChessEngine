@@ -1,13 +1,20 @@
-#include "DataTypes.hpp"
 #include "IOHandler.hpp"
-#include "Bitboard.hpp"
 
 #include <iostream>
 #include <limits>
 #include <string>
 
-std::string buildStringFromSquare(Square sq) {
-	if (sq == NO_SQUARE || sq < 0 || sq > 64) {
+#include "DataTypes.hpp"
+#include "Bitboard.hpp"
+
+Square IOHandler::getSquareInput() {
+	std::string sq_string;
+	std::cin >> sq_string;
+	return buildSquareFromString(sq_string);
+}
+
+std::string IOHandler::buildStringFromSquare(Square sq) {
+	if (sq == NO_SQUARE || sq < 0 || sq >= 64) {
 		return "invalid";
 	}
 
@@ -21,7 +28,7 @@ std::string buildStringFromSquare(Square sq) {
 	return squareString;
 }
 
-Square buildSquareFromString(const std::string& squareString) {
+Square IOHandler::buildSquareFromString(const std::string& squareString) {
 	if (squareString.length() != 2) {
 		return NO_SQUARE; 
 	}
@@ -96,7 +103,8 @@ Move IOHandler::attemptMove() {
 		return input;
 		}());
 
-	std::cout << "Iohandler::attemptMove: understood location " << source << "\n";
+	std::cout << "Iohandler::attemptMove: understood location "
+          << static_cast<int>(source) << '\n';
 
 	return static_cast<Move>(source | (destination << 6));
 }

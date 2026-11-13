@@ -1,6 +1,8 @@
+#include "AttackTables.hpp"
+
 #include "DataTypes.hpp"
 #include "Bitboard.hpp"
-#include "AttackTables.hpp"
+
 #include "DebugTestStuff.hpp"
 
 namespace {

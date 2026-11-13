@@ -1,7 +1,9 @@
 #ifndef BOARDSTATE
 #define BOARDSTATE
-#include "DataTypes.hpp"
+
 #include <stack>
+
+#include "DataTypes.hpp"
 
 class BoardState {
 private:

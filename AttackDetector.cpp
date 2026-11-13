@@ -1,9 +1,11 @@
 #include "AttackDetector.hpp"
-#include "AttackTables.hpp"
-#include "Bitboard.hpp"
-#include "DataTypes.hpp"
+
 #include <cstdint>
 
+#include "DataTypes.hpp"
+#include "Bitboard.hpp"
+
+#include "AttackTables.hpp"
 
 bool isSquareAttacked(Square sq, Color byColor, const Position& pos) {
 	return attackersToSquare(sq, byColor, pos) != 0;

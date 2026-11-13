@@ -1,0 +1,15 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = crlf
+insert_final_newline = true
+
+# C++ include blocks must be ordered as follows:
+# 1. Source file's own header
+# 2. Standard libraries
+# 3. Other libraries
+# 4. Project infrastructure (for example, DataTypes and Bitboard)
+# 5. Other project classes (for example, IOHandler)
+[*.{cpp,hpp,h,hxx}]
+indent_style = tab

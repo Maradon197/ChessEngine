@@ -1,4 +1,5 @@
 #include "BoardState.hpp"
+
 #include "Bitboard.hpp"
 
 void BoardState::updateOccupanciesToMatchPieceBB() {

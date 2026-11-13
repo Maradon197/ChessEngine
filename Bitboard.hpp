@@ -1,12 +1,14 @@
 #ifndef BITBOARD
 #define BITBOARD
 
-#include "DataTypes.hpp"
 #include <cstdint>
+
 #if defined(_MSC_VER)
   #include <intrin.h>
   #pragma intrinsic(__popcnt64)
 #endif
+
+#include "DataTypes.hpp"
 
 namespace BB {
 
