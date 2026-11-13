@@ -11,9 +11,6 @@
 #include "LegalMoveGenerator.hpp"
 #include "MainWindow.hpp"
 
-//The GUI program: the only place where the engine core and the GUI meet.
-//The core never includes GUI headers; the GUI only knows the core's DataTypes.hpp.
-
 namespace {
 
 bool containsMove(const MoveList& moves, Move move) {
@@ -21,8 +18,7 @@ bool containsMove(const MoveList& moves, Move move) {
 	return std::find(moves.moves, end, move) != end;
 }
 
-//Brings the core board to a node of the move tree by replaying the moves from the start,
-//so the core's undo history always matches the line shown in the GUI.
+
 void replayMoves(BoardState& board, const std::vector<Move>& moves) {
 	board = BoardState{};
 	board.setStartingPosition();
@@ -31,7 +27,7 @@ void replayMoves(BoardState& board, const std::vector<Move>& moves) {
 	}
 }
 
-} // namespace
+} // !namespace
 
 int main(int argc, char* argv[]) {
 	QApplication application(argc, argv);
