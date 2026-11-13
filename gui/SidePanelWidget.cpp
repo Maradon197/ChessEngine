@@ -12,7 +12,7 @@ namespace {
 constexpr int TOGGLE_WIDTH = 18;
 constexpr int CONTENT_MIN_WIDTH = 200;
 
-} // namespace
+} // !namespace
 
 SidePanelWidget::SidePanelWidget(Doorman& doorman, QWidget* parent)
 	: QWidget(parent) {
@@ -55,7 +55,7 @@ void SidePanelWidget::setCollapsed(bool newCollapsed) {
 	if (collapsed) {
 		setFixedWidth(TOGGLE_WIDTH);
 	} else {
-		setMinimumWidth(TOGGLE_WIDTH + CONTENT_MIN_WIDTH);	//resizable through the surrounding splitter
+		setMinimumWidth(TOGGLE_WIDTH + CONTENT_MIN_WIDTH);
 		setMaximumWidth(QWIDGETSIZE_MAX);
 	}
 	toggleButton->setArrowType(collapsed ? Qt::LeftArrow : Qt::RightArrow);

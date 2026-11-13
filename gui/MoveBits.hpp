@@ -3,8 +3,6 @@
 
 #include "DataTypes.hpp"
 
-//Read/write helpers for the bit layouts of Move and Square defined in DataTypes.hpp.
-//Pure bit decoding, no chess rules.
 namespace moveBits {
 
 constexpr Move SQUARE_MASK = 0x3F;
@@ -45,13 +43,11 @@ constexpr bool isCapture(Move move) {
 	return (move & CAPTURE_FLAG) != 0;
 }
 
-//a move carrying only source and destination, all flags zero
 constexpr Move makeMove(Square source, Square destination) {
 	return (static_cast<Move>(source) & SQUARE_MASK)
 		| ((static_cast<Move>(destination) & SQUARE_MASK) << DESTINATION_SHIFT);
 }
 
-//strips all flags, keeps source and destination
 constexpr Move getFromTo(Move move) {
 	return move & FROM_TO_MASK;
 }
@@ -76,6 +72,6 @@ constexpr Bitboard getSquareBit(Square square) {
 	return Bitboard{1} << square;
 }
 
-} // namespace moveBits
+} // !namespace moveBits
 
 #endif

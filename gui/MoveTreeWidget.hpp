@@ -14,12 +14,6 @@ class Doorman;
 class MoveTreeCanvas;
 class QPainter;
 
-//The game as a horizontal tree: the main line runs left to right in the middle row,
-//variations branch off into rows above and below (alternating, nested ones move further out).
-//The first child of a node is its main continuation, later children are variations.
-//Every node stores the position reached after its move, so selecting a node can restore the board.
-//Node ids come from the Doorman; ROOT_NODE (the starting position) always exists.
-//Keyboard: Left = parent, Right = main continuation.
 class MoveTreeWidget : public QScrollArea {
 	Q_OBJECT
 
@@ -33,12 +27,12 @@ public:
 	void setCurrentNode(NodeId id);
 	NodeId getCurrentNode() const;
 	bool hasNode(NodeId id) const;
-	std::optional<NodeId> findChild(NodeId parent, Move move) const;	//child of parent reached by exactly this move
+	std::optional<NodeId> findChild(NodeId parent, Move move) const;
 
 	void setNodePosition(NodeId id, const Position& position);
 	Position getNodePosition(NodeId id) const;
 	Move getNodeMove(NodeId id) const;
-	std::vector<Move> getMovesToNode(NodeId id) const;	//moves from the root to the node, in order
+	std::vector<Move> getMovesToNode(NodeId id) const;
 
 	void setPanelColor(const QColor& color);
 

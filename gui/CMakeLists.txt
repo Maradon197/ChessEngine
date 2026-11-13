@@ -1,4 +1,3 @@
-# Qt widgets + the Doorman. Knows the core only through DataTypes.hpp (via ChessCore).
 qt_add_library(ChessGui STATIC
     GuiTypes.hpp
     MoveBits.hpp

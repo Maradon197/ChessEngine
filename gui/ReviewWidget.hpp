@@ -14,8 +14,6 @@ class QLabel;
 class QScrollArea;
 class QVBoxLayout;
 
-//Vertically scrollable list of review entries (title + Markdown text), in insertion order.
-//Clicking an entry emits entryActivated(); what that means is up to the core.
 class ReviewWidget : public QWidget {
 	Q_OBJECT
 

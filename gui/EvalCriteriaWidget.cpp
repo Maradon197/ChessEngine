@@ -38,9 +38,8 @@ QString getCriterionName(EvalCriterion criterion) {
 	}
 }
 
-} // namespace
+} // !namespace
 
-//Segmented bar: CRITERION_MIN..-1 to the left of the center line, 1..CRITERION_MAX to the right.
 class CriterionBar : public QWidget {
 public:
 	explicit CriterionBar(QWidget* parent)

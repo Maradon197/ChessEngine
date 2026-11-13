@@ -14,8 +14,7 @@
 
 namespace {
 
-//Fallback label when the core passes none: coordinate notation, e.g. "e2e4" or "e7e8q".
-//(Proper SAN needs chess knowledge, so it has to come from the core.)
+//fallback when the core passes no SAN, e.g. "e2e4"
 QString makeCoordinateLabel(Move move) {
 	const auto squareName = [](Square square) {
 		return QString(QChar('a' + moveBits::getFile(square))) + QChar('1' + moveBits::getRank(square));
@@ -30,7 +29,7 @@ QString makeCoordinateLabel(Move move) {
 	return label;
 }
 
-} // namespace
+} // !namespace
 
 Doorman::Doorman(QObject* parent)
 	: QObject(parent) {
@@ -44,8 +43,6 @@ Doorman::Doorman(QObject* parent)
 
 Doorman::~Doorman() = default;
 
-// ================= board =================
-
 void Doorman::setPosition(const Position& position) {
 	runInGuiThread([this, position] {
 		if (board) board->setPosition(position);
@@ -54,8 +51,6 @@ void Doorman::setPosition(const Position& position) {
 	});
 }
 
-//Follows the existing child if the current node already continues with this move,
-//otherwise forks a new branch below the current node.
 void Doorman::playMove(Move move, const std::string& label) {
 	const QString qLabel = QString::fromStdString(label);
 	runInGuiThread([this, move, qLabel] {
@@ -139,8 +134,6 @@ void Doorman::clearEngineAnnotations() {
 	runInGuiThread([this] { if (board) board->clearEngineAnnotations(); });
 }
 
-// ================= evaluation =================
-
 void Doorman::setOverallCentipawns(int centipawns) {
 	runInGuiThread([this, centipawns] { if (evalCriteria) evalCriteria->setOverallCentipawns(centipawns); });
 }
@@ -161,8 +154,6 @@ void Doorman::clearCriteria() {
 	runInGuiThread([this] { if (evalCriteria) evalCriteria->clearCriteria(); });
 }
 
-// ================= review =================
-
 void Doorman::addReviewEntry(ReviewEntryId id, const std::string& title, const std::string& text) {
 	const QString qTitle = QString::fromStdString(title);
 	const QString qText = QString::fromStdString(text);
@@ -180,8 +171,6 @@ void Doorman::clearReviewEntries() {
 void Doorman::focusReviewEntry(ReviewEntryId id) {
 	runInGuiThread([this, id] { if (review) review->focusEntry(id); });
 }
-
-// ================= move tree =================
 
 void Doorman::setTreeOrigin(Clock fullmoveNumber, Color sideToMove) {
 	runInGuiThread([this, fullmoveNumber, sideToMove] { if (moveTree) moveTree->setOrigin(fullmoveNumber, sideToMove); });
@@ -204,7 +193,7 @@ void Doorman::removeTreeNode(NodeId id) {
 		const NodeId before = moveTree->getCurrentNode();
 		moveTree->removeNode(id);
 		if (moveTree->getCurrentNode() != before) {
-			showTreeNode(moveTree->getCurrentNode());	//the current node was removed: fall back to its parent
+			showTreeNode(moveTree->getCurrentNode());	//current node was removed, parent is shown
 		}
 	});
 }
@@ -228,8 +217,6 @@ void Doorman::setCurrentTreeNode(NodeId id) {
 		}
 	});
 }
-
-// ================= appearance =================
 
 void Doorman::setThemeMode(ThemeMode mode) {
 	runInGuiThread([this, mode] {
@@ -264,8 +251,6 @@ void Doorman::resetColors() {
 		applyColors();
 	});
 }
-
-// ================= queries =================
 
 std::vector<Move> Doorman::getMovesToTreeNode(NodeId id) const {
 	return moveTree ? moveTree->getMovesToNode(id) : std::vector<Move>{};
@@ -304,8 +289,6 @@ std::vector<Arrow> Doorman::getUserArrows() const {
 	std::lock_guard lock(stateMutex);
 	return userArrows;
 }
-
-// ================= registration =================
 
 void Doorman::attach(BoardWidget& boardWidget) {
 	board = &boardWidget;
@@ -352,8 +335,6 @@ void Doorman::attach(EvalCriteriaWidget& evalCriteriaWidget) {
 void Doorman::attach(SidePanelWidget& sidePanelWidget) {
 	sidePanel = &sidePanelWidget;
 }
-
-// ================= internal (GUI thread) =================
 
 void Doorman::showTreeNode(NodeId id) {
 	if (board && moveTree) {

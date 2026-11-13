@@ -19,9 +19,8 @@ constexpr int ROW_HEIGHT = 30;
 constexpr int NODE_HEIGHT = 22;
 constexpr int MARGIN = 8;
 
-} // namespace
+} // !namespace
 
-//Which column ranges are taken in each row, so variations don't overlap.
 struct MoveTreeWidget::RowOccupancy {
 	std::map<int, std::vector<std::pair<int, int>>> rows;
 
@@ -43,7 +42,6 @@ struct MoveTreeWidget::RowOccupancy {
 	}
 };
 
-//Painting surface inside the scroll area; forwards everything to the MoveTreeWidget.
 class MoveTreeCanvas : public QWidget {
 public:
 	explicit MoveTreeCanvas(MoveTreeWidget& tree)
@@ -80,8 +78,6 @@ MoveTreeWidget::MoveTreeWidget(Doorman& doorman, QWidget* parent)
 	clearTree();
 	doorman.attach(*this);
 }
-
-// ================= public interface =================
 
 void MoveTreeWidget::setOrigin(Clock fullmoveNumber, Color sideToMove) {
 	originFullmove = fullmoveNumber;
@@ -207,8 +203,6 @@ void MoveTreeWidget::setPanelColor(const QColor& color) {
 	canvas->update();
 }
 
-// ================= layout =================
-
 void MoveTreeWidget::relayout() {
 	RowOccupancy occupancy;
 	minRow = 0;
@@ -221,8 +215,6 @@ void MoveTreeWidget::relayout() {
 	canvas->update();
 }
 
-//Places a line (a node and its chain of first children) in one row, then its variations.
-//Variations of the main line alternate below/above; nested ones keep moving away from the main line.
 void MoveTreeWidget::layoutLine(NodeId first, int row, RowOccupancy& occupancy) {
 	std::vector<NodeId> line;
 	for (NodeId id = first;;) {
@@ -247,7 +239,7 @@ void MoveTreeWidget::layoutLine(NodeId first, int row, RowOccupancy& occupancy) 
 		const std::vector<NodeId> children = nodes.at(id).children;
 		for (std::size_t index = 1; index < children.size(); ++index) {
 			const NodeId child = children[index];
-			const int direction = row != 0 ? (row > 0 ? 1 : -1) : (index % 2 == 1 ? 1 : -1);
+			const int direction = row != 0 ? (row > 0 ? 1 : -1) : (index % 2 == 1 ? 1 : -1);	//nested variations move away from the main line
 			const int variationFirst = nodes.at(child).depth;
 			const int variationLast = variationFirst + getLineLength(child) - 1;
 
@@ -281,8 +273,6 @@ QString MoveTreeWidget::getDisplayText(const Node& node) const {
 	const bool isWhiteMove = ply % 2 == 0;
 	return QString("%1%2 %3").arg(moveNumber).arg(isWhiteMove ? "." : QString::fromUtf8("…")).arg(node.label);
 }
-
-// ================= selection / input =================
 
 void MoveTreeWidget::selectNode(NodeId id, bool notify) {
 	const auto found = nodes.find(id);
@@ -324,8 +314,6 @@ void MoveTreeWidget::keyPressEvent(QKeyEvent* event) {
 	}
 	QScrollArea::keyPressEvent(event);
 }
-
-// ================= painting =================
 
 void MoveTreeWidget::paintTree(QPainter& painter) const {
 	const QPalette& colors = palette();

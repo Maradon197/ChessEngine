@@ -42,7 +42,7 @@ QString getRoleName(ColorRole role) {
 
 QIcon makeSwatch(const QColor& color) {
 	QPixmap pixmap(14, 14);
-	pixmap.fill(Qt::white);		//so transparent colors stay recognizable
+	pixmap.fill(Qt::white);	//keeps transparent colors visible
 	QPainter painter(&pixmap);
 	painter.fillRect(pixmap.rect(), color);
 	painter.setPen(QColor(90, 90, 90));
@@ -50,7 +50,7 @@ QIcon makeSwatch(const QColor& color) {
 	return QIcon(pixmap);
 }
 
-} // namespace
+} // !namespace
 
 ToolBarWidget::ToolBarWidget(Doorman& doorman, QWidget* parent)
 	: QToolBar(tr("Appearance"), parent)

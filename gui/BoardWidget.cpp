@@ -27,18 +27,16 @@ const QColor WHITE_PIECE_DETAIL(25, 25, 25);
 const QColor BLACK_PIECE_FILL(35, 35, 35);
 const QColor BLACK_PIECE_OUTLINE(10, 10, 10);
 
-constexpr qreal PIECE_SCALE = 0.84;		//king height relative to square size
+constexpr qreal PIECE_SCALE = 0.84;	//king height relative to square size
 
-//Placeholder piece set built from the Unicode chess glyphs, normalized so the king is 1.0 high.
-//To use SVG/PNG pieces later, only BoardWidget::paintPiece() has to change.
 struct PieceShapes {
 	std::array<QPainterPath, 6> solid;
-	std::array<QPainterPath, 6> detail;		//outline glyph, drawn over white pieces
+	std::array<QPainterPath, 6> detail;	//outline glyph, drawn over white pieces
 };
 
+//placeholder pieces from unicode glyphs, normalized so the king is 1.0 high
 const PieceShapes& getPieceShapes() {
 	static const PieceShapes shapes = [] {
-		//indexed by PieceType: PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING
 		const std::array<char16_t, 6> solidGlyphs = {u'♟', u'♞', u'♝', u'♜', u'♛', u'♚'};
 		const std::array<char16_t, 6> detailGlyphs = {u'♙', u'♘', u'♗', u'♖', u'♕', u'♔'};
 		const std::array<char, 6> fallbackLetters = {'P', 'N', 'B', 'R', 'Q', 'K'};
@@ -84,7 +82,7 @@ QString getPieceName(PieceType type) {
 	}
 }
 
-} // namespace
+} // !namespace
 
 BoardWidget::BoardWidget(Doorman& doorman, QWidget* parent)
 	: QWidget(parent) {
@@ -93,8 +91,6 @@ BoardWidget::BoardWidget(Doorman& doorman, QWidget* parent)
 	position.ep_square = NO_SQUARE;
 	doorman.attach(*this);
 }
-
-// ================= setters / getters =================
 
 void BoardWidget::setPosition(const Position& newPosition) {
 	position = newPosition;
@@ -107,9 +103,7 @@ const Position& BoardWidget::getPosition() const {
 	return position;
 }
 
-//Shifts the pieces on screen according to the bits of the move. No legality checks, no rights or clocks:
-//this only keeps the picture right until the core sends the authoritative position via setPosition().
-//Castling works for both "king to g/c-file" and "king takes own rook" encodings.
+//visual only, the position from setPosition() is authoritative
 void BoardWidget::playMove(Move move) {
 	const Square source = getSource(move);
 	const Square destination = getDestination(move);
@@ -125,7 +119,7 @@ void BoardWidget::playMove(Move move) {
 		}
 		position.pieces[color][type] &= ~getSquareBit(source);
 
-		if (isCastle(move)) {
+		if (isCastle(move)) {	//works for king to g/c-file and king takes rook
 			const int rank = getRank(source);
 			const bool kingside = getFile(destination) > getFile(source);
 			position.pieces[color][ROOK] &= ~getSquareBit(makeSquare(kingside ? 7 : 0, rank));
@@ -255,8 +249,6 @@ QSize BoardWidget::sizeHint() const {
 	return {640, 640};
 }
 
-// ================= geometry =================
-
 int BoardWidget::getSquareSize() const {
 	return std::max(1, std::min(width(), height()) / 8);
 }
@@ -292,8 +284,6 @@ Square BoardWidget::getSquareAt(const QPointF& point) const {
 	return makeSquare(file, rank);
 }
 
-// ================= lookups =================
-
 bool BoardWidget::getPieceAt(Square square, Color& color, PieceType& type) const {
 	if (!isValidSquare(square)) {
 		return false;
@@ -328,8 +318,6 @@ std::vector<Move> BoardWidget::getLegalMovesBetween(Square source, Square destin
 	return moves;
 }
 
-// ================= painting =================
-
 void BoardWidget::paintEvent(QPaintEvent* event) {
 	Q_UNUSED(event);
 	QPainter painter(this);
@@ -349,7 +337,6 @@ void BoardWidget::paintBoard(QPainter& painter) const {
 		painter.fillRect(getSquareRect(square), isLight ? getColor(ColorRole::LIGHT_SQUARE) : getColor(ColorRole::DARK_SQUARE));
 	}
 
-	//coordinates on the bottom rank and left file
 	const int size = getSquareSize();
 	const qreal padding = std::max(2, size / 24);
 	QFont font = painter.font();
@@ -406,7 +393,7 @@ void BoardWidget::paintPieces(QPainter& painter) const {
 			continue;
 		}
 		if (inputState == InputState::DRAGGING && square == selectedSquare) {
-			continue;	//drawn at the cursor instead
+			continue;
 		}
 		paintPiece(painter, color, type, getSquareCenter(square));
 	}
@@ -417,7 +404,7 @@ void BoardWidget::paintLegalMoves(QPainter& painter) const {
 		return;
 	}
 	const qreal size = getSquareSize();
-	Bitboard paintedSquares = 0;	//promotions list the same destination several times
+	Bitboard paintedSquares = 0;	//promotions repeat destinations
 
 	painter.save();
 	painter.setPen(Qt::NoPen);
@@ -494,7 +481,6 @@ void BoardWidget::paintPiece(QPainter& painter, Color color, PieceType type, con
 	}
 }
 
-//Straight arrow, or an L-shaped one for knight jumps (like chess.com).
 void BoardWidget::paintArrow(QPainter& painter, Square source, Square destination, const QColor& color) const {
 	if (!isValidSquare(source) || !isValidSquare(destination) || source == destination) {
 		return;
@@ -511,7 +497,7 @@ void BoardWidget::paintArrow(QPainter& painter, Square source, Square destinatio
 	const int fileDistance = std::abs(getFile(destination) - getFile(source));
 	const int rankDistance = std::abs(getRank(destination) - getRank(source));
 	if ((fileDistance == 1 && rankDistance == 2) || (fileDistance == 2 && rankDistance == 1)) {
-		//go along the long leg first; screen axes are independent of orientation here
+		//long leg first
 		const bool longLegVertical = rankDistance == 2;
 		points.push_back(longLegVertical ? QPointF(start.x(), tip.y()) : QPointF(tip.x(), start.y()));
 	}
@@ -547,8 +533,6 @@ void BoardWidget::paintArrow(QPainter& painter, Square source, Square destinatio
 	arrow.setFillRule(Qt::WindingFill);
 	painter.fillPath(arrow, color);
 }
-
-// ================= input =================
 
 void BoardWidget::mousePressEvent(QMouseEvent* event) {
 	const QPointF cursor = event->position();
@@ -621,7 +605,7 @@ void BoardWidget::handleLeftPress(Square square, const QPointF& cursor) {
 
 		case InputState::DIRTY_SELECT: {
 			if (square == selectedSquare) {
-				beginDrag(square, cursor, true);	//may become a drag, or a deselect on release
+				beginDrag(square, cursor, true);
 				break;
 			}
 			Color selectedColor;
@@ -629,7 +613,7 @@ void BoardWidget::handleLeftPress(Square square, const QPointF& cursor) {
 			const bool selectedHasPiece = getPieceAt(selectedSquare, selectedColor, selectedType);
 			const bool isListedMove = !getLegalMovesBetween(selectedSquare, square).empty();
 			if (!isListedMove && hasPiece && selectedHasPiece && color == selectedColor) {
-				beginDrag(square, cursor, false);	//switch to another piece of the same color
+				beginDrag(square, cursor, false);	//switch to another own piece
 				break;
 			}
 			attemptMove(selectedSquare, square);
@@ -647,13 +631,13 @@ void BoardWidget::handleLeftRelease(Square square) {
 	}
 	if (square == selectedSquare) {
 		if (dragStartedFromDirtySelect) {
-			endInteraction(true);	//clicked the dirty-selected piece again: deselect
+			endInteraction(true);	//clicked again: deselect
 		} else {
 			inputState = InputState::DIRTY_SELECT;	//dirty select: wait for the target click
 			unsetCursor();
 		}
 	} else if (!isValidSquare(square)) {
-		endInteraction(true);	//dropped outside the board
+		endInteraction(true);
 	} else {
 		attemptMove(selectedSquare, square);
 	}
@@ -679,7 +663,7 @@ void BoardWidget::beginDrag(Square square, const QPointF& cursor, bool fromDirty
 	dragCursor = cursor;
 	setCursor(Qt::ClosedHandCursor);
 	if (selectionChanged) {
-		emit squareSelected(square);	//the core may answer with setLegalMoves()
+		emit squareSelected(square);
 	}
 }
 
@@ -695,8 +679,6 @@ void BoardWidget::endInteraction(bool notify) {
 	}
 }
 
-//No legality check: if the legal move list knows this move, the full move (with flags) is sent,
-//otherwise a bare source/destination move. Several matches mean a promotion choice.
 void BoardWidget::attemptMove(Square source, Square destination) {
 	const std::vector<Move> candidates = getLegalMovesBetween(source, destination);
 	std::optional<Move> move;
@@ -709,7 +691,7 @@ void BoardWidget::attemptMove(Square source, Square destination) {
 		inputState = InputState::DIRTY_SELECT;	//piece back on its square while the menu is open
 		unsetCursor();
 		repaint();
-		move = choosePromotion(candidates);
+		move = choosePromotion(candidates);	//several matches: promotion
 	}
 
 	endInteraction(true);

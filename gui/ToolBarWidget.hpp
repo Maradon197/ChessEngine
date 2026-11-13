@@ -11,8 +11,6 @@ class Doorman;
 class QAction;
 class QComboBox;
 
-//Top toolbar: theme (system/light/dark) and the colors of the interface elements.
-//All changes go through the Doorman; the choices are remembered between sessions (QSettings).
 class ToolBarWidget : public QToolBar {
 	Q_OBJECT
 

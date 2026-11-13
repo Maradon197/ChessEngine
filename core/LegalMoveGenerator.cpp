@@ -13,7 +13,7 @@ MoveList LegalMoveGenerator::generateLegalMovesForSquare(const Position& pos, Sq
 	MoveList legal_moves{};
 	MoveList move_candidates = getPseudoLegalMovesAtSquare(pos, sq);
 
-	//read before the loop: pos may refer to board_state's own position, which makeMove changes
+	//pos can be board_state's own position, which makeMove changes
 	const Color moving_side = pos.side_to_move;
 
 	for(int i = 0; i < move_candidates.count; ++i) {
@@ -34,7 +34,7 @@ MoveList LegalMoveGenerator::generateLegalMovesInPosition(const Position& pos, B
 	MoveList legal_moves{};
 	MoveList move_candidates = getPseudoLegalMovesInPosition(pos);
 	
-	//read before the loop: pos may refer to board_state's own position, which makeMove changes
+	//pos can be board_state's own position, which makeMove changes
 	const Color moving_side = pos.side_to_move;
 
 	for(int i = 0; i < move_candidates.count; ++i) {

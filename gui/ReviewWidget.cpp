@@ -18,7 +18,7 @@ const char* const ENTRY_STYLE =
 	"QFrame#reviewEntry { border: 1px solid palette(mid); border-radius: 6px; background: palette(base); }"
 	"QFrame#reviewEntry[active=\"true\"] { border: 2px solid palette(highlight); }";
 
-} // namespace
+} // !namespace
 
 ReviewWidget::ReviewWidget(Doorman& doorman, QWidget* parent)
 	: QWidget(parent) {
@@ -44,7 +44,7 @@ ReviewWidget::ReviewWidget(Doorman& doorman, QWidget* parent)
 	entryLayout->setSpacing(8);
 	entryLayout->addStretch(1);
 	scrollArea->setWidget(container);
-	container->setAutoFillBackground(false);	//let the panel color show through
+	container->setAutoFillBackground(false);
 	scrollArea->viewport()->setAutoFillBackground(false);
 	layout->addWidget(scrollArea, 1);
 
@@ -132,7 +132,7 @@ void ReviewWidget::setPanelColor(const QColor& color) {
 	colors.setColor(QPalette::Window, color);
 	setPalette(colors);
 
-	//re-resolve the palette(...) references of the entry cards after a theme change
+	//re-resolve palette() references in the stylesheet
 	container->setStyleSheet(QString());
 	container->setStyleSheet(ENTRY_STYLE);
 }

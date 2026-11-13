@@ -12,9 +12,6 @@ class CriterionBar;
 class Doorman;
 class QLabel;
 
-//Overall evaluation (centipawns or mate, White's perspective) plus the criteria
-//Weighted Material, King Safety, Piece Activity and Space on a "3 minus .. 3 plus" scale.
-//Unset values are shown as "–".
 class EvalCriteriaWidget : public QWidget {
 	Q_OBJECT
 

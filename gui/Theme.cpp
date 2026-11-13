@@ -40,7 +40,7 @@ QPalette makePalette(bool dark) {
 	return palette;
 }
 
-} // namespace
+} // !namespace
 
 bool theme::isDark(ThemeMode mode) {
 	switch (mode) {
@@ -50,7 +50,7 @@ bool theme::isDark(ThemeMode mode) {
 	}
 }
 
-//Fusion is used for all modes because it follows the palette completely on every platform.
+//Fusion follows the palette on every platform
 void theme::applyMode(ThemeMode mode) {
 	static bool styleSet = false;
 	if (!styleSet) {

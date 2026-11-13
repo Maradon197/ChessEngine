@@ -20,7 +20,6 @@ MainWindow::MainWindow(Doorman& doorman, QWidget* parent)
 
 	addToolBar(Qt::TopToolBarArea, new ToolBarWidget(doorman, this));
 
-	//every border between two widgets is a draggable splitter handle
 	const auto makeSplitter = [](Qt::Orientation orientation, QWidget* parent) {
 		auto* splitter = new QSplitter(orientation, parent);
 		splitter->setChildrenCollapsible(false);
@@ -32,7 +31,7 @@ MainWindow::MainWindow(Doorman& doorman, QWidget* parent)
 	auto* rootLayout = new QHBoxLayout(central);
 	rootLayout->setContentsMargins(8, 8, 0, 8);
 
-	//left column: eval square + criteria
+	//eval square + criteria
 	auto* leftColumn = new QWidget(central);
 	leftColumn->setMinimumWidth(140);
 	leftColumn->setMaximumWidth(360);
@@ -51,7 +50,7 @@ MainWindow::MainWindow(Doorman& doorman, QWidget* parent)
 	analysisSplitter->setStretchFactor(2, 0);
 	analysisSplitter->setSizes({190, 800, 300});
 
-	//(eval + board + review) over move tree
+	//move tree below
 	auto* verticalSplitter = makeSplitter(Qt::Vertical, central);
 	verticalSplitter->addWidget(analysisSplitter);
 	verticalSplitter->addWidget(new MoveTreeWidget(doorman, verticalSplitter));
@@ -59,7 +58,7 @@ MainWindow::MainWindow(Doorman& doorman, QWidget* parent)
 	verticalSplitter->setStretchFactor(1, 0);
 	verticalSplitter->setSizes({700, 130});
 
-	//everything | collapsible side panel
+	//side panel on the right
 	auto* rootSplitter = makeSplitter(Qt::Horizontal, central);
 	rootSplitter->addWidget(verticalSplitter);
 	rootSplitter->addWidget(new SidePanelWidget(doorman, rootSplitter));

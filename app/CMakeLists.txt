@@ -1,5 +1,4 @@
-# No WIN32 flag on purpose: the console window stays open for the core's debug output.
-# Add WIN32 after qt_add_executable(ChessEngineGUI ...) to hide it.
+#no WIN32: keeps the console for debug output
 qt_add_executable(ChessEngineGUI
     main.cpp
 )
@@ -9,8 +8,7 @@ target_link_libraries(ChessEngineGUI PRIVATE
     ChessGui
 )
 
-# Windows: copy the Qt DLLs and plugins next to the exe after every build,
-# so it starts from Visual Studio / Qt Creator / Explorer without touching PATH.
+#copy the Qt DLLs next to the exe after every build
 if(WIN32)
     if(TARGET Qt6::windeployqt)
         set(CHESS_WINDEPLOYQT Qt6::windeployqt)

@@ -1,4 +1,3 @@
-# Qt-free engine library. Everything that links it gets this folder as include path.
 add_library(ChessCore STATIC
     DataTypes.hpp
     Bitboard.hpp
