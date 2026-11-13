@@ -73,4 +73,4 @@ Bitboard getRookAttacksSlow(Square sq, Bitboard own_occupancy, Bitboard enemy_oc
 
 Bitboard getQueenAttacksSlow(Square sq, Bitboard own_occupancy, Bitboard enemy_occupancy) {
     return getBishopAttacksSlow(sq, own_occupancy, enemy_occupancy) | getRookAttacksSlow(sq, own_occupancy, enemy_occupancy);
-}
+}
