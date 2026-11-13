@@ -3,10 +3,10 @@
 A bitboard chess engine in C++ with a Qt GUI.
 
 ```
-core/      engine library (ChessCore): simple, runtime efficient implementation. At least in my dreams
-console/   console test program (ChessEngineConsole): A leftover from early testing. Still works but wouldnt use
-gui/       Qt widgets + Doorman (ChessGui): see gui/README.md
 app/       the GUI program (ChessEngineGUI): the starter
+core/      engine library (ChessCore): simple, runtime efficient implementation. At least in my dreams
+gui/       Qt widgets + Doorman (ChessGui): see gui/README.md
+
 ```
 
 Dependencies only point one way: `app` → `gui` → `core`
