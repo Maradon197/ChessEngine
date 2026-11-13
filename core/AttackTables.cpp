@@ -20,17 +20,21 @@ namespace {
 
 void initPawnAttacks() {
 	for (Square sq = 0; sq < 64; ++sq) {
-		if (sq % 8 != 0) { //not on left edge: add left attack
-			pawn_attacks[WHITE][sq] |= BB::oneSquareBB(sq + 7);
+		if (sq / 8 != 7) { //not on the last rank: shift would leave the bitboard
+			if (sq % 8 != 0) { //not on left edge: add left attack
+				pawn_attacks[WHITE][sq] |= BB::oneSquareBB(sq + 7);
+			}
+			if (sq % 8 != 7) { //not on right edge: add right attack
+				pawn_attacks[WHITE][sq] |= BB::oneSquareBB(sq + 9);
+			}
 		}
-		if (sq % 8 != 7) { //not on right edge: add right attack
-			pawn_attacks[WHITE][sq] |= BB::oneSquareBB(sq + 9);
-		}
-		if (sq % 8 != 0) { //not on left edge: add left attack
-			pawn_attacks[BLACK][sq] |= BB::oneSquareBB(sq - 9);
-		}
-		if (sq % 8 != 7) { //not on right edge: add right attack
-			pawn_attacks[BLACK][sq] |= BB::oneSquareBB(sq - 7);
+		if (sq / 8 != 0) { //not on the first rank: same for black
+			if (sq % 8 != 0) { //not on left edge: add left attack
+				pawn_attacks[BLACK][sq] |= BB::oneSquareBB(sq - 9);
+			}
+			if (sq % 8 != 7) { //not on right edge: add right attack
+				pawn_attacks[BLACK][sq] |= BB::oneSquareBB(sq - 7);
+			}
 		}
 	}	
 }
@@ -155,5 +159,5 @@ Bitboard getRookAttacks(Square sq, Bitboard own_occupancy, Bitboard enemy_occupa
 }
 
 Bitboard getQueenAttacks(Square sq, Bitboard own_occupancy, Bitboard enemy_occupancy) {
-	return getBishopAttacks(sq, own_occupancy, enemy_occupancy) | getBishopAttacks(sq, own_occupancy, enemy_occupancy);
+	return getBishopAttacks(sq, own_occupancy, enemy_occupancy) | getRookAttacks(sq, own_occupancy, enemy_occupancy);
 }

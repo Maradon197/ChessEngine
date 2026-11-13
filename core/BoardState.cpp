@@ -68,7 +68,9 @@ bool BoardState::makeMove(Move m) {
 	Square source = m & 0x3f;
 	Square destination = (m >> 6) & 0x3f;
 
-	PieceType promo_piece_type = static_cast<PieceType>(((m >> 12) & 0x3) + KNIGHT);
+	PieceType promo_piece_type = static_cast<PieceType>((m >> 15) & 0x7);
+	if (promo_piece_type < KNIGHT || promo_piece_type > QUEEN)
+		promo_piece_type = QUEEN;	//no valid promotion type given
 
 	//TODO: assert wether this is too runtime inefficient
 	PieceType moving_piece_type{};
@@ -79,15 +81,17 @@ bool BoardState::makeMove(Move m) {
 		}
 
 	PieceType captured_piece_type{};
+	bool has_captured_piece = false;
 	for (int i = 0; i < 6; ++i) {
 		if (position.pieces[!position.side_to_move][i] & BB::oneSquareBB(destination)) {
 			captured_piece_type = static_cast<PieceType>(i);
+			has_captured_piece = true;
 			break;
 		}
 	}
 
 	bool is_ep = (moving_piece_type == PAWN && destination == position.ep_square);
-	bool is_capture = ((m >> 14) & 0b1) || is_ep;
+	bool is_capture = has_captured_piece || is_ep;
 	bool is_castle = moving_piece_type == KING &&
 		(destination == source + 2 || source == destination + 2);
 	bool is_promo = moving_piece_type == PAWN &&
@@ -138,12 +142,14 @@ bool BoardState::makeMove(Move m) {
 				if (source == (position.side_to_move == WHITE ? WHITE_RIGHT_ROOK_HOME_SQUARE : BLACK_RIGHT_ROOK_HOME_SQUARE))
 					position.castling_rights &= (position.side_to_move == WHITE) ? REVOKE_WHITE_SHORT_CASTLE : REVOKE_BLACK_SHORT_CASTLE;
 			}
-			if (is_capture && captured_piece_type == ROOK) {
-				if (destination == (position.side_to_move == WHITE ? 56 : 0))
-					position.castling_rights &= position.side_to_move == WHITE ? 0b1011 : 0b1110;
-				if (destination == (position.side_to_move == WHITE ? 63 : 7))
-					position.castling_rights &= position.side_to_move == WHITE ? 0b0111 : 0b1101;
-			}
+		}
+
+		//captured rook on its home square, also for promotion captures
+		if (has_captured_piece && captured_piece_type == ROOK) {
+			if (destination == (position.side_to_move == WHITE ? 56 : 0))
+				position.castling_rights &= position.side_to_move == WHITE ? 0b1011 : 0b1110;
+			if (destination == (position.side_to_move == WHITE ? 63 : 7))
+				position.castling_rights &= position.side_to_move == WHITE ? 0b0111 : 0b1101;
 		}
 	}
 

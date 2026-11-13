@@ -11,17 +11,20 @@ bool isSquareAttacked(Square sq, Color byColor, const Position& pos) {
 	return attackersToSquare(sq, byColor, pos) != 0;
 }
 
-Bitboard attackersToSquare(Square sq, Color attackedColor, const Position& pos) {
-	
-	Bitboard possibleAttackerPositions{};
+Bitboard attackersToSquare(Square sq, Color byColor, const Position& pos) {
+	const Bitboard* attackers = pos.pieces[byColor];
+	const Bitboard attacker_occ = pos.color_occupancy[byColor];
+	const Bitboard blocker_occ = pos.total_occupancy & ~attacker_occ;
 
-	possibleAttackerPositions |= 
-		getKnightAttacks(sq) | 
-		getBishopAttacks(sq, pos.color_occupancy[attackedColor], pos.color_occupancy[!attackedColor]) |
-		getRookAttacks(sq, pos.color_occupancy[attackedColor], pos.color_occupancy[!attackedColor]);
-		//bishop & rook incluldes king and queen attacks
+	//look from sq outwards, each piece type only counts on its own pattern
+	const Bitboard diagonals = getBishopAttacks(sq, blocker_occ, attacker_occ);
+	const Bitboard lines = getRookAttacks(sq, blocker_occ, attacker_occ);
 
-	return possibleAttackerPositions & pos.color_occupancy[!attackedColor];
+	return (getPawnAttacks(!byColor, sq) & attackers[PAWN])
+		| (getKnightAttacks(sq) & attackers[KNIGHT])
+		| (diagonals & (attackers[BISHOP] | attackers[QUEEN]))
+		| (lines & (attackers[ROOK] | attackers[QUEEN]))
+		| (getKingAttacks(sq) & attackers[KING]);
 }
 
 bool isInCheck(Color color, const Position& pos) {
@@ -31,5 +34,5 @@ bool isInCheck(Color color, const Position& pos) {
 Bitboard checkersToColor(Color color, const Position& pos) {
 
 	Square king_square = BB::getSquareFromOneSquareBitboard(pos.pieces[color][PieceType::KING]);
-	return attackersToSquare(king_square, color, pos);
+	return attackersToSquare(king_square, !color, pos);
 }
