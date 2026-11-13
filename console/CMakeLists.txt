@@ -1,2 +1,0 @@
-add_executable(ChessEngineConsole Main.cpp)
-target_link_libraries(ChessEngineConsole PRIVATE ChessCore)
