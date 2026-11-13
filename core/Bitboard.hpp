@@ -110,7 +110,7 @@ namespace BB {
 		unsigned long index;
 		_BitScanForward64(&index, bb);
 		return static_cast<Square>(index);
-	}
+
 	#elif defined(__GNUC__) || defined(__clang__)
 		return static_cast<Square>(__builtin_ctzll(bb));
 	#else
@@ -122,6 +122,7 @@ namespace BB {
 		}
 		return index;
 	#endif
+	}
 }
 	
 #endif
