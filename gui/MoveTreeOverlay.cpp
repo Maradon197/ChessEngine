@@ -19,13 +19,16 @@
 
 namespace {
 
-constexpr qreal COLUMN_WIDTH = 104;
-constexpr qreal NODE_WIDTH = 88;
-constexpr qreal ROW_HEIGHT = 56;	//roomier than the columns so rows are harder to switch by accident
-constexpr qreal NODE_HEIGHT = 28;
+constexpr qreal SCALE = 1.15;
+constexpr qreal COLUMN_WIDTH = 104 * SCALE;
+constexpr qreal NODE_WIDTH = 88 * SCALE;
+constexpr qreal ROW_HEIGHT = 60 * SCALE;	//roomier than the columns so rows are harder to switch by accident
+constexpr qreal NODE_HEIGHT = 34 * SCALE;
+constexpr qreal TEXT_PADDING = 10 * SCALE;
+constexpr qreal FONT_SCALE = 1.15 * SCALE;
 
-constexpr qreal HORIZONTAL_GAIN = 1.2;	//tree pixels per mouse pixel
-constexpr qreal VERTICAL_GAIN = 0.55;
+constexpr qreal HORIZONTAL_GAIN = 1.2 * SCALE;	//tree pixels per mouse pixel, scaled so mouse travel per move stays the same
+constexpr qreal VERTICAL_GAIN = 0.55 * SCALE;
 constexpr qreal SKIM_RATIO = 1.5;	//movement counts as a skim along the row when |dx| > SKIM_RATIO * |dy|
 constexpr qreal SKIM_DAMPING = 0.3;	//vertical movement left over while skimming
 constexpr qreal SNAP_THRESHOLD = 0.75;	//rows the cursor has to leave the snapped row by before it switches
@@ -36,6 +39,9 @@ constexpr int FADE_DURATION = 140;
 constexpr int BACKDROP_ALPHA = 110;
 constexpr qreal NODE_OPACITY = 0.88;
 constexpr qreal EDGE_OPACITY = 0.7;
+constexpr int FLASH_DURATION = 380;
+constexpr int FLASH_ALPHA = 70;
+constexpr qreal FLASH_WIDTH = 70;
 
 } // !namespace
 
@@ -77,6 +83,16 @@ MoveTreeOverlay::MoveTreeOverlay(Doorman& doorman, QWidget& window)
 			frameTimer->stop();
 			hide();
 		}
+	});
+
+	flash = new QVariantAnimation(this);
+	flash->setStartValue(1.0);
+	flash->setEndValue(0.0);
+	flash->setDuration(FLASH_DURATION);
+	flash->setEasingCurve(QEasingCurve::OutQuad);
+	connect(flash, &QVariantAnimation::valueChanged, this, [this](const QVariant& value) {
+		flashStrength = value.toReal();
+		update();
 	});
 
 	frameTimer = new QTimer(this);
@@ -292,8 +308,13 @@ QString MoveTreeOverlay::getDisplayText(const Node& node) const {
 }
 
 void MoveTreeOverlay::selectNode(NodeId id, bool notify) {
-	if (!nodes.contains(id)) {
+	const auto found = nodes.find(id);
+	if (found == nodes.end()) {
 		return;
+	}
+	if (navigating && found->second.row != nodes.at(currentNode).row) {
+		flash->stop();
+		flash->start();	//switched to another line
 	}
 	currentNode = id;
 	update();
@@ -483,6 +504,28 @@ void MoveTreeOverlay::paintEvent(QPaintEvent* event) {
 	painter.fillRect(rect(), backdrop);
 
 	paintTree(painter);
+	paintFlash(painter);
+}
+
+void MoveTreeOverlay::paintFlash(QPainter& painter) const {
+	if (flashStrength <= 0) {
+		return;
+	}
+	const QRectF area = rect();
+	const QColor edge(255, 255, 255, static_cast<int>(FLASH_ALPHA * flashStrength));
+	const QColor inner(255, 255, 255, 0);
+	const auto paintEdge = [&](const QRectF& band, const QPointF& from, const QPointF& to) {
+		QLinearGradient gradient(from, to);
+		gradient.setColorAt(0, edge);
+		gradient.setColorAt(1, inner);
+		painter.fillRect(band, gradient);
+	};
+	const qreal width = FLASH_WIDTH;
+	painter.setPen(Qt::NoPen);
+	paintEdge({area.left(), area.top(), area.width(), width}, area.topLeft(), {area.left(), area.top() + width});
+	paintEdge({area.left(), area.bottom() - width, area.width(), width}, area.bottomLeft(), {area.left(), area.bottom() - width});
+	paintEdge({area.left(), area.top(), width, area.height()}, area.topLeft(), {area.left() + width, area.top()});
+	paintEdge({area.right() - width, area.top(), width, area.height()}, area.topRight(), {area.right() - width, area.top()});
 }
 
 void MoveTreeOverlay::paintTree(QPainter& painter) const {
@@ -521,7 +564,7 @@ void MoveTreeOverlay::paintTree(QPainter& painter) const {
 	painter.drawLine(cursor, toScreen(getNodeCenter(nodes.at(currentNode))));
 
 	QFont font = painter.font();
-	font.setPointSizeF(font.pointSizeF() + 1);
+	font.setPointSizeF(font.pointSizeF() * FONT_SCALE);
 	painter.setFont(font);
 	for (const auto& [id, node] : nodes) {
 		const QRectF rect = getNodeRect(node).translated(toScreen({}));
@@ -539,7 +582,7 @@ void MoveTreeOverlay::paintTree(QPainter& painter) const {
 		painter.drawRoundedRect(rect.adjusted(0.5, 0.5, -0.5, -0.5), 5, 5);
 
 		painter.setPen(isCurrent ? colors.color(QPalette::HighlightedText) : colors.color(QPalette::Text));
-		const QString text = painter.fontMetrics().elidedText(getDisplayText(node), Qt::ElideRight, static_cast<int>(rect.width()) - 8);
+		const QString text = painter.fontMetrics().elidedText(getDisplayText(node), Qt::ElideRight, static_cast<int>(rect.width() - 2 * TEXT_PADDING));
 		painter.drawText(rect, Qt::AlignCenter, text);
 	}
 

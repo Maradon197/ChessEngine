@@ -83,6 +83,7 @@ private:
 	QPointF toScreen(const QPointF& treePoint) const;
 
 	void paintTree(QPainter& painter) const;
+	void paintFlash(QPainter& painter) const;
 
 	std::unordered_map<NodeId, Node> nodes;
 	NodeId currentNode = ROOT_NODE;
@@ -94,6 +95,8 @@ private:
 
 	QColor panelColor;
 	QVariantAnimation* fade = nullptr;
+	QVariantAnimation* flash = nullptr;	//edge flash when the selection switches line
+	qreal flashStrength = 0;
 	QTimer* frameTimer = nullptr;
 	qreal opacity = 0;
 	bool navigating = false;
