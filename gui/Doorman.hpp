@@ -17,7 +17,6 @@
 #include "GuiTypes.hpp"
 
 class BoardWidget;
-class ReviewWidget;
 class MoveTreeWidget;
 class EvalSquareWidget;
 class EvalCriteriaWidget;
@@ -55,12 +54,6 @@ public:
 	void setCriterion(EvalCriterion criterion, int value);
 	void clearCriteria();
 
-	//review
-	void addReviewEntry(ReviewEntryId id, const std::string& title, const std::string& text);	//existing id: replaces content
-	void removeReviewEntry(ReviewEntryId id);
-	void clearReviewEntries();
-	void focusReviewEntry(ReviewEntryId id);
-
 	//move tree
 	void setTreeOrigin(Clock fullmoveNumber, Color sideToMove);
 	NodeId addTreeNode(NodeId parent, Move move, const Position& position, const std::string& label = {});
@@ -84,7 +77,6 @@ public:
 
 	//called by the widgets in their constructors
 	void attach(BoardWidget& boardWidget);
-	void attach(ReviewWidget& reviewWidget);
 	void attach(MoveTreeWidget& moveTreeWidget);
 	void attach(EvalSquareWidget& evalSquareWidget);
 	void attach(EvalCriteriaWidget& evalCriteriaWidget);
@@ -96,7 +88,6 @@ signals:
 	void selectionCleared();
 	void userAnnotationsChanged(const std::vector<Highlight>& highlights, const std::vector<Arrow>& arrows);
 	void treeNodeSelected(NodeId id, const Position& position);	//board already shows the position
-	void reviewEntryActivated(ReviewEntryId id);
 
 private:
 	template <typename Function>
@@ -108,7 +99,6 @@ private:
 	void applyColors();
 
 	QPointer<BoardWidget> board;
-	QPointer<ReviewWidget> review;
 	QPointer<MoveTreeWidget> moveTree;
 	QPointer<EvalSquareWidget> evalSquare;
 	QPointer<EvalCriteriaWidget> evalCriteria;

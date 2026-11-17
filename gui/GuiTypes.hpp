@@ -10,8 +10,6 @@
 using NodeId = std::uint32_t;
 constexpr NodeId ROOT_NODE = 0;	//starting position, always exists
 
-using ReviewEntryId = std::uint32_t;
-
 enum class EvalCriterion {WEIGHTED_MATERIAL, KING_SAFETY, PIECE_ACTIVITY, SPACE, COUNT};
 
 constexpr int CRITERION_MIN = -3;
@@ -22,7 +20,7 @@ enum class ThemeMode {SYSTEM, LIGHT, DARK};
 enum class ColorRole {
 	LIGHT_SQUARE, DARK_SQUARE, LAST_MOVE, SELECTION, LEGAL_MOVE,
 	USER_HIGHLIGHT, USER_ARROW, ENGINE_HIGHLIGHT, ENGINE_ARROW,
-	EVAL_PANEL, REVIEW_PANEL, MOVES_PANEL,
+	EVAL_PANEL, MOVES_PANEL,
 	COUNT
 };
 constexpr std::size_t COLOR_ROLE_COUNT = static_cast<std::size_t>(ColorRole::COUNT);

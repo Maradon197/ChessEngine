@@ -20,7 +20,6 @@ The GUI depends on the core only through `DataTypes.hpp`; the core never include
 | Board       | `setPosition`, `playMove(move, label)`, `setLegalMoves`, `clearLegalMoves`, `setLastMove`, `clearLastMove`, `setBoardOrientation`, `setBoardInteractive` |
 | Annotations | `setUserHighlights/Arrows`, `clearUserAnnotations`, `setEngineHighlights/Arrows`, `clearEngineAnnotations`                                               |
 | Evaluation  | `setOverallCentipawns`, `setOverallMate`, `clearOverallEval`, `setCriterion(EvalCriterion, -3..3)`, `clearCriteria`                                      |
-| Review      | `addReviewEntry(id, title, markdownText)`, `removeReviewEntry`, `clearReviewEntries`, `focusReviewEntry`                                                 |
 | Move tree   | `setTreeOrigin`, `addTreeNode(parent, move, position, label)` → id, `removeTreeNode`, `clearTree`, `setCurrentTreeNode`                                  |
 | Appearance  | `setThemeMode`, `setColor(ColorRole, 0xAARRGGBB)`, `resetColors`                                                                                         |
 | Queries     | `getMovesToTreeNode(id)` (GUI thread), `getPosition()`, `getCurrentTreeNode()`, `getUserHighlights()`, `getUserArrows()`, `getThemeMode()`, `getColor()` |
@@ -33,7 +32,6 @@ The GUI depends on the core only through `DataTypes.hpp`; the core never include
 | `squareSelected(Square)` / `selectionCleared()` | Piece picked up or dirty-selected / selection ended.                                                                                                                    |
 | `userAnnotationsChanged(highlights, arrows)`    | User toggled a highlight/arrow (or cleared them with a left click).                                                                                                     |
 | `treeNodeSelected(NodeId, Position)`            | User went to another move (click or ←/→). The board already shows that position.                                                                                        |
-| `reviewEntryActivated(ReviewEntryId)`           | User clicked a review entry.                                                                                                                                            |
 
 
 ## Rules
@@ -44,6 +42,6 @@ The GUI depends on the core only through `DataTypes.hpp`; the core never include
 - `setPosition`/`playMove`/selecting a node clear the legal moves; send the new list afterwards.
 - Labels: pass SAN to `playMove`/`addTreeNode`; without a label the tree shows coordinates (`e2e4`).
 - `Highlight` and `Arrow` are distinct types; convert with `toSquare()` / `toMove()` (an arrow keeps only from/to bits).
-- Node ids are assigned by the Doorman; `ROOT_NODE` (0) is the start position. Review ids come from your core.
+- Node ids are assigned by the Doorman; `ROOT_NODE` (0) is the start position.
 - Promotion picker: appears only if the legal list holds several promotion moves for the dropped square.
 - New game: `clearTree()` then `setPosition(start)`.

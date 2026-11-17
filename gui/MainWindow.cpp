@@ -9,7 +9,6 @@
 #include "EvalCriteriaWidget.hpp"
 #include "EvalSquareWidget.hpp"
 #include "MoveTreeWidget.hpp"
-#include "ReviewWidget.hpp"
 #include "SidePanelWidget.hpp"
 #include "ToolBarWidget.hpp"
 
@@ -40,15 +39,13 @@ MainWindow::MainWindow(Doorman& doorman, QWidget* parent)
 	leftLayout->addWidget(new EvalSquareWidget(doorman, leftColumn));
 	leftLayout->addWidget(new EvalCriteriaWidget(doorman, leftColumn), 1);
 
-	//eval | board | review
+	//eval | board
 	auto* analysisSplitter = makeSplitter(Qt::Horizontal, central);
 	analysisSplitter->addWidget(leftColumn);
 	analysisSplitter->addWidget(new BoardWidget(doorman, analysisSplitter));
-	analysisSplitter->addWidget(new ReviewWidget(doorman, analysisSplitter));
 	analysisSplitter->setStretchFactor(0, 0);
 	analysisSplitter->setStretchFactor(1, 1);
-	analysisSplitter->setStretchFactor(2, 0);
-	analysisSplitter->setSizes({190, 800, 300});
+	analysisSplitter->setSizes({190, 1100});
 
 	//move tree below
 	auto* verticalSplitter = makeSplitter(Qt::Vertical, central);

@@ -8,7 +8,6 @@
 #include "EvalCriteriaWidget.hpp"
 #include "EvalSquareWidget.hpp"
 #include "MoveTreeWidget.hpp"
-#include "ReviewWidget.hpp"
 #include "SidePanelWidget.hpp"
 #include "Theme.hpp"
 
@@ -154,24 +153,6 @@ void Doorman::clearCriteria() {
 	runInGuiThread([this] { if (evalCriteria) evalCriteria->clearCriteria(); });
 }
 
-void Doorman::addReviewEntry(ReviewEntryId id, const std::string& title, const std::string& text) {
-	const QString qTitle = QString::fromStdString(title);
-	const QString qText = QString::fromStdString(text);
-	runInGuiThread([this, id, qTitle, qText] { if (review) review->addEntry(id, qTitle, qText); });
-}
-
-void Doorman::removeReviewEntry(ReviewEntryId id) {
-	runInGuiThread([this, id] { if (review) review->removeEntry(id); });
-}
-
-void Doorman::clearReviewEntries() {
-	runInGuiThread([this] { if (review) review->clearEntries(); });
-}
-
-void Doorman::focusReviewEntry(ReviewEntryId id) {
-	runInGuiThread([this, id] { if (review) review->focusEntry(id); });
-}
-
 void Doorman::setTreeOrigin(Clock fullmoveNumber, Color sideToMove) {
 	runInGuiThread([this, fullmoveNumber, sideToMove] { if (moveTree) moveTree->setOrigin(fullmoveNumber, sideToMove); });
 }
@@ -307,12 +288,6 @@ void Doorman::attach(BoardWidget& boardWidget) {
 		});
 }
 
-void Doorman::attach(ReviewWidget& reviewWidget) {
-	review = &reviewWidget;
-	applyColors();
-	connect(&reviewWidget, &ReviewWidget::entryActivated, this, &Doorman::reviewEntryActivated);
-}
-
 void Doorman::attach(MoveTreeWidget& moveTreeWidget) {
 	moveTree = &moveTreeWidget;
 	applyColors();
@@ -372,9 +347,6 @@ void Doorman::applyColors() {
 			case ColorRole::EVAL_PANEL:
 				if (evalSquare) evalSquare->setPanelColor(color);
 				if (evalCriteria) evalCriteria->setPanelColor(color);
-				break;
-			case ColorRole::REVIEW_PANEL:
-				if (review) review->setPanelColor(color);
 				break;
 			case ColorRole::MOVES_PANEL:
 				if (moveTree) moveTree->setPanelColor(color);

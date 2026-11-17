@@ -34,7 +34,6 @@ QString getRoleName(ColorRole role) {
 		case ColorRole::ENGINE_HIGHLIGHT: return QObject::tr("Engine highlights");
 		case ColorRole::ENGINE_ARROW: return QObject::tr("Engine arrows");
 		case ColorRole::EVAL_PANEL: return QObject::tr("Evaluation panel");
-		case ColorRole::REVIEW_PANEL: return QObject::tr("Review panel");
 		case ColorRole::MOVES_PANEL: return QObject::tr("Moves panel");
 		default: return {};
 	}
