@@ -17,7 +17,7 @@
 #include "GuiTypes.hpp"
 
 class BoardWidget;
-class MoveTreeWidget;
+class MoveTreeOverlay;
 class EvalSquareWidget;
 class EvalCriteriaWidget;
 
@@ -76,7 +76,7 @@ public:
 
 	//called by the widgets in their constructors
 	void attach(BoardWidget& boardWidget);
-	void attach(MoveTreeWidget& moveTreeWidget);
+	void attach(MoveTreeOverlay& moveTreeOverlay);
 	void attach(EvalSquareWidget& evalSquareWidget);
 	void attach(EvalCriteriaWidget& evalCriteriaWidget);
 
@@ -97,7 +97,7 @@ private:
 	void applyColors();
 
 	QPointer<BoardWidget> board;
-	QPointer<MoveTreeWidget> moveTree;
+	QPointer<MoveTreeOverlay> moveTree;
 	QPointer<EvalSquareWidget> evalSquare;
 	QPointer<EvalCriteriaWidget> evalCriteria;
 

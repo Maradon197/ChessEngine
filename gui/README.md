@@ -31,7 +31,7 @@ The GUI depends on the core only through `DataTypes.hpp`; the core never include
 | `moveAttempted(Move)`                           | User dragged/clicked a move. Not validated – verify it, then answer with `playMove`. Carries the full move (flags) if it was in the legal list, otherwise only from/to. |
 | `squareSelected(Square)` / `selectionCleared()` | Piece picked up or dirty-selected / selection ended.                                                                                                                    |
 | `userAnnotationsChanged(highlights, arrows)`    | User toggled a highlight/arrow (or cleared them with a left click).                                                                                                     |
-| `treeNodeSelected(NodeId, Position)`            | User went to another move (click or ←/→). The board already shows that position.                                                                                        |
+| `treeNodeSelected(NodeId, Position)`            | User went to another move (M overlay or ←/→). The board already shows that position.                                                                                     |
 
 
 ## Rules
@@ -45,3 +45,4 @@ The GUI depends on the core only through `DataTypes.hpp`; the core never include
 - Node ids are assigned by the Doorman; `ROOT_NODE` (0) is the start position.
 - Promotion picker: appears only if the legal list holds several promotion moves for the dropped square.
 - New game: `clearTree()` then `setPosition(start)`.
+- The move tree is an overlay shown while M is held: the cursor is hidden, mouse movement pans the tree and the node closest to the middle is selected (same as a click). ←/→ step through the tree when the overlay is closed.

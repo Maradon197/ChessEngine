@@ -1,24 +1,30 @@
-#ifndef MOVETREEWIDGET_HPP
-#define MOVETREEWIDGET_HPP
+#ifndef MOVETREEOVERLAY_HPP
+#define MOVETREEOVERLAY_HPP
 
 #include <optional>
 #include <unordered_map>
 #include <vector>
 
-#include <QScrollArea>
+#include <QColor>
+#include <QPoint>
+#include <QPointF>
+#include <QWidget>
 
 #include "DataTypes.hpp"
 #include "GuiTypes.hpp"
 
 class Doorman;
-class MoveTreeCanvas;
 class QPainter;
+class QTimer;
+class QVariantAnimation;
 
-class MoveTreeWidget : public QScrollArea {
+//covers the whole window while M is held: the hidden cursor stays in the middle, mouse movement pans the tree
+//underneath it and the node closest to the middle becomes the current node
+class MoveTreeOverlay : public QWidget {
 	Q_OBJECT
 
 public:
-	explicit MoveTreeWidget(Doorman& doorman, QWidget* parent = nullptr);
+	MoveTreeOverlay(Doorman& doorman, QWidget& window);
 
 	void setOrigin(Clock fullmoveNumber, Color sideToMove);
 	void addNode(NodeId id, NodeId parent, Move move, const QString& label, const Position& position);
@@ -40,11 +46,11 @@ signals:
 	void nodeSelected(NodeId id);
 
 protected:
-	void keyPressEvent(QKeyEvent* event) override;
+	bool eventFilter(QObject* watched, QEvent* event) override;
+	void paintEvent(QPaintEvent* event) override;
+	void mouseMoveEvent(QMouseEvent* event) override;
 
 private:
-	friend class MoveTreeCanvas;
-
 	struct Node {
 		NodeId parent = ROOT_NODE;
 		Move move = 0;
@@ -60,13 +66,24 @@ private:
 	void relayout();
 	void layoutLine(NodeId first, int row, RowOccupancy& occupancy);
 	int getLineLength(NodeId first) const;
-	QRect getNodeRect(const Node& node) const;
+	QPointF getNodeCenter(const Node& node) const;
+	QRectF getNodeRect(const Node& node) const;
 	QString getDisplayText(const Node& node) const;
 	void selectNode(NodeId id, bool notify);
-	void paintTree(QPainter& painter) const;
-	void handleClick(const QPoint& point);
+	bool handleKey(QKeyEvent& event, QWidget& receiver);
 
-	MoveTreeCanvas* canvas = nullptr;
+	void beginNavigation();
+	void endNavigation();
+	void fadeTo(qreal target);
+	void recenterCursor();
+	void pan(QPointF delta);
+	void clampPan();
+	void selectClosestNode();
+	qreal getTargetViewY() const;
+	QPointF toScreen(const QPointF& treePoint) const;
+
+	void paintTree(QPainter& painter) const;
+
 	std::unordered_map<NodeId, Node> nodes;
 	NodeId currentNode = ROOT_NODE;
 	Clock originFullmove = 1;
@@ -74,6 +91,17 @@ private:
 	int minRow = 0;
 	int maxRow = 0;
 	int maxColumn = 0;
+
+	QColor panelColor;
+	QVariantAnimation* fade = nullptr;
+	QTimer* frameTimer = nullptr;
+	qreal opacity = 0;
+	bool navigating = false;
+	QPoint savedCursor;	//global, restored when M is released
+	QPointF cursorAnchor;	//global position the cursor is pinned to
+	QPointF panPoint;	//tree point under the cursor, before row snapping
+	int snappedRow = 0;
+	qreal viewY = 0;	//smoothed vertical view position
 };
 
 #endif

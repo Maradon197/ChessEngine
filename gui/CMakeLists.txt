@@ -5,7 +5,7 @@ qt_add_library(ChessGui STATIC
     ToolBarWidget.hpp       ToolBarWidget.cpp
     Doorman.hpp             Doorman.cpp
     BoardWidget.hpp         BoardWidget.cpp
-    MoveTreeWidget.hpp      MoveTreeWidget.cpp
+    MoveTreeOverlay.hpp     MoveTreeOverlay.cpp
     EvalSquareWidget.hpp    EvalSquareWidget.cpp
     EvalCriteriaWidget.hpp  EvalCriteriaWidget.cpp
     MainWindow.hpp          MainWindow.cpp

@@ -8,7 +8,7 @@
 #include "Doorman.hpp"
 #include "EvalCriteriaWidget.hpp"
 #include "EvalSquareWidget.hpp"
-#include "MoveTreeWidget.hpp"
+#include "MoveTreeOverlay.hpp"
 #include "ToolBarWidget.hpp"
 
 MainWindow::MainWindow(Doorman& doorman, QWidget* parent)
@@ -17,13 +17,6 @@ MainWindow::MainWindow(Doorman& doorman, QWidget* parent)
 	resize(1400, 900);
 
 	addToolBar(Qt::TopToolBarArea, new ToolBarWidget(doorman, this));
-
-	const auto makeSplitter = [](Qt::Orientation orientation, QWidget* parent) {
-		auto* splitter = new QSplitter(orientation, parent);
-		splitter->setChildrenCollapsible(false);
-		splitter->setHandleWidth(7);
-		return splitter;
-	};
 
 	auto* central = new QWidget(this);
 	auto* rootLayout = new QHBoxLayout(central);
@@ -39,21 +32,18 @@ MainWindow::MainWindow(Doorman& doorman, QWidget* parent)
 	leftLayout->addWidget(new EvalCriteriaWidget(doorman, leftColumn), 1);
 
 	//eval | board
-	auto* analysisSplitter = makeSplitter(Qt::Horizontal, central);
+	auto* analysisSplitter = new QSplitter(Qt::Horizontal, central);
+	analysisSplitter->setChildrenCollapsible(false);
+	analysisSplitter->setHandleWidth(7);
 	analysisSplitter->addWidget(leftColumn);
 	analysisSplitter->addWidget(new BoardWidget(doorman, analysisSplitter));
 	analysisSplitter->setStretchFactor(0, 0);
 	analysisSplitter->setStretchFactor(1, 1);
 	analysisSplitter->setSizes({190, 1100});
 
-	//move tree below
-	auto* verticalSplitter = makeSplitter(Qt::Vertical, central);
-	verticalSplitter->addWidget(analysisSplitter);
-	verticalSplitter->addWidget(new MoveTreeWidget(doorman, verticalSplitter));
-	verticalSplitter->setStretchFactor(0, 1);
-	verticalSplitter->setStretchFactor(1, 0);
-	verticalSplitter->setSizes({700, 130});
-
-	rootLayout->addWidget(verticalSplitter);
+	rootLayout->addWidget(analysisSplitter);
 	setCentralWidget(central);
+
+	//move tree, shown over everything while M is held
+	new MoveTreeOverlay(doorman, *this);
 }

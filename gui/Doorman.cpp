@@ -7,7 +7,7 @@
 #include "BoardWidget.hpp"
 #include "EvalCriteriaWidget.hpp"
 #include "EvalSquareWidget.hpp"
-#include "MoveTreeWidget.hpp"
+#include "MoveTreeOverlay.hpp"
 #include "Theme.hpp"
 
 namespace {
@@ -287,10 +287,10 @@ void Doorman::attach(BoardWidget& boardWidget) {
 		});
 }
 
-void Doorman::attach(MoveTreeWidget& moveTreeWidget) {
-	moveTree = &moveTreeWidget;
+void Doorman::attach(MoveTreeOverlay& moveTreeOverlay) {
+	moveTree = &moveTreeOverlay;
 	applyColors();
-	connect(&moveTreeWidget, &MoveTreeWidget::nodeSelected, this, [this](NodeId id) {
+	connect(&moveTreeOverlay, &MoveTreeOverlay::nodeSelected, this, [this](NodeId id) {
 		showTreeNode(id);
 		emit treeNodeSelected(id, getPosition());
 	});
