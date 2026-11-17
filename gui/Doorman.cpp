@@ -92,7 +92,10 @@ void Doorman::clearLastMove() {
 }
 
 void Doorman::setBoardOrientation(Color bottomColor) {
-	runInGuiThread([this, bottomColor] { if (board) board->setOrientation(bottomColor); });
+	runInGuiThread([this, bottomColor] {
+		if (board) board->setOrientation(bottomColor);
+		if (evalSquare) evalSquare->setOrientation(bottomColor);
+	});
 }
 
 void Doorman::setBoardInteractive(bool interactive) {
@@ -154,6 +157,10 @@ void Doorman::setCriterion(EvalCriterion criterion, int value) {
 
 void Doorman::clearCriteria() {
 	runInGuiThread([this] { if (evalCriteria) evalCriteria->clearCriteria(); });
+}
+
+void Doorman::setSquareValues(const SquareValues& values) {
+	runInGuiThread([this, values] { if (evalSquare) evalSquare->setValues(values); });
 }
 
 void Doorman::setTreeOrigin(Clock fullmoveNumber, Color sideToMove) {
@@ -346,6 +353,7 @@ void Doorman::attach(MoveTreeOverlay& moveTreeOverlay) {
 
 void Doorman::attach(EvalSquareWidget& evalSquareWidget) {
 	evalSquare = &evalSquareWidget;
+	if (board) evalSquareWidget.setOrientation(board->getOrientation());
 	applyColors();
 }
 

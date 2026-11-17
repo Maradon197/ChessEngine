@@ -1,6 +1,7 @@
 #ifndef GUITYPES_HPP
 #define GUITYPES_HPP
 
+#include <array>
 #include <cstddef>
 #include <cstdint>
 
@@ -16,6 +17,9 @@ enum class EvalCriterion {WEIGHTED_MATERIAL, KING_SAFETY, PIECE_ACTIVITY, SPACE,
 constexpr int CRITERION_MIN = -3;
 constexpr int CRITERION_MAX = 3;
 
+//one value per square, indexed by Square (a1 = 0); positive is good for white, negative for black
+using SquareValues = std::array<int, 64>;
+
 enum class ThemeMode {SYSTEM, LIGHT, DARK};
 
 enum class ColorRole {
@@ -27,6 +31,17 @@ enum class ColorRole {
 constexpr std::size_t COLOR_ROLE_COUNT = static_cast<std::size_t>(ColorRole::COUNT);
 
 using ColorValue = std::uint32_t;
+
+inline constexpr const char* SETTINGS_ORGANIZATION = "ChessEngineGUI";
+inline constexpr const char* SETTINGS_APPLICATION = "ChessEngineGUI";
+
+enum class KeyAction {
+	TOGGLE_SIDEBAR, MOVE_TREE, PRINCIPLE_DRAWER, CLOSE_DRAWER, TREE_BACK, TREE_FORWARD,
+	COUNT
+};
+constexpr std::size_t KEY_ACTION_COUNT = static_cast<std::size_t>(KeyAction::COUNT);
+
+enum class KeyMode {TOGGLE, HOLD};
 
 //own types so they can't be mixed up with Square and Move
 class Highlight {

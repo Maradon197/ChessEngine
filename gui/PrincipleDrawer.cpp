@@ -22,7 +22,6 @@
 #include <QPainterPath>
 #include <QPushButton>
 #include <QScrollArea>
-#include <QShortcut>
 #include <QSignalBlocker>
 #include <QTextBrowser>
 #include <QTextLayout>
@@ -34,6 +33,7 @@
 #include <QWheelEvent>
 
 #include "Doorman.hpp"
+#include "KeyBindings.hpp"
 
 namespace {
 
@@ -344,7 +344,7 @@ public:
 		setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
 		setFocusPolicy(Qt::StrongFocus);
 		setMouseTracking(true);
-		setProperty("ownsArrowKeys", true);	//the move tree leaves ←/→ alone while this has focus
+		setProperty("ownsArrowKeys", true);	//key bindings leave ←/→ alone while this has focus
 		setToolTip(PrincipleDrawer::tr("Principles spotted at or below the target Elo are switched on, all above it off"));
 	}
 
@@ -829,7 +829,7 @@ private:
 	qreal shadowRatio = 0;
 };
 
-PrincipleDrawer::PrincipleDrawer(Doorman& doorman, QWidget& window)
+PrincipleDrawer::PrincipleDrawer(Doorman& doorman, KeyBindings& keyBindings, QWidget& window)
 	: QWidget(&window) {
 	setFocusPolicy(Qt::StrongFocus);	//takes focus when opened so typing doesn't land in the search field
 	hide();
@@ -870,14 +870,23 @@ PrincipleDrawer::PrincipleDrawer(Doorman& doorman, QWidget& window)
 		}
 	});
 
-	//a shortcut instead of a key filter: handled before the focused widget sees the key
-	auto* shortcut = new QShortcut(QKeySequence(Qt::ControlModifier | Qt::Key_Space), &window);
-	shortcut->setContext(Qt::WindowShortcut);
-	shortcut->setAutoRepeat(false);
-	connect(shortcut, &QShortcut::activated, this, [this] { setOpen(!isOpen); });
+	keyBindings.bindVisibility(KeyAction::PRINCIPLE_DRAWER, *this, [this] { return isOpen; }, [this](bool open) { setOpen(open); });
+	connect(&keyBindings, &KeyBindings::pressed, this, [this](KeyAction action) {
+		if (action == KeyAction::CLOSE_DRAWER) {
+			closeStep();
+		}
+	});
+	const auto updateCloseTip = [this, &keyBindings] {
+		if (auto* closeButton = findChild<QToolButton*>("detailsCloseButton")) {
+			const QKeyCombination key = keyBindings.getKey(KeyAction::CLOSE_DRAWER);
+			closeButton->setToolTip(KeyBindings::isBound(key) ? tr("Close (%1)").arg(KeyBindings::getKeyName(key)) : tr("Close"));
+		}
+	};
+	updateCloseTip();
+	connect(&keyBindings, &KeyBindings::changed, this, updateCloseTip);
 
 	window.installEventFilter(this);	//resizes
-	qApp->installEventFilter(this);	//Esc and clicks above the drawer
+	qApp->installEventFilter(this);	//clicks above the drawer
 
 	applyFilters();
 	doorman.attach(*this);
@@ -974,7 +983,7 @@ QWidget* PrincipleDrawer::createDetails() {
 	auto* closeButton = new QToolButton(detailsPanel);
 	closeButton->setText(QString::fromUtf8("✕"));
 	closeButton->setAutoRaise(true);
-	closeButton->setToolTip(tr("Close (Esc)"));
+	closeButton->setObjectName("detailsCloseButton");	//tooltip names the current key, see the constructor
 	connect(closeButton, &QToolButton::clicked, this, &PrincipleDrawer::hideDetails);
 	titleRow->addWidget(detailTitle, 1);
 	titleRow->addWidget(closeButton, 0, Qt::AlignTop);
@@ -1094,7 +1103,7 @@ bool PrincipleDrawer::eventFilter(QObject* watched, QEvent* event) {
 		updatePlacement();
 		return false;
 	}
-	if (!isOpen || (event->type() != QEvent::KeyPress && event->type() != QEvent::MouseButtonPress)) {
+	if (!isOpen || event->type() != QEvent::MouseButtonPress) {
 		return false;
 	}
 	auto* receiver = qobject_cast<QWidget*>(watched);
@@ -1102,26 +1111,26 @@ bool PrincipleDrawer::eventFilter(QObject* watched, QEvent* event) {
 		return false;	//popups, dialogs and the drawer itself handle their own input
 	}
 
-	if (event->type() == QEvent::MouseButtonPress) {
-		if (receiver->inherits("MoveTreeOverlay")) {
-			return false;
-		}
-		const QPoint point = mapFromGlobal(static_cast<QMouseEvent*>(event)->globalPosition().toPoint());
-		if (point.y() < 0) {
-			setOpen(false);	//clicked above the drawer: close it and swallow the click
-			return true;
-		}
+	if (receiver->inherits("MoveTreeOverlay")) {
 		return false;
 	}
-	if (static_cast<QKeyEvent*>(event)->key() != Qt::Key_Escape) {
-		return false;
+	const QPoint point = mapFromGlobal(static_cast<QMouseEvent*>(event)->globalPosition().toPoint());
+	if (point.y() < 0) {
+		setOpen(false);	//clicked above the drawer: close it and swallow the click
+		return true;
+	}
+	return false;
+}
+
+void PrincipleDrawer::closeStep() {
+	if (!isOpen) {
+		return;
 	}
 	if (detailIndex >= 0) {
 		hideDetails();
 	} else {
 		setOpen(false);
 	}
-	return true;
 }
 
 void PrincipleDrawer::paintEvent(QPaintEvent* event) {

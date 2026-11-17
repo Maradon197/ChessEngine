@@ -13,6 +13,7 @@
 
 class Doorman;
 class EloSlider;
+class KeyBindings;
 class PrincipleFrame;
 class PrincipleGrid;
 class QCheckBox;
@@ -23,12 +24,12 @@ class QScrollArea;
 class QTextBrowser;
 class QVariantAnimation;
 
-//slides up from the bottom on Ctrl+Space: browse the principles and choose which ones the engine considers
+//slides up from the bottom on its key (Ctrl+Space by default): browse the principles and choose which ones the engine considers
 class PrincipleDrawer : public QWidget {
 	Q_OBJECT
 
 public:
-	PrincipleDrawer(Doorman& doorman, QWidget& window);
+	PrincipleDrawer(Doorman& doorman, KeyBindings& keyBindings, QWidget& window);
 
 	void setPrinciples(const std::vector<Principle>& principles);
 	void setPrincipleEnabled(const std::string& title, bool enabled);
@@ -51,6 +52,7 @@ private:
 	QWidget* createHeader();
 	QWidget* createDetails();
 	void setOpen(bool open);
+	void closeStep();	//details first, then the drawer
 	void updatePlacement();
 	void applyFilters();
 	void updateMarkers();

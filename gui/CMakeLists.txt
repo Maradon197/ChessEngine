@@ -2,6 +2,7 @@ qt_add_library(ChessGui STATIC
     GuiTypes.hpp
     MoveBits.hpp
     Theme.hpp               Theme.cpp
+    KeyBindings.hpp         KeyBindings.cpp
     ToolBarWidget.hpp       ToolBarWidget.cpp
     Doorman.hpp             Doorman.cpp
     BoardWidget.hpp         BoardWidget.cpp
@@ -9,6 +10,7 @@ qt_add_library(ChessGui STATIC
     PrincipleDrawer.hpp     PrincipleDrawer.cpp
     EvalSquareWidget.hpp    EvalSquareWidget.cpp
     EvalCriteriaWidget.hpp  EvalCriteriaWidget.cpp
+    AnalysisSidebar.hpp     AnalysisSidebar.cpp
     MainWindow.hpp          MainWindow.cpp
 )
 

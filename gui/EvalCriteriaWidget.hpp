@@ -8,10 +8,13 @@
 
 #include "GuiTypes.hpp"
 
+class BalanceBar;
+class Card;
 class CriterionBar;
 class Doorman;
 class QLabel;
 
+//overall evaluation as a number, a sentence and a black/white balance, then one tug-of-war per criterion
 class EvalCriteriaWidget : public QWidget {
 	Q_OBJECT
 
@@ -31,7 +34,11 @@ public:
 private:
 	static constexpr std::size_t CRITERION_COUNT = static_cast<std::size_t>(EvalCriterion::COUNT);
 
+	Card* overallCard = nullptr;
+	Card* criteriaCard = nullptr;
 	QLabel* overallValueLabel = nullptr;
+	QLabel* verdictLabel = nullptr;
+	BalanceBar* balanceBar = nullptr;
 	std::array<CriterionBar*, CRITERION_COUNT> bars{};
 };
 

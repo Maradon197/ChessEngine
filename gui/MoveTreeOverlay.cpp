@@ -8,7 +8,6 @@
 
 #include <QApplication>
 #include <QCursor>
-#include <QKeyEvent>
 #include <QMouseEvent>
 #include <QPainter>
 #include <QPainterPath>
@@ -16,6 +15,7 @@
 #include <QVariantAnimation>
 
 #include "Doorman.hpp"
+#include "KeyBindings.hpp"
 
 namespace {
 
@@ -66,7 +66,7 @@ struct MoveTreeOverlay::RowOccupancy {
 	}
 };
 
-MoveTreeOverlay::MoveTreeOverlay(Doorman& doorman, QWidget& window)
+MoveTreeOverlay::MoveTreeOverlay(Doorman& doorman, KeyBindings& keyBindings, QWidget& window)
 	: QWidget(&window) {
 	setAttribute(Qt::WA_TransparentForMouseEvents);
 	setFocusPolicy(Qt::NoFocus);
@@ -106,7 +106,14 @@ MoveTreeOverlay::MoveTreeOverlay(Doorman& doorman, QWidget& window)
 	});
 
 	window.installEventFilter(this);
-	qApp->installEventFilter(this);	//M and the arrow keys work no matter which widget has focus
+	keyBindings.bindVisibility(KeyAction::MOVE_TREE, *this, [this] { return navigating; }, [this](bool show) {
+		if (show) {
+			beginNavigation();
+		} else {
+			endNavigation();
+		}
+	});
+	connect(&keyBindings, &KeyBindings::pressed, this, &MoveTreeOverlay::step);
 
 	clearTree();
 	doorman.attach(*this);
@@ -334,50 +341,20 @@ bool MoveTreeOverlay::eventFilter(QObject* watched, QEvent* event) {
 			return false;
 		}
 	}
-	if (event->type() != QEvent::KeyPress && event->type() != QEvent::KeyRelease) {
-		return false;
-	}
-	auto* receiver = qobject_cast<QWidget*>(watched);
-	if (receiver == nullptr || receiver->window() != window()) {
-		return false;	//popups and dialogs keep their keys
-	}
-	return handleKey(*static_cast<QKeyEvent*>(event), *receiver);
+	return false;
 }
 
-bool MoveTreeOverlay::handleKey(QKeyEvent& event, QWidget& receiver) {
-	const bool isPress = event.type() == QEvent::KeyPress;
-	const bool isTextInput = receiver.inherits("QLineEdit") || (receiver.inherits("QTextEdit") && !receiver.property("readOnly").toBool());
-	if (isTextInput && !navigating) {
-		return false;	//typing an m
-	}
-	if (event.key() == Qt::Key_M) {
-		if (!event.isAutoRepeat()) {
-			if (isPress) {
-				beginNavigation();
-			} else {
-				endNavigation();
-			}
-		}
-		return true;
-	}
-
-	if (!isPress || navigating || receiver.inherits("QComboBox") || receiver.inherits("QAbstractScrollArea") || receiver.property("ownsArrowKeys").toBool()) {
-		return false;
+//the arrow keys walk the main line while the tree is closed
+void MoveTreeOverlay::step(KeyAction action) {
+	if (navigating) {
+		return;
 	}
 	const Node& current = nodes.at(currentNode);
-	if (event.key() == Qt::Key_Left) {
-		if (currentNode != ROOT_NODE) {
-			selectNode(current.parent, true);
-		}
-		return true;
+	if (action == KeyAction::TREE_BACK && currentNode != ROOT_NODE) {
+		selectNode(current.parent, true);
+	} else if (action == KeyAction::TREE_FORWARD && !current.children.empty()) {
+		selectNode(current.children.front(), true);
 	}
-	if (event.key() == Qt::Key_Right) {
-		if (!current.children.empty()) {
-			selectNode(current.children.front(), true);
-		}
-		return true;
-	}
-	return false;
 }
 
 void MoveTreeOverlay::beginNavigation() {

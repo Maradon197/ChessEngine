@@ -14,17 +14,18 @@
 #include "GuiTypes.hpp"
 
 class Doorman;
+class KeyBindings;
 class QPainter;
 class QTimer;
 class QVariantAnimation;
 
-//covers the whole window while M is held: the hidden cursor stays in the middle, mouse movement pans the tree
-//underneath it and the node closest to the middle becomes the current node
+//covers the whole window while its key is held (or until it is pressed again): the hidden cursor stays in the middle,
+//mouse movement pans the tree underneath it and the node closest to the middle becomes the current node
 class MoveTreeOverlay : public QWidget {
 	Q_OBJECT
 
 public:
-	MoveTreeOverlay(Doorman& doorman, QWidget& window);
+	MoveTreeOverlay(Doorman& doorman, KeyBindings& keyBindings, QWidget& window);
 
 	void setOrigin(Clock fullmoveNumber, Color sideToMove);
 	void addNode(NodeId id, NodeId parent, Move move, const QString& label, const Position& position);
@@ -70,7 +71,7 @@ private:
 	QRectF getNodeRect(const Node& node) const;
 	QString getDisplayText(const Node& node) const;
 	void selectNode(NodeId id, bool notify);
-	bool handleKey(QKeyEvent& event, QWidget& receiver);
+	void step(KeyAction action);
 
 	void beginNavigation();
 	void endNavigation();

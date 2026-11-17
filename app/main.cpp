@@ -31,7 +31,7 @@ void replayMoves(BoardState& board, const std::vector<Move>& moves) {
 	}
 }
 
-//data/ next to the executable for installed builds, otherwise the source tree so edits show up on refresh
+//data/ next to the executable for installed builds, otherwise source tree so edits show up on refresh
 std::filesystem::path findPrinciplesFile() {
 	const std::filesystem::path installed = std::filesystem::path(QCoreApplication::applicationDirPath().toStdU16String()) / "data" / "principles.json";
 	std::error_code error;
@@ -50,6 +50,20 @@ void loadPrinciples(Doorman& doorman) {
 	doorman.setPrincipleProblems(file.problems);
 }
 
+//placeholder: every piece weighs its square with its pawn value
+void showPieceValues(Doorman& doorman, const Position& position) {
+	constexpr int PIECE_VALUES[] = {1, 3, 3, 5, 9};
+	SquareValues values{};
+	for (int square = 0; square < 64; ++square) {
+		const Bitboard bit = Bitboard{1} << square;
+		for (int type = PAWN; type < KING; ++type) {
+			if (position.pieces[WHITE][type] & bit) values[square] += PIECE_VALUES[type];
+			if (position.pieces[BLACK][type] & bit) values[square] -= PIECE_VALUES[type];
+		}
+	}
+	doorman.setSquareValues(values);
+}
+
 } // !namespace
 
 int main(int argc, char* argv[]) {
@@ -66,6 +80,7 @@ int main(int argc, char* argv[]) {
 	MoveList legalMoves{};
 
 	doorman.setPosition(board.getPosition());
+	showPieceValues(doorman, board.getPosition());
 	loadPrinciples(doorman);	//the engine reads the current choice with doorman.getPrinciples()
 
 	//the user pressed Refresh in the principle drawer
@@ -87,12 +102,14 @@ int main(int argc, char* argv[]) {
 		board.makeMove(move);
 		doorman.playMove(move, label);				//advances or forks the move tree
 		doorman.setPosition(board.getPosition());	//the core's position is authoritative
+		showPieceValues(doorman, board.getPosition());
 		legalMoves.count = 0;
 	});
 
 	//the user jumped to another move in the tree: bring the core to the same position
 	QObject::connect(&doorman, &Doorman::treeNodeSelected, &doorman, [&](NodeId id, const Position&) {
 		replayMoves(board, doorman.getMovesToTreeNode(id));
+		showPieceValues(doorman, board.getPosition());
 		legalMoves.count = 0;
 	});
 

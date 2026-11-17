@@ -53,6 +53,7 @@ public:
 	void clearOverallEval();
 	void setCriterion(EvalCriterion criterion, int value);
 	void clearCriteria();
+	void setSquareValues(const SquareValues& values);	//board control map, positive: good for white
 
 	//move tree
 	void setTreeOrigin(Clock fullmoveNumber, Color sideToMove);
