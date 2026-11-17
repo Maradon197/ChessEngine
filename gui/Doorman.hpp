@@ -20,7 +20,6 @@ class BoardWidget;
 class MoveTreeWidget;
 class EvalSquareWidget;
 class EvalCriteriaWidget;
-class SidePanelWidget;
 
 //all setters are thread-safe and never emit signals
 class Doorman : public QObject {
@@ -80,7 +79,6 @@ public:
 	void attach(MoveTreeWidget& moveTreeWidget);
 	void attach(EvalSquareWidget& evalSquareWidget);
 	void attach(EvalCriteriaWidget& evalCriteriaWidget);
-	void attach(SidePanelWidget& sidePanelWidget);
 
 signals:
 	void moveAttempted(Move move);	//not verified, answer with playMove()
@@ -102,7 +100,6 @@ private:
 	QPointer<MoveTreeWidget> moveTree;
 	QPointer<EvalSquareWidget> evalSquare;
 	QPointer<EvalCriteriaWidget> evalCriteria;
-	QPointer<SidePanelWidget> sidePanel;
 
 	std::atomic<NodeId> nextNodeId{ROOT_NODE + 1};
 

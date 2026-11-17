@@ -5,6 +5,7 @@ qt_add_executable(ChessEngineGUI
 
 target_link_libraries(ChessEngineGUI PRIVATE
     ChessCore
+    ChessUtil
     ChessGui
 )
 

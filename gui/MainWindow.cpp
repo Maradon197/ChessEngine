@@ -9,7 +9,6 @@
 #include "EvalCriteriaWidget.hpp"
 #include "EvalSquareWidget.hpp"
 #include "MoveTreeWidget.hpp"
-#include "SidePanelWidget.hpp"
 #include "ToolBarWidget.hpp"
 
 MainWindow::MainWindow(Doorman& doorman, QWidget* parent)
@@ -28,7 +27,7 @@ MainWindow::MainWindow(Doorman& doorman, QWidget* parent)
 
 	auto* central = new QWidget(this);
 	auto* rootLayout = new QHBoxLayout(central);
-	rootLayout->setContentsMargins(8, 8, 0, 8);
+	rootLayout->setContentsMargins(8, 8, 8, 8);
 
 	//eval square + criteria
 	auto* leftColumn = new QWidget(central);
@@ -55,13 +54,6 @@ MainWindow::MainWindow(Doorman& doorman, QWidget* parent)
 	verticalSplitter->setStretchFactor(1, 0);
 	verticalSplitter->setSizes({700, 130});
 
-	//side panel on the right
-	auto* rootSplitter = makeSplitter(Qt::Horizontal, central);
-	rootSplitter->addWidget(verticalSplitter);
-	rootSplitter->addWidget(new SidePanelWidget(doorman, rootSplitter));
-	rootSplitter->setStretchFactor(0, 1);
-	rootSplitter->setStretchFactor(1, 0);
-
-	rootLayout->addWidget(rootSplitter);
+	rootLayout->addWidget(verticalSplitter);
 	setCentralWidget(central);
 }

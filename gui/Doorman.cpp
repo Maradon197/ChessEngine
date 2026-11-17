@@ -8,7 +8,6 @@
 #include "EvalCriteriaWidget.hpp"
 #include "EvalSquareWidget.hpp"
 #include "MoveTreeWidget.hpp"
-#include "SidePanelWidget.hpp"
 #include "Theme.hpp"
 
 namespace {
@@ -305,10 +304,6 @@ void Doorman::attach(EvalSquareWidget& evalSquareWidget) {
 void Doorman::attach(EvalCriteriaWidget& evalCriteriaWidget) {
 	evalCriteria = &evalCriteriaWidget;
 	applyColors();
-}
-
-void Doorman::attach(SidePanelWidget& sidePanelWidget) {
-	sidePanel = &sidePanelWidget;
 }
 
 void Doorman::showTreeNode(NodeId id) {

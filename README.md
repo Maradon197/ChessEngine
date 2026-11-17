@@ -5,6 +5,7 @@ A bitboard chess engine in C++ with a Qt GUI.
 ```
 app/       the GUI program (ChessEngineGUI): the starter
 core/      engine library (ChessCore): simple, runtime efficient implementation. At least in my dreams
+util/      logic on top of the core that isn't needed for search (ChessUtil), e.g. move notation
 gui/       Qt widgets + Doorman (ChessGui): see gui/README.md (slop section- I dont like making frontends)
 
 ```

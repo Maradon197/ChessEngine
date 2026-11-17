@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <string>
 #include <vector>
 
 #include <QApplication>
@@ -10,6 +11,7 @@
 #include "Doorman.hpp"
 #include "LegalMoveGenerator.hpp"
 #include "MainWindow.hpp"
+#include "MoveNotation.hpp"
 
 namespace {
 
@@ -56,8 +58,9 @@ int main(int argc, char* argv[]) {
 		if (!containsMove(legalMoves, move)) {
 			return;
 		}
+		const std::string label = MoveNotation::buildMoveString(move, board.getPosition());	//before the move is made
 		board.makeMove(move);
-		doorman.playMove(move);						//advances or forks the move tree
+		doorman.playMove(move, label);				//advances or forks the move tree
 		doorman.setPosition(board.getPosition());	//the core's position is authoritative
 		legalMoves.count = 0;
 	});

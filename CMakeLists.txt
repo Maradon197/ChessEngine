@@ -9,6 +9,7 @@ if(MSVC)
 endif()
 
 add_subdirectory(core)
+add_subdirectory(util)
 
 option(CHESS_BUILD_GUI "Build the Qt GUI (needs Qt 6.5 or newer)" ON)
 if(CHESS_BUILD_GUI)

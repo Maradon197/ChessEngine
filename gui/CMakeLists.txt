@@ -8,7 +8,6 @@ qt_add_library(ChessGui STATIC
     MoveTreeWidget.hpp      MoveTreeWidget.cpp
     EvalSquareWidget.hpp    EvalSquareWidget.cpp
     EvalCriteriaWidget.hpp  EvalCriteriaWidget.cpp
-    SidePanelWidget.hpp     SidePanelWidget.cpp
     MainWindow.hpp          MainWindow.cpp
 )
 
