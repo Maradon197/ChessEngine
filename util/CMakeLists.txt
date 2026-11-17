@@ -1,5 +1,8 @@
 add_library(ChessUtil STATIC
     MoveNotation.hpp            MoveNotation.cpp
+    Json.hpp                    Json.cpp
+    Principle.hpp
+    PrincipleLoader.hpp         PrincipleLoader.cpp
 )
 
 target_include_directories(ChessUtil PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
