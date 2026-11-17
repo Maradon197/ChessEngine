@@ -35,6 +35,7 @@ QString getRoleName(ColorRole role) {
 		case ColorRole::ENGINE_ARROW: return QObject::tr("Engine arrows");
 		case ColorRole::EVAL_PANEL: return QObject::tr("Evaluation panel");
 		case ColorRole::MOVES_PANEL: return QObject::tr("Moves panel");
+		case ColorRole::PRINCIPLES_PANEL: return QObject::tr("Principles drawer");
 		default: return {};
 	}
 }
@@ -58,6 +59,7 @@ ToolBarWidget::ToolBarWidget(Doorman& doorman, QWidget* parent)
 
 	addWidget(new QLabel(tr(" Theme: "), this));
 	themeBox = new QComboBox(this);
+	themeBox->setFocusPolicy(Qt::ClickFocus);	//no implicit keyboard focus at startup
 	themeBox->addItem(tr("System"), static_cast<int>(ThemeMode::SYSTEM));
 	themeBox->addItem(tr("Light"), static_cast<int>(ThemeMode::LIGHT));
 	themeBox->addItem(tr("Dark"), static_cast<int>(ThemeMode::DARK));

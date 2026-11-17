@@ -21,8 +21,9 @@ The GUI depends on the core only through `DataTypes.hpp`; the core never include
 | Annotations | `setUserHighlights/Arrows`, `clearUserAnnotations`, `setEngineHighlights/Arrows`, `clearEngineAnnotations`                                               |
 | Evaluation  | `setOverallCentipawns`, `setOverallMate`, `clearOverallEval`, `setCriterion(EvalCriterion, -3..3)`, `clearCriteria`                                      |
 | Move tree   | `setTreeOrigin`, `addTreeNode(parent, move, position, label)` → id, `removeTreeNode`, `clearTree`, `setCurrentTreeNode`                                  |
+| Principles  | `setPrinciples(list)`, `setPrincipleEnabled(title, enabled)`, `setPrincipleUseful(title, useful)`, `setPrincipleProblems(texts)`                       |
 | Appearance  | `setThemeMode`, `setColor(ColorRole, 0xAARRGGBB)`, `resetColors`                                                                                         |
-| Queries     | `getMovesToTreeNode(id)` (GUI thread), `getPosition()`, `getCurrentTreeNode()`, `getUserHighlights()`, `getUserArrows()`, `getThemeMode()`, `getColor()` |
+| Queries     | `getMovesToTreeNode(id)` (GUI thread), `getPosition()`, `getCurrentTreeNode()`, `getUserHighlights()`, `getUserArrows()`, `getThemeMode()`, `getColor()`, `getPrinciples()` |
 
 ## OUT – GUI → core (Qt signals, emitted in the GUI thread)
 
@@ -32,6 +33,8 @@ The GUI depends on the core only through `DataTypes.hpp`; the core never include
 | `squareSelected(Square)` / `selectionCleared()` | Piece picked up or dirty-selected / selection ended.                                                                                                                    |
 | `userAnnotationsChanged(highlights, arrows)`    | User toggled a highlight/arrow (or cleared them with a left click).                                                                                                     |
 | `treeNodeSelected(NodeId, Position)`            | User went to another move (M overlay or ←/→). The board already shows that position.                                                                                     |
+| `principleEnabledChanged(title, bool)`        | User switched a principle on or off in the principle drawer (Ctrl+Space). `getPrinciples()` always returns the current choice.                                         |
+| `principlesRefreshRequested()`                | User pressed Refresh in the principle drawer: reload the principle file and pass it to `setPrinciples`.                                                                |
 
 
 ## Rules
@@ -46,3 +49,4 @@ The GUI depends on the core only through `DataTypes.hpp`; the core never include
 - Promotion picker: appears only if the legal list holds several promotion moves for the dropped square.
 - New game: `clearTree()` then `setPosition(start)`.
 - The move tree is an overlay shown while M is held: the cursor is hidden, mouse movement pans the tree and the node closest to the middle is selected (same as a click). ←/→ step through the tree when the overlay is closed.
+- The principle drawer slides up on Ctrl+Space and hides again on Ctrl+Space, Esc or a click above it. The Target Elo slider switches off everything spotted below the target and switches on the rest. Principles come from `data/principles.json` (layout documented in the file, read by `util/PrincipleLoader`), identified by their unique title. `setPrinciples` keeps the enabled/useful state of titles it already knows. The difficulty tag follows from `spotElo`. Principles the engine hasn't marked `useful` show an orange "!".

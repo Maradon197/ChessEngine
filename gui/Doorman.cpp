@@ -1,5 +1,8 @@
 #include "Doorman.hpp"
 
+#include <unordered_map>
+#include <unordered_set>
+
 #include <QColor>
 #include <QGuiApplication>
 #include <QStyleHints>
@@ -8,6 +11,7 @@
 #include "EvalCriteriaWidget.hpp"
 #include "EvalSquareWidget.hpp"
 #include "MoveTreeOverlay.hpp"
+#include "PrincipleDrawer.hpp"
 #include "Theme.hpp"
 
 namespace {
@@ -198,6 +202,45 @@ void Doorman::setCurrentTreeNode(NodeId id) {
 	});
 }
 
+void Doorman::setPrinciples(const std::vector<Principle>& newPrinciples) {
+	std::vector<Principle> accepted;
+	{
+		std::lock_guard lock(stateMutex);
+		std::unordered_map<std::string, const Principle*> known;
+		for (const Principle& principle : principles) {
+			known.emplace(principle.title, &principle);
+		}
+		std::unordered_set<std::string> titles;
+		for (Principle principle : newPrinciples) {
+			if (principle.title.empty() || !titles.insert(principle.title).second) {
+				qWarning("Doorman::setPrinciples: skipped \"%s\", its title is empty or taken", principle.title.c_str());
+				continue;
+			}
+			if (const auto found = known.find(principle.title); found != known.end()) {
+				principle.enabled = found->second->enabled;
+				principle.useful = found->second->useful;
+			}
+			accepted.push_back(std::move(principle));
+		}
+		principles = accepted;
+	}
+	runInGuiThread([this, accepted] { if (principleDrawer) principleDrawer->setPrinciples(accepted); });
+}
+
+void Doorman::setPrincipleEnabled(const std::string& title, bool enabled) {
+	storePrincipleFlag(title, &Principle::enabled, enabled);
+	runInGuiThread([this, title, enabled] { if (principleDrawer) principleDrawer->setPrincipleEnabled(title, enabled); });
+}
+
+void Doorman::setPrincipleUseful(const std::string& title, bool useful) {
+	storePrincipleFlag(title, &Principle::useful, useful);
+	runInGuiThread([this, title, useful] { if (principleDrawer) principleDrawer->setPrincipleUseful(title, useful); });
+}
+
+void Doorman::setPrincipleProblems(const std::vector<std::string>& problems) {
+	runInGuiThread([this, problems] { if (principleDrawer) principleDrawer->setProblems(problems); });
+}
+
 void Doorman::setThemeMode(ThemeMode mode) {
 	runInGuiThread([this, mode] {
 		{
@@ -270,6 +313,11 @@ std::vector<Arrow> Doorman::getUserArrows() const {
 	return userArrows;
 }
 
+std::vector<Principle> Doorman::getPrinciples() const {
+	std::lock_guard lock(stateMutex);
+	return principles;
+}
+
 void Doorman::attach(BoardWidget& boardWidget) {
 	board = &boardWidget;
 	applyColors();
@@ -306,6 +354,17 @@ void Doorman::attach(EvalCriteriaWidget& evalCriteriaWidget) {
 	applyColors();
 }
 
+void Doorman::attach(PrincipleDrawer& principleDrawerWidget) {
+	principleDrawer = &principleDrawerWidget;
+	applyColors();
+	principleDrawerWidget.setPrinciples(getPrinciples());
+	connect(&principleDrawerWidget, &PrincipleDrawer::principleEnabledChanged, this, [this](const std::string& title, bool enabled) {
+		storePrincipleFlag(title, &Principle::enabled, enabled);
+		emit principleEnabledChanged(title, enabled);
+	});
+	connect(&principleDrawerWidget, &PrincipleDrawer::refreshRequested, this, &Doorman::principlesRefreshRequested);
+}
+
 void Doorman::showTreeNode(NodeId id) {
 	if (board && moveTree) {
 		board->setPosition(moveTree->getNodePosition(id));
@@ -322,6 +381,15 @@ void Doorman::rememberBoardState() {
 	std::lock_guard lock(stateMutex);
 	if (board) currentPosition = board->getPosition();
 	if (moveTree) currentNode = moveTree->getCurrentNode();
+}
+
+void Doorman::storePrincipleFlag(const std::string& title, bool Principle::* flag, bool value) {
+	std::lock_guard lock(stateMutex);
+	for (Principle& principle : principles) {
+		if (principle.title == title) {
+			principle.*flag = value;
+		}
+	}
 }
 
 void Doorman::applyTheme() {
@@ -345,6 +413,9 @@ void Doorman::applyColors() {
 				break;
 			case ColorRole::MOVES_PANEL:
 				if (moveTree) moveTree->setPanelColor(color);
+				break;
+			case ColorRole::PRINCIPLES_PANEL:
+				if (principleDrawer) principleDrawer->setPanelColor(color);
 				break;
 			default:
 				if (board) board->setColor(role, color);

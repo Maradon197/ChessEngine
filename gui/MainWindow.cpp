@@ -9,6 +9,7 @@
 #include "EvalCriteriaWidget.hpp"
 #include "EvalSquareWidget.hpp"
 #include "MoveTreeOverlay.hpp"
+#include "PrincipleDrawer.hpp"
 #include "ToolBarWidget.hpp"
 
 MainWindow::MainWindow(Doorman& doorman, QWidget* parent)
@@ -43,6 +44,9 @@ MainWindow::MainWindow(Doorman& doorman, QWidget* parent)
 
 	rootLayout->addWidget(analysisSplitter);
 	setCentralWidget(central);
+
+	//principles, slide up from the bottom on Ctrl+Space
+	new PrincipleDrawer(doorman, *this);
 
 	//move tree, shown over everything while M is held
 	new MoveTreeOverlay(doorman, *this);

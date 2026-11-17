@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <filesystem>
 #include <string>
 #include <vector>
 
@@ -12,6 +13,7 @@
 #include "LegalMoveGenerator.hpp"
 #include "MainWindow.hpp"
 #include "MoveNotation.hpp"
+#include "PrincipleLoader.hpp"
 
 namespace {
 
@@ -27,6 +29,25 @@ void replayMoves(BoardState& board, const std::vector<Move>& moves) {
 	for (Move move : moves) {
 		board.makeMove(move);
 	}
+}
+
+//data/ next to the executable for installed builds, otherwise the source tree so edits show up on refresh
+std::filesystem::path findPrinciplesFile() {
+	const std::filesystem::path installed = std::filesystem::path(QCoreApplication::applicationDirPath().toStdU16String()) / "data" / "principles.json";
+	std::error_code error;
+	if (std::filesystem::exists(installed, error)) {
+		return installed;
+	}
+	return std::filesystem::path(CHESS_DATA_DIR) / "principles.json";
+}
+
+void loadPrinciples(Doorman& doorman) {
+	const PrincipleFile file = PrincipleLoader::load(findPrinciplesFile());
+	for (const std::string& problem : file.problems) {
+		qWarning("principles: %s", problem.c_str());
+	}
+	doorman.setPrinciples(file.principles);
+	doorman.setPrincipleProblems(file.problems);
 }
 
 } // !namespace
@@ -45,6 +66,10 @@ int main(int argc, char* argv[]) {
 	MoveList legalMoves{};
 
 	doorman.setPosition(board.getPosition());
+	loadPrinciples(doorman);	//the engine reads the current choice with doorman.getPrinciples()
+
+	//the user pressed Refresh in the principle drawer
+	QObject::connect(&doorman, &Doorman::principlesRefreshRequested, &doorman, [&] { loadPrinciples(doorman); });
 
 	//the user picked up a piece: show its legal moves
 	QObject::connect(&doorman, &Doorman::squareSelected, &doorman, [&](Square square) {

@@ -9,6 +9,9 @@ target_link_libraries(ChessEngineGUI PRIVATE
     ChessGui
 )
 
+#principles are read straight from the source tree, so a refresh picks up edits without rebuilding
+target_compile_definitions(ChessEngineGUI PRIVATE CHESS_DATA_DIR="${CMAKE_SOURCE_DIR}/data")
+
 #copy the Qt DLLs next to the exe after every build
 if(WIN32)
     if(TARGET Qt6::windeployqt)
@@ -35,3 +38,4 @@ qt_generate_deploy_app_script(
     NO_UNSUPPORTED_PLATFORM_ERROR
 )
 install(SCRIPT ${deploy_script})
+install(DIRECTORY ${CMAKE_SOURCE_DIR}/data/ DESTINATION ${CMAKE_INSTALL_BINDIR}/data)

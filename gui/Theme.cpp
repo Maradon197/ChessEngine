@@ -73,6 +73,7 @@ ColorValue theme::getDefaultColor(ColorRole role, bool dark) {
 		case ColorRole::ENGINE_ARROW: return qRgba(40, 110, 220, 140);
 		case ColorRole::EVAL_PANEL: return dark ? qRgba(38, 45, 58, 255) : qRgba(228, 235, 246, 255);
 		case ColorRole::MOVES_PANEL: return dark ? qRgba(38, 52, 43, 255) : qRgba(229, 242, 232, 255);
+		case ColorRole::PRINCIPLES_PANEL: return dark ? qRgba(44, 41, 54, 255) : qRgba(243, 240, 250, 255);
 		default: return qRgba(0, 0, 0, 255);
 	}
 }

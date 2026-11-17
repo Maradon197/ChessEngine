@@ -20,6 +20,7 @@ class BoardWidget;
 class MoveTreeOverlay;
 class EvalSquareWidget;
 class EvalCriteriaWidget;
+class PrincipleDrawer;
 
 //all setters are thread-safe and never emit signals
 class Doorman : public QObject {
@@ -60,6 +61,12 @@ public:
 	void clearTree();
 	void setCurrentTreeNode(NodeId id);
 
+	//principles, identified by their unique title
+	void setPrinciples(const std::vector<Principle>& principles);	//titles already known keep their enabled and useful state
+	void setPrincipleEnabled(const std::string& title, bool enabled);
+	void setPrincipleUseful(const std::string& title, bool useful);	//whether the engine can actually work with it
+	void setPrincipleProblems(const std::vector<std::string>& problems);	//shown in the drawer, e.g. mistakes in the principle file
+
 	//appearance
 	void setThemeMode(ThemeMode mode);
 	void setColor(ColorRole role, ColorValue color);
@@ -73,12 +80,14 @@ public:
 	std::vector<Arrow> getUserArrows() const;
 	ThemeMode getThemeMode() const;
 	ColorValue getColor(ColorRole role) const;
+	std::vector<Principle> getPrinciples() const;
 
 	//called by the widgets in their constructors
 	void attach(BoardWidget& boardWidget);
 	void attach(MoveTreeOverlay& moveTreeOverlay);
 	void attach(EvalSquareWidget& evalSquareWidget);
 	void attach(EvalCriteriaWidget& evalCriteriaWidget);
+	void attach(PrincipleDrawer& principleDrawerWidget);
 
 signals:
 	void moveAttempted(Move move);	//not verified, answer with playMove()
@@ -86,6 +95,8 @@ signals:
 	void selectionCleared();
 	void userAnnotationsChanged(const std::vector<Highlight>& highlights, const std::vector<Arrow>& arrows);
 	void treeNodeSelected(NodeId id, const Position& position);	//board already shows the position
+	void principleEnabledChanged(const std::string& title, bool enabled);	//user switched a principle on or off
+	void principlesRefreshRequested();	//refresh button: reload the principles and pass them to setPrinciples
 
 private:
 	template <typename Function>
@@ -93,6 +104,7 @@ private:
 
 	void showTreeNode(NodeId id);
 	void rememberBoardState();
+	void storePrincipleFlag(const std::string& title, bool Principle::* flag, bool value);
 	void applyTheme();
 	void applyColors();
 
@@ -100,6 +112,7 @@ private:
 	QPointer<MoveTreeOverlay> moveTree;
 	QPointer<EvalSquareWidget> evalSquare;
 	QPointer<EvalCriteriaWidget> evalCriteria;
+	QPointer<PrincipleDrawer> principleDrawer;
 
 	std::atomic<NodeId> nextNodeId{ROOT_NODE + 1};
 
@@ -111,6 +124,7 @@ private:
 	ThemeMode themeMode = ThemeMode::SYSTEM;
 	bool darkTheme = false;
 	std::array<std::optional<ColorValue>, COLOR_ROLE_COUNT> customColors;
+	std::vector<Principle> principles;
 };
 
 template <typename Function>

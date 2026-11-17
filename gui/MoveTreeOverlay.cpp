@@ -27,8 +27,8 @@ constexpr qreal NODE_HEIGHT = 34 * SCALE;
 constexpr qreal TEXT_PADDING = 10 * SCALE;
 constexpr qreal FONT_SCALE = 1.15 * SCALE;
 
-constexpr qreal HORIZONTAL_GAIN = 1.2 * SCALE;	//tree pixels per mouse pixel, scaled so mouse travel per move stays the same
-constexpr qreal VERTICAL_GAIN = 0.55 * SCALE;
+constexpr qreal HORIZONTAL_GAIN = 0.95 * SCALE;	//tree pixels per mouse pixel, scaled so mouse travel per move stays the same
+constexpr qreal VERTICAL_GAIN = 0.45 * SCALE;
 constexpr qreal SKIM_RATIO = 1.5;	//movement counts as a skim along the row when |dx| > SKIM_RATIO * |dy|
 constexpr qreal SKIM_DAMPING = 0.3;	//vertical movement left over while skimming
 constexpr qreal SNAP_THRESHOLD = 0.75;	//rows the cursor has to leave the snapped row by before it switches
@@ -327,10 +327,12 @@ bool MoveTreeOverlay::eventFilter(QObject* watched, QEvent* event) {
 	if (watched == parentWidget()) {
 		if (event->type() == QEvent::Resize) {
 			setGeometry(parentWidget()->rect());
-		} else if (event->type() == QEvent::WindowDeactivate) {
-			endNavigation();
+			return false;
 		}
-		return false;
+		if (event->type() == QEvent::WindowDeactivate) {
+			endNavigation();
+			return false;
+		}
 	}
 	if (event->type() != QEvent::KeyPress && event->type() != QEvent::KeyRelease) {
 		return false;
@@ -344,6 +346,10 @@ bool MoveTreeOverlay::eventFilter(QObject* watched, QEvent* event) {
 
 bool MoveTreeOverlay::handleKey(QKeyEvent& event, QWidget& receiver) {
 	const bool isPress = event.type() == QEvent::KeyPress;
+	const bool isTextInput = receiver.inherits("QLineEdit") || (receiver.inherits("QTextEdit") && !receiver.property("readOnly").toBool());
+	if (isTextInput && !navigating) {
+		return false;	//typing an m
+	}
 	if (event.key() == Qt::Key_M) {
 		if (!event.isAutoRepeat()) {
 			if (isPress) {
@@ -355,7 +361,7 @@ bool MoveTreeOverlay::handleKey(QKeyEvent& event, QWidget& receiver) {
 		return true;
 	}
 
-	if (!isPress || navigating || receiver.inherits("QComboBox")) {
+	if (!isPress || navigating || receiver.inherits("QComboBox") || receiver.inherits("QAbstractScrollArea") || receiver.property("ownsArrowKeys").toBool()) {
 		return false;
 	}
 	const Node& current = nodes.at(currentNode);
