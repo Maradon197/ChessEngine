@@ -18,7 +18,7 @@ constexpr int CRITERION_MIN = -3;
 constexpr int CRITERION_MAX = 3;
 
 //one value per square, indexed by Square (a1 = 0); positive is good for white, negative for black
-using SquareValues = std::array<int, 64>;
+using SquareValues = std::array<float, 64>;
 
 enum class ThemeMode {SYSTEM, LIGHT, DARK};
 

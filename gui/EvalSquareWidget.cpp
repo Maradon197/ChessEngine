@@ -8,17 +8,23 @@
 #include <QLinearGradient>
 #include <QPainter>
 #include <QPainterPath>
+#include <QVariantAnimation>
 
 #include "Doorman.hpp"
 
 namespace {
 
 //the field is sampled at SAMPLES_PER_SQUARE points per square edge and scaled up with bilinear filtering, which keeps
-//it smooth at any size; the gaussian is separable, so the 64 kernels are two small matrix products instead of 64 passes
+//it smooth at any size; each gaussian is separable, so a square only costs one row and one column of weights plus
+//their outer product, about a million multiply-adds for a full board, and only when new values arrive
 constexpr int BOARD_SIZE = 8;
 constexpr int SAMPLES_PER_SQUARE = 16;
 constexpr int FIELD_SIZE = BOARD_SIZE * SAMPLES_PER_SQUARE;
-constexpr float SIGMA = 0.6f;	//in squares
+//bigger values reach further: sigma = BASE_SIGMA * (1 + SPREAD_GROWTH * ln(1 + |value|)), in squares
+//the logarithm keeps large scales (e.g. centipawns) from flooding the whole board
+constexpr float BASE_SIGMA = 0.4f;
+constexpr float SPREAD_GROWTH = 0.65f;
+constexpr float MAX_SIGMA = 2.5f;
 
 constexpr qreal PADDING = 12;
 constexpr qreal HEADER_HEIGHT = 22;
@@ -26,9 +32,42 @@ constexpr qreal LEGEND_HEIGHT = 26;
 constexpr qreal CARD_RADIUS = 12;
 constexpr qreal MAP_RADIUS = 6;
 constexpr int GRID_ALPHA = 70;
+constexpr int FADE_DURATION = 500;
 
 const QColor BLACK_SIDE(30, 30, 30);
 const QColor WHITE_SIDE(245, 245, 245);
+
+//screen grey values are not perceived linearly: the same step looks bigger in some ranges than in others, which made
+//black's areas look stronger than white for the same numbers. The value is mapped to CIE L* lightness
+//instead (perceptually even, 0 = black, 100 = white) and converted to an sRGB grey from there.
+//Tuning knobs:
+//	MID_LIGHTNESS	the average lightness of grey in percent
+//	BLACK_BOOST		> 1 darkens weak black areas sooner, < 1 later; the darkest point stays pure black
+//	WHITE_BOOST		same for white
+constexpr double MID_LIGHTNESS = 46;
+constexpr double BLACK_BOOST = 1.0;
+constexpr double WHITE_BOOST = 1.0;
+
+uchar toPerceivedGrey(float share) {
+	//lookup table over lightness, the expensive part is converting L* to sRGB
+	static const std::array<uchar, 1024> table = [] {
+		std::array<uchar, 1024> grey{};
+		for (std::size_t index = 0; index < grey.size(); ++index) {
+			const double lightness = 100.0 * index / (grey.size() - 1);
+			const double luminance = lightness > 8 ? std::pow((lightness + 16) / 116, 3) : lightness / 903.3;
+			const double encoded = luminance <= 0.0031308 ? 12.92 * luminance : 1.055 * std::pow(luminance, 1 / 2.4) - 0.055;
+			grey[index] = static_cast<uchar>(std::lround(std::clamp(encoded, 0.0, 1.0) * 255));
+		}
+		return grey;
+	}();
+	const double signedShare = std::clamp(2.0 * share - 1.0, -1.0, 1.0);	//-1 darkest, 0 neutral, 1 brightest
+	const double strength = std::abs(signedShare);
+	const double lightness = signedShare < 0
+		? MID_LIGHTNESS * (1 - std::pow(strength, 1 / BLACK_BOOST))
+		: MID_LIGHTNESS + (100 - MID_LIGHTNESS) * std::pow(strength, 1 / WHITE_BOOST);
+	const auto index = static_cast<std::size_t>(std::lround(lightness / 100 * (table.size() - 1)));
+	return table[std::min(index, table.size() - 1)];
+}
 
 qreal getMapSide(int width) {
 	return std::max<qreal>(0, width - 2 * PADDING);
@@ -42,40 +81,59 @@ EvalSquareWidget::EvalSquareWidget(Doorman& doorman, QWidget* parent)
 	policy.setHeightForWidth(true);
 	setSizePolicy(policy);
 	setToolTip(tr("Board control: the brighter an area, the more it belongs to white; the darker, the more to black."));
+	fade = new QVariantAnimation(this);
+	fade->setStartValue(0.0);
+	fade->setEndValue(1.0);
+	fade->setDuration(FADE_DURATION);
+	fade->setEasingCurve(QEasingCurve::InOutQuad);
+	connect(fade, &QVariantAnimation::valueChanged, this, [this](const QVariant& value) {
+		fadeProgress = value.toReal();
+		update();
+	});
 	doorman.attach(*this);
 }
 
 void EvalSquareWidget::setValues(const SquareValues& values) {
-	//weights[square][sample]: how much a square at index i reaches sample s along one axis
-	std::array<std::array<float, FIELD_SIZE>, BOARD_SIZE> weights{};
-	for (int square = 0; square < BOARD_SIZE; ++square) {
+	std::vector<float> sums(FIELD_SIZE * FIELD_SIZE, 0.0f);	//y = 0 is rank 1
+	std::array<float, FIELD_SIZE> across{};	//weights along the rank
+	std::array<float, FIELD_SIZE> along{};	//weights along the file
+	for (int square = 0; square < BOARD_SIZE * BOARD_SIZE; ++square) {
+		const float value = static_cast<float>(values[square]);
+		if (value == 0) {
+			continue;
+		}
+		const float sigma = std::min(MAX_SIGMA, BASE_SIGMA * (1 + SPREAD_GROWTH * std::log1p(std::abs(value))));
+		const float falloff = -1 / (2 * sigma * sigma);
+		const float centerX = square % BOARD_SIZE + 0.5f;
+		const float centerY = square / BOARD_SIZE + 0.5f;
 		for (int sample = 0; sample < FIELD_SIZE; ++sample) {
-			const float distance = (sample + 0.5f) / SAMPLES_PER_SQUARE - (square + 0.5f);
-			weights[square][sample] = std::exp(-distance * distance / (2 * SIGMA * SIGMA));
+			const float position = (sample + 0.5f) / SAMPLES_PER_SQUARE;
+			across[sample] = value * std::exp((position - centerX) * (position - centerX) * falloff);
+			along[sample] = std::exp((position - centerY) * (position - centerY) * falloff);
+		}
+		for (int y = 0; y < FIELD_SIZE; ++y) {
+			if (along[y] < 1e-4f) {
+				continue;	//far outside this gaussian
+			}
+			float* line = &sums[y * FIELD_SIZE];
+			for (int x = 0; x < FIELD_SIZE; ++x) {
+				line[x] += along[y] * across[x];
+			}
 		}
 	}
 
-	//spread along the files first, then along the ranks
-	std::array<std::array<float, FIELD_SIZE>, BOARD_SIZE> rows{};
-	for (int rank = 0; rank < BOARD_SIZE; ++rank) {
-		for (int file = 0; file < BOARD_SIZE; ++file) {
-			const float value = static_cast<float>(values[rank * BOARD_SIZE + file]);
-			if (value == 0) {
-				continue;
+	//the old map fades out from what is on screen right now, even if the last fade hasn't finished
+	if (hasValues) {
+		if (fadeProgress < 1 && !previousField.isNull()) {
+			for (int y = 0; y < FIELD_SIZE; ++y) {
+				uchar* old = previousField.scanLine(y);
+				const uchar* current = field.constScanLine(y);
+				for (int x = 0; x < FIELD_SIZE; ++x) {
+					old[x] = static_cast<uchar>(std::lround(old[x] + (current[x] - old[x]) * fadeProgress));
+				}
 			}
-			for (int x = 0; x < FIELD_SIZE; ++x) {
-				rows[rank][x] += value * weights[file][x];
-			}
-		}
-	}
-	std::vector<float> sums(FIELD_SIZE * FIELD_SIZE, 0.0f);	//y = 0 is rank 1
-	for (int y = 0; y < FIELD_SIZE; ++y) {
-		float* line = &sums[y * FIELD_SIZE];
-		for (int rank = 0; rank < BOARD_SIZE; ++rank) {
-			const float weight = weights[rank][y];
-			for (int x = 0; x < FIELD_SIZE; ++x) {
-				line[x] += weight * rows[rank][x];
-			}
+		} else {
+			previousField = field.copy();
 		}
 	}
 
@@ -90,11 +148,17 @@ void EvalSquareWidget::setValues(const SquareValues& values) {
 			const float sum = sums[y * FIELD_SIZE + x];
 			const float scale = sum > 0 ? whiteScale : blackScale;
 			const float share = scale > 1e-6f ? 0.5f + 0.5f * sum / scale : 0.5f;
-			pixels[x] = static_cast<uchar>(std::lround(share * 255));
+			pixels[x] = toPerceivedGrey(share);
 		}
 	}
-	hasValues = true;
 	scaledField = QPixmap();
+	scaledPrevious = QPixmap();
+	if (hasValues) {
+		fadeProgress = 0;
+		fade->stop();
+		fade->start();
+	}
+	hasValues = true;
 	update();
 }
 
@@ -102,6 +166,7 @@ void EvalSquareWidget::setOrientation(Color bottomColor) {
 	if (orientation != bottomColor) {
 		orientation = bottomColor;
 		scaledField = QPixmap();
+		scaledPrevious = QPixmap();
 		update();
 	}
 }
@@ -168,13 +233,20 @@ void EvalSquareWidget::paintEvent(QPaintEvent* event) {
 		const qreal ratio = devicePixelRatioF();
 		const QSize target = (mapRect.size() * ratio).toSize();
 		if (scaledField.isNull() || scaledField.size() != target) {
-			QImage oriented = orientation == WHITE ? field : field.mirrored(true, true);
-			scaledField = QPixmap::fromImage(oriented.scaled(target, Qt::IgnoreAspectRatio, Qt::SmoothTransformation));
-			scaledField.setDevicePixelRatio(ratio);
+			scaledField = getScaled(field, target);
+		}
+		if (fadeProgress < 1) {
+			if (scaledPrevious.isNull() || scaledPrevious.size() != target) {
+				scaledPrevious = getScaled(previousField, target);
+			}
+			painter.drawPixmap(mapRect.topLeft(), scaledPrevious);
+			painter.setOpacity(fadeProgress);
 		}
 		painter.drawPixmap(mapRect.topLeft(), scaledField);
+		painter.setOpacity(1);
 	} else {
-		painter.fillRect(mapRect, QColor(128, 128, 128));
+		const int middle = toPerceivedGrey(0.5f);
+		painter.fillRect(mapRect, QColor(middle, middle, middle));
 	}
 	paintGrid(painter, mapRect);
 	painter.restore();
@@ -191,6 +263,13 @@ void EvalSquareWidget::paintEvent(QPaintEvent* event) {
 		painter.drawText(mapRect, Qt::AlignCenter, QString::fromUtf8("–"));
 	}
 	paintLegend(painter, mapRect);
+}
+
+QPixmap EvalSquareWidget::getScaled(const QImage& image, const QSize& target) const {
+	const QImage oriented = orientation == WHITE ? image : image.mirrored(true, true);
+	QPixmap scaled = QPixmap::fromImage(oriented.scaled(target, Qt::IgnoreAspectRatio, Qt::SmoothTransformation));
+	scaled.setDevicePixelRatio(devicePixelRatioF());
+	return scaled;
 }
 
 void EvalSquareWidget::paintGrid(QPainter& painter, const QRectF& mapRect) const {

@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <bit>
 #include <filesystem>
 #include <string>
 #include <vector>
@@ -7,6 +8,7 @@
 
 #include "DataTypes.hpp"
 
+#include "AttackDetector.hpp"
 #include "AttackTables.hpp"
 #include "BoardState.hpp"
 #include "Doorman.hpp"
@@ -50,15 +52,40 @@ void loadPrinciples(Doorman& doorman) {
 	doorman.setPrincipleProblems(file.problems);
 }
 
-//placeholder: every piece weighs its square with its pawn value
-void showPieceValues(Doorman& doorman, const Position& position) {
-	constexpr int PIECE_VALUES[] = {1, 3, 3, 5, 9};
+//placeholder: generate simple values for the eval square (piece value + weighted attacks)
+void showDemoValues(Doorman& doorman, BoardState& board, LegalMoveGenerator& generator) {
+	constexpr float PIECE_VALUES[] = {2, 5, 6, 10, 18};
+	const Position position = board.getPosition();	//copy: the generator makes and unmakes moves on board
 	SquareValues values{};
-	for (int square = 0; square < 64; ++square) {
+	for (Square square = 0; square < 64; ++square) {
 		const Bitboard bit = Bitboard{1} << square;
 		for (int type = PAWN; type < KING; ++type) {
 			if (position.pieces[WHITE][type] & bit) values[square] += PIECE_VALUES[type];
 			if (position.pieces[BLACK][type] & bit) values[square] -= PIECE_VALUES[type];
+		}
+	}
+	const auto getType = [&](Color color, Square square) {
+		for (int type = PAWN; type < KING; ++type) {
+			if (position.pieces[color][type] & (Bitboard{1} << square)) return type;
+		}
+		return static_cast<int>(KING);
+	};
+	const auto getValue = [&](int type) { return type < KING ? PIECE_VALUES[type] : 0.0f; };
+	for (Square square = 0; square < 64; ++square) {
+		for (Color color : {WHITE, BLACK}) {
+			const float sign = color == WHITE ? 1.0f : -1.0f;
+			for (Bitboard attackers = attackersToSquare(square, color, position); attackers != 0; attackers &= attackers - 1) {
+				values[square] += sign * getValue(getType(color, static_cast<Square>(std::countr_zero(attackers))));
+			}
+		}
+	}
+	const MoveList moves = generator.generateLegalMovesInPosition(position, board);
+	const float pushSign = position.side_to_move == WHITE ? 1.0f : -1.0f;
+	for (std::size_t index = 0; index < moves.count; ++index) {
+		const Square source = moveBits::getSource(moves.moves[index]);
+		const Square destination = moveBits::getDestination(moves.moves[index]);
+		if (getType(position.side_to_move, source) == PAWN && moveBits::getFile(source) == moveBits::getFile(destination)) {
+			values[destination] += pushSign * PIECE_VALUES[PAWN];
 		}
 	}
 	doorman.setSquareValues(values);
@@ -80,7 +107,7 @@ int main(int argc, char* argv[]) {
 	MoveList legalMoves{};
 
 	doorman.setPosition(board.getPosition());
-	showPieceValues(doorman, board.getPosition());
+	showDemoValues(doorman, board, legalMoveGenerator);
 	loadPrinciples(doorman);	//the engine reads the current choice with doorman.getPrinciples()
 
 	//the user pressed Refresh in the principle drawer
@@ -102,14 +129,14 @@ int main(int argc, char* argv[]) {
 		board.makeMove(move);
 		doorman.playMove(move, label);				//advances or forks the move tree
 		doorman.setPosition(board.getPosition());	//the core's position is authoritative
-		showPieceValues(doorman, board.getPosition());
+		showDemoValues(doorman, board, legalMoveGenerator);
 		legalMoves.count = 0;
 	});
 
 	//the user jumped to another move in the tree: bring the core to the same position
 	QObject::connect(&doorman, &Doorman::treeNodeSelected, &doorman, [&](NodeId id, const Position&) {
 		replayMoves(board, doorman.getMovesToTreeNode(id));
-		showPieceValues(doorman, board.getPosition());
+		showDemoValues(doorman, board, legalMoveGenerator);
 		legalMoves.count = 0;
 	});
 

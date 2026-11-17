@@ -10,6 +10,7 @@
 #include "GuiTypes.hpp"
 
 class Doorman;
+class QVariantAnimation;
 
 //smooth map of who owns which part of the board: every square spreads its value as a gaussian around its center,
 //the summed field is drawn from black (lowest point) to white (highest point)
@@ -36,8 +37,14 @@ private:
 	void paintGrid(QPainter& painter, const QRectF& mapRect) const;
 	void paintLegend(QPainter& painter, const QRectF& mapRect) const;
 
+	QPixmap getScaled(const QImage& image, const QSize& target) const;
+
 	QImage field;	//grayscale, rank 8 at the top, built once per setValues
+	QImage previousField;	//faded out while field fades in
 	mutable QPixmap scaledField;	//field scaled to the current size and orientation
+	mutable QPixmap scaledPrevious;
+	QVariantAnimation* fade = nullptr;
+	qreal fadeProgress = 1;	//0: previous field, 1: field
 	bool hasValues = false;
 	Color orientation = WHITE;
 	QColor panelColor;
