@@ -23,7 +23,7 @@ namespace {
 		"pawn", "knight", "bishop", "rook", "queen", "king", "space", "strategy", "coordination"
 	};
 	constexpr std::array<std::string_view, 9> KNOWN_FIELDS = {
-		"title", "spotElo", "description", "gamePart", "focus", "explanation", "image", "enabled", "useful"
+		"title", "spotElo", "description", "gamePart", "focus", "explanation", "image", "enabled", "useful"	//enabled and useful are only reported
 	};
 
 	//"Attacking-Midgame", "attacking_midgame" and "attacking midgame" all become "attackingmidgame"
@@ -195,9 +195,6 @@ namespace {
 				reader.report("image \"" + image->string + "\" not found, using the placeholder");
 		}
 
-		if (const JsonValue* enabled = reader.get("enabled", JsonValue::Type::BOOLEAN, false))
-			principle.enabled = enabled->boolean;
-
 		for (const auto& [key, value] : entry.object) {
 			if (key.empty() || key[0] == '_' || std::find(KNOWN_FIELDS.begin(), KNOWN_FIELDS.end(), key) != KNOWN_FIELDS.end())
 				continue;
@@ -206,6 +203,8 @@ namespace {
 			else
 				reader.report("unknown field \"" + key + "\" ignored");
 		}
+		if (entry.find("enabled") != nullptr)
+			reader.report("\"enabled\" is ignored, the Target Elo slider decides it");
 		if (entry.find("useful") != nullptr)
 			reader.report("\"useful\" is ignored, the engine decides it");
 

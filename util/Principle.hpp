@@ -23,7 +23,7 @@ struct Principle {
 	std::string explanation;	//optional, Markdown
 	GamePart gamePart = GamePart::MIDGAME;
 	PrincipleFocus focus = PrincipleFocus::STRATEGY;
-	bool enabled = true;	//chosen by the user: the engine should consider it
+	bool enabled = true;	//chosen by the user (Target Elo slider or a click): the engine should consider it
 	bool useful = false;	//decided by the engine: it can actually do something with it
 };
 

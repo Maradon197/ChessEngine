@@ -2,6 +2,7 @@
 #define PRINCIPLEDRAWER_HPP
 
 #include <string>
+#include <unordered_set>
 #include <vector>
 
 #include <QColor>
@@ -12,6 +13,7 @@
 
 class Doorman;
 class EloSlider;
+class PrincipleFrame;
 class PrincipleGrid;
 class QCheckBox;
 class QComboBox;
@@ -51,7 +53,7 @@ private:
 	void setOpen(bool open);
 	void updatePlacement();
 	void applyFilters();
-	void updateSummary();
+	void updateMarkers();
 	void showDetails(int index);
 	void hideDetails();
 	void updateDetails();
@@ -63,6 +65,7 @@ private:
 	std::vector<Principle> principles;	//sorted by spotElo
 	std::vector<QPixmap> images;	//null: placeholder is drawn
 	std::vector<int> shown;	//indices of the principles that pass the filters
+	std::unordered_set<std::string> knownTitles;	//new titles take their state from the target Elo
 	int detailIndex = -1;
 
 	QColor panelColor;
@@ -70,7 +73,6 @@ private:
 	qreal progress = 0;
 	bool isOpen = false;
 
-	QLabel* summaryLabel = nullptr;
 	QLabel* problemsLabel = nullptr;
 	EloSlider* eloSlider = nullptr;
 	QLineEdit* searchEdit = nullptr;
@@ -78,6 +80,7 @@ private:
 	QComboBox* gamePartFilter = nullptr;
 	QComboBox* focusFilter = nullptr;
 	QComboBox* stateFilter = nullptr;
+	PrincipleFrame* frame = nullptr;
 	QScrollArea* scrollArea = nullptr;
 	PrincipleGrid* grid = nullptr;
 

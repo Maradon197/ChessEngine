@@ -357,12 +357,12 @@ void Doorman::attach(EvalCriteriaWidget& evalCriteriaWidget) {
 void Doorman::attach(PrincipleDrawer& principleDrawerWidget) {
 	principleDrawer = &principleDrawerWidget;
 	applyColors();
-	principleDrawerWidget.setPrinciples(getPrinciples());
 	connect(&principleDrawerWidget, &PrincipleDrawer::principleEnabledChanged, this, [this](const std::string& title, bool enabled) {
 		storePrincipleFlag(title, &Principle::enabled, enabled);
 		emit principleEnabledChanged(title, enabled);
 	});
 	connect(&principleDrawerWidget, &PrincipleDrawer::refreshRequested, this, &Doorman::principlesRefreshRequested);
+	principleDrawerWidget.setPrinciples(getPrinciples());
 }
 
 void Doorman::showTreeNode(NodeId id) {

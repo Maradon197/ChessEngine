@@ -3,11 +3,11 @@
 		"Principles shown in the principle drawer (Ctrl+Space). Edit this file, then press Refresh in the drawer.",
 		"Keys starting with an underscore are ignored, use them for notes like this one.",
 		"Required: title (unique), spotElo (whole number 0-4000), description, gamePart, focus.",
-		"Optional: explanation (Markdown, one text or a list of lines), image (path relative to this file), enabled (true/false, default true).",
+		"Optional: explanation (Markdown, one text or a list of lines), image (path relative to this file).",
 		"gamePart: opening, midgame, attacking midgame, defending midgame, endgame",
 		"focus: pawn, knight, bishop, rook, queen, king, space, strategy, coordination",
 		"The difficulty tag follows from spotElo: up to 600 beginner, up to 1200 intermediate, up to 1800 advanced, above that expert.",
-		"enabled only counts the first time a title shows up, after that the drawer keeps your choice. Renaming a title makes it a new principle.",
+		"New principles are switched on or off by the Target Elo slider, after that the drawer keeps your choice. Renaming a title makes it a new principle.",
 		"Whether the engine can actually use a principle is decided by the engine, not by this file.",
 		"The four principles below are examples of the layout, replace them with your own."
 	],
@@ -48,8 +48,7 @@
 			"spotElo": 2200,
 			"gamePart": "defending midgame",
 			"focus": "strategy",
-			"description": "Ask what the opponent wants to do and stop it before improving your own position.",
-			"enabled": false
+			"description": "Ask what the opponent wants to do and stop it before improving your own position."
 		}
 	]
 }

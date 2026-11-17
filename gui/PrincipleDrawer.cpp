@@ -114,18 +114,18 @@ QString getFocusGlyph(PrincipleFocus focus) {
 	}
 }
 
-//difficulty is a scale and gets one color per level, the other two categories one color each
+//muted traffic light for the difficulty levels, one color each for the other two categories
 QColor getDifficultyColor(PrincipleDifficulty difficulty) {
 	switch (difficulty) {
-		case PrincipleDifficulty::BEGINNER: return {76, 175, 80};
-		case PrincipleDifficulty::INTERMEDIATE: return {66, 133, 244};
-		case PrincipleDifficulty::ADVANCED: return {240, 140, 30};
-		default: return {220, 60, 60};
+		case PrincipleDifficulty::BEGINNER: return {92, 132, 186};
+		case PrincipleDifficulty::INTERMEDIATE: return {96, 158, 104};
+		case PrincipleDifficulty::ADVANCED: return {204, 168, 64};
+		default: return {190, 88, 82};
 	}
 }
 
-const QColor GAME_PART_COLOR(0, 150, 136);
-const QColor FOCUS_COLOR(140, 90, 200);
+const QColor GAME_PART_COLOR(70, 140, 132);
+const QColor FOCUS_COLOR(132, 104, 176);
 
 struct Chip {
 	QString text;
@@ -155,6 +155,10 @@ QColor mix(const QColor& from, const QColor& to, qreal amount) {
 		static_cast<float>(from.greenF() + (to.greenF() - from.greenF()) * amount),
 		static_cast<float>(from.blueF() + (to.blueF() - from.blueF()) * amount),
 		static_cast<float>(from.alphaF() + (to.alphaF() - from.alphaF()) * amount));
+}
+
+QColor getOuterColor(const QColor& panel) {
+	return panel.lightness() < 128 ? panel.darker(135) : panel.darker(109);
 }
 
 QString getNotUsefulText() {
@@ -331,7 +335,7 @@ QString makeChipHtml(const Chip& chip, bool dark) {
 
 } // !namespace
 
-//wide slider for the target Elo: difficulty bands on the track, a dot per principle, the part below the handle is switched off
+//wide slider for the target Elo: difficulty bands on the track, a dot per principle, the part above the handle is switched off
 class EloSlider : public QWidget {
 public:
 	explicit EloSlider(QWidget* parent)
@@ -341,10 +345,14 @@ public:
 		setFocusPolicy(Qt::StrongFocus);
 		setMouseTracking(true);
 		setProperty("ownsArrowKeys", true);	//the move tree leaves ←/→ alone while this has focus
-		setToolTip(PrincipleDrawer::tr("Principles spotted below the target Elo are switched off, all others on"));
+		setToolTip(PrincipleDrawer::tr("Principles spotted at or below the target Elo are switched on, all above it off"));
 	}
 
 	std::function<void(int)> onValueChanged;
+
+	int getValue() const {
+		return value;
+	}
 
 	void setMarkers(std::vector<std::pair<int, bool>> newMarkers) {
 		markers = std::move(newMarkers);
@@ -360,34 +368,33 @@ protected:
 		const QRectF track = getTrackRect();
 		const qreal handleX = toX(value);
 
-		//difficulty bands
+		//difficulty bands with their names below; the part above the target is greyed out (switched off)
 		const std::array<int, 5> bounds = {0, 600, 1200, 1800, ELO_MAX};
+		QPainterPath trackShape;
+		trackShape.addRoundedRect(track, track.height() / 2, track.height() / 2);
 		QFont labelFont = font();
 		labelFont.setPointSizeF(labelFont.pointSizeF() * 0.88);
 		painter.setFont(labelFont);
 		for (std::size_t band = 0; band < 4; ++band) {
 			const QRectF part(toX(bounds[band]), track.top(), toX(bounds[band + 1]) - toX(bounds[band]), track.height());
 			const QColor color = getDifficultyColor(static_cast<PrincipleDifficulty>(band));
-			QColor fill = color;
-			fill.setAlpha(170);
-			painter.setPen(Qt::NoPen);
-			painter.setBrush(fill);
-			painter.drawRect(part);
 			painter.setPen(getChipTextColor(color, isDark(colors)));
 			painter.drawText(QRectF(part.left(), track.bottom() + 9, part.width(), 18), Qt::AlignCenter, getDifficultyName(static_cast<PrincipleDifficulty>(band)));
+
+			painter.save();
+			painter.setClipPath(trackShape);
+			painter.fillRect(part, mix(color, colors.color(QPalette::Window), 0.35));
+			painter.restore();
 		}
-
-		//below the target: switched off
 		QColor off = colors.color(QPalette::Mid);
-		off.setAlpha(230);
-		painter.setPen(Qt::NoPen);
-		painter.setBrush(off);
-		painter.drawRect(QRectF(track.left(), track.top(), handleX - track.left(), track.height()));
-
-		//round off the track ends by masking with the background is overkill, rounded caps are drawn on top instead
+		off.setAlpha(190);
+		painter.save();
+		painter.setClipPath(trackShape);
+		painter.fillRect(QRectF(handleX, track.top(), track.right() - handleX, track.height()), off);
+		painter.restore();
 		painter.setBrush(Qt::NoBrush);
 		painter.setPen(QPen(colors.color(QPalette::Mid), 1));
-		painter.drawRoundedRect(track, track.height() / 2, track.height() / 2);
+		painter.drawPath(trackShape);
 
 		//one dot per principle
 		for (const auto& [elo, enabled] : markers) {
@@ -505,10 +512,37 @@ private:
 		}
 	}
 
-	int value = 0;
+	int value = 600;
 	bool dragging = false;
 	bool hoveringHandle = false;
 	std::vector<std::pair<int, bool>> markers;
+};
+
+//minimal rounded frame in the panel color behind the cards
+class PrincipleFrame : public QWidget {
+public:
+	explicit PrincipleFrame(QWidget* parent)
+		: QWidget(parent) {}
+
+	void setColor(const QColor& newColor) {
+		color = newColor;
+		update();
+	}
+
+protected:
+	void paintEvent(QPaintEvent* event) override {
+		Q_UNUSED(event);
+		QPainter painter(this);
+		painter.setRenderHint(QPainter::Antialiasing);
+		QColor border = palette().color(QPalette::Mid);
+		border.setAlpha(90);
+		painter.setPen(QPen(border, 1));
+		painter.setBrush(color.isValid() ? color : palette().color(QPalette::Window));
+		painter.drawRoundedRect(QRectF(rect()).adjusted(0.5, 0.5, -0.5, -0.5), 14, 14);
+	}
+
+private:
+	QColor color;
 };
 
 class PrincipleGrid : public QWidget {
@@ -806,7 +840,7 @@ PrincipleDrawer::PrincipleDrawer(Doorman& doorman, QWidget& window)
 	layout->addWidget(createHeader());
 
 	grid = new PrincipleGrid(*this);
-	scrollArea = new QScrollArea(this);
+	scrollArea = new QScrollArea;
 	scrollArea->setWidget(grid);
 	scrollArea->setWidgetResizable(true);
 	scrollArea->setFrameShape(QFrame::NoFrame);
@@ -814,9 +848,14 @@ PrincipleDrawer::PrincipleDrawer(Doorman& doorman, QWidget& window)
 	scrollArea->viewport()->setAutoFillBackground(false);	//shows the drawer's own background
 	grid->setAutoFillBackground(false);	//setWidget() turns it on
 
+	frame = new PrincipleFrame(this);
+	auto* frameLayout = new QVBoxLayout(frame);
+	frameLayout->setContentsMargins(4, 4, 4, 4);
+	frameLayout->addWidget(scrollArea);
+
 	auto* body = new QHBoxLayout;
-	body->setSpacing(12);
-	body->addWidget(scrollArea, 1);
+	body->setSpacing(14);
+	body->addWidget(frame, 1);
 	body->addWidget(createDetails());
 	layout->addLayout(body, 1);
 
@@ -850,40 +889,13 @@ QWidget* PrincipleDrawer::createHeader() {
 	rows->setContentsMargins(0, 0, 0, 0);
 	rows->setSpacing(10);
 
-	//title, counts, problems, refresh
-	auto* top = new QHBoxLayout;
-	top->setSpacing(10);
-	auto* title = new QLabel(tr("Principles"), header);
-	QFont titleFont = title->font();
-	titleFont.setBold(true);
-	titleFont.setPointSizeF(titleFont.pointSizeF() * 1.35);
-	title->setFont(titleFont);
-	top->addWidget(title);
-
-	summaryLabel = new QLabel(header);
-	summaryLabel->setForegroundRole(QPalette::PlaceholderText);
-	top->addWidget(summaryLabel);
-
-	problemsLabel = new QLabel(header);
-	problemsLabel->setStyleSheet(QString("color: %1; font-weight: bold;").arg(NOT_USEFUL_COLOR.name()));
-	problemsLabel->hide();
-	top->addWidget(problemsLabel);
-	top->addStretch(1);
-
-	auto* refreshButton = new QPushButton(QString::fromUtf8("⟳ ") + tr("Refresh"), header);
-	refreshButton->setToolTip(tr("Reload the principle file"));
-	connect(refreshButton, &QPushButton::clicked, this, &PrincipleDrawer::refreshRequested);
-	top->addWidget(refreshButton);
-	rows->addLayout(top);
-
 	//the target Elo, the main control
 	auto* eloRow = new QHBoxLayout;
 	eloRow->setSpacing(18);
-	auto* eloCaption = new QLabel(QString("<b>%1</b><br><span style=\"font-size:small\">%2</span>")
-		.arg(tr("Target Elo"), tr("below: off · above: on")), header);
-	eloCaption->setForegroundRole(QPalette::Text);
+	auto* eloCaption = new QLabel(tr("Target Elo"), header);
 	QFont captionFont = eloCaption->font();
-	captionFont.setPointSizeF(captionFont.pointSizeF() * 1.1);
+	captionFont.setBold(true);
+	captionFont.setPointSizeF(captionFont.pointSizeF() * 1.15);
 	eloCaption->setFont(captionFont);
 	eloRow->addWidget(eloCaption);
 	eloSlider = new EloSlider(header);
@@ -891,7 +903,7 @@ QWidget* PrincipleDrawer::createHeader() {
 	eloRow->addWidget(eloSlider, 1);
 	rows->addLayout(eloRow);
 
-	//search, filters, bulk switches
+	//search, filters, bulk switches, file
 	auto* bottom = new QHBoxLayout;
 	bottom->setSpacing(8);
 	searchEdit = new QLineEdit(header);
@@ -929,8 +941,17 @@ QWidget* PrincipleDrawer::createHeader() {
 	auto* disableButton = new QPushButton(tr("Disable shown"), header);
 	connect(enableButton, &QPushButton::clicked, this, [this] { setShownEnabled(true); });
 	connect(disableButton, &QPushButton::clicked, this, [this] { setShownEnabled(false); });
+	problemsLabel = new QLabel(header);
+	problemsLabel->setStyleSheet(QString("color: %1; font-weight: bold;").arg(NOT_USEFUL_COLOR.name()));
+	problemsLabel->hide();
+	bottom->addWidget(problemsLabel);
 	bottom->addWidget(enableButton);
 	bottom->addWidget(disableButton);
+
+	auto* refreshButton = new QPushButton(QString::fromUtf8("⟳ ") + tr("Refresh"), header);
+	refreshButton->setToolTip(tr("Reload the principle file"));
+	connect(refreshButton, &QPushButton::clicked, this, &PrincipleDrawer::refreshRequested);
+	bottom->addWidget(refreshButton);
 	rows->addLayout(bottom);
 	return header;
 }
@@ -999,6 +1020,17 @@ void PrincipleDrawer::setPrinciples(const std::vector<Principle>& newPrinciples)
 		return first.spotElo < second.spotElo;
 	});
 
+	const int targetElo = eloSlider->getValue();
+	for (Principle& principle : principles) {
+		if (knownTitles.insert(principle.title).second) {	//first time this title shows up: the target Elo decides
+			const bool enabled = principle.spotElo <= targetElo;
+			if (principle.enabled != enabled) {
+				principle.enabled = enabled;
+				emit principleEnabledChanged(principle.title, enabled);
+			}
+		}
+	}
+
 	images.clear();
 	for (const Principle& principle : principles) {
 		QPixmap image;
@@ -1047,12 +1079,13 @@ void PrincipleDrawer::setProblems(const std::vector<std::string>& problems) {
 		lines << QString::fromStdString(problem);
 	}
 	problemsLabel->setVisible(!lines.isEmpty());
-	problemsLabel->setText(QString::fromUtf8("⚠ ") + (lines.size() == 1 ? tr("1 problem in the principle file") : tr("%1 problems in the principle file").arg(lines.size())));
+	problemsLabel->setText(QString::fromUtf8("⚠ ") + (lines.size() == 1 ? tr("1 problem in the file") : tr("%1 problems in the file").arg(lines.size())));
 	problemsLabel->setToolTip(lines.join('\n'));
 }
 
 void PrincipleDrawer::setPanelColor(const QColor& color) {
 	panelColor = color;
+	frame->setColor(color);
 	update();
 }
 
@@ -1096,7 +1129,7 @@ void PrincipleDrawer::paintEvent(QPaintEvent* event) {
 	QPainter painter(this);
 	painter.setRenderHint(QPainter::Antialiasing);
 
-	const QColor background = panelColor.isValid() ? panelColor : palette().color(QPalette::Window);
+	const QColor background = getOuterColor(panelColor.isValid() ? panelColor : palette().color(QPalette::Window));
 	QPainterPath shape;
 	shape.addRoundedRect(QRectF(rect()).adjusted(0.5, 0.5, -0.5, DRAWER_RADIUS), DRAWER_RADIUS, DRAWER_RADIUS);	//bottom corners hang below the window
 	painter.setPen(QPen(palette().color(QPalette::Mid), 1));
@@ -1122,7 +1155,6 @@ void PrincipleDrawer::setOpen(bool open) {
 	if (open) {
 		updatePlacement();
 		show();
-		raise();
 		setFocus();
 	} else if (QWidget* focused = QApplication::focusWidget(); focused != nullptr && (focused == this || isAncestorOf(focused))) {
 		focused->clearFocus();
@@ -1168,13 +1200,10 @@ void PrincipleDrawer::applyFilters() {
 		shown.push_back(index);
 	}
 	grid->refresh();
-	updateSummary();
+	updateMarkers();
 }
 
-void PrincipleDrawer::updateSummary() {
-	const auto enabled = std::count_if(principles.begin(), principles.end(), [](const Principle& principle) { return principle.enabled; });
-	summaryLabel->setText(tr("%1 of %2 enabled · %3 shown").arg(enabled).arg(principles.size()).arg(shown.size()));
-
+void PrincipleDrawer::updateMarkers() {
 	std::vector<std::pair<int, bool>> markers;
 	for (const Principle& principle : principles) {
 		markers.emplace_back(principle.spotElo, principle.enabled);
@@ -1249,10 +1278,10 @@ void PrincipleDrawer::setShownEnabled(bool enabled) {
 	}
 }
 
-//everything spotted below the target is assumed known and switched off, the rest on
+//everything spotted at or below the target is switched on, everything above off
 void PrincipleDrawer::applyTargetElo(int targetElo) {
 	for (Principle& principle : principles) {
-		const bool enabled = principle.spotElo >= targetElo;
+		const bool enabled = principle.spotElo <= targetElo;
 		if (principle.enabled != enabled) {
 			principle.enabled = enabled;
 			emit principleEnabledChanged(principle.title, enabled);
