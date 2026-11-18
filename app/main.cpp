@@ -53,6 +53,7 @@ void loadPrinciples(Doorman& doorman) {
 }
 
 //placeholder: generate simple values for the eval square (piece value + weighted attacks)
+//to be replaced by a similar concept but using the engine searches best move line
 void showDemoValues(Doorman& doorman, BoardState& board, LegalMoveGenerator& generator) {
 	constexpr float PIECE_VALUES[] = {2, 5, 6, 10, 18};
 	const Position position = board.getPosition();	//copy: the generator makes and unmakes moves on board
