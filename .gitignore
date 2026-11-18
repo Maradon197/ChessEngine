@@ -368,3 +368,6 @@ FodyWeavers.xsd
 CMakeUserPresets.json
 CMakeLists.txt.user*
 .qtcreator/
+
+# Claude Code temp files
+.claude_tmp/
