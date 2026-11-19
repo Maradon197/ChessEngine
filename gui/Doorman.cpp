@@ -11,6 +11,7 @@
 #include "EvalCriteriaWidget.hpp"
 #include "EvalSquareWidget.hpp"
 #include "MoveTreeOverlay.hpp"
+#include "PlayView.hpp"
 #include "PrincipleDrawer.hpp"
 #include "Theme.hpp"
 
@@ -151,6 +152,27 @@ void Doorman::clearOverallEval() {
 	runInGuiThread([this] { if (evalCriteria) evalCriteria->clearOverall(); });
 }
 
+void Doorman::setGameStatus(GameStatus status) {
+	bool wasOver;
+	{
+		std::lock_guard lock(stateMutex);
+		wasOver = gameStatus.result != GameResult::NONE;
+		gameStatus = status;
+	}
+	const bool isOver = status.result != GameResult::NONE;
+	runInGuiThread([this, status, wasOver, isOver] {
+		if (board) board->setInteractive(!isOver);
+		if (!evalCriteria) return;
+		if (status.reason == GameEndingReason::CHECKMATE) evalCriteria->setOverallMate(0);
+		else if (wasOver) evalCriteria->clearOverall();	//e.g. stepped back in the tree from a finished game
+	});
+}
+
+GameStatus Doorman::getGameStatus() const {
+	std::lock_guard lock(stateMutex);
+	return gameStatus;
+}
+
 void Doorman::setCriterion(EvalCriterion criterion, int value) {
 	runInGuiThread([this, criterion, value] { if (evalCriteria) evalCriteria->setCriterion(criterion, value); });
 }
@@ -159,8 +181,8 @@ void Doorman::clearCriteria() {
 	runInGuiThread([this] { if (evalCriteria) evalCriteria->clearCriteria(); });
 }
 
-void Doorman::setSquareValues(const SquareValues& values) {
-	runInGuiThread([this, values] { if (evalSquare) evalSquare->setValues(values); });
+void Doorman::setSquareValues(const SquareValues& values, float balance) {
+	runInGuiThread([this, values, balance] { if (evalSquare) evalSquare->setValues(values, balance); });
 }
 
 void Doorman::setTreeOrigin(Clock fullmoveNumber, Color sideToMove) {
@@ -371,6 +393,10 @@ void Doorman::attach(PrincipleDrawer& principleDrawerWidget) {
 	});
 	connect(&principleDrawerWidget, &PrincipleDrawer::refreshRequested, this, &Doorman::principlesRefreshRequested);
 	principleDrawerWidget.setPrinciples(getPrinciples());
+}
+
+void Doorman::attach(PlayView& playView) {
+	connect(&playView, &PlayView::engineMoveRequested, this, &Doorman::engineMoveRequested);
 }
 
 void Doorman::showTreeNode(NodeId id) {

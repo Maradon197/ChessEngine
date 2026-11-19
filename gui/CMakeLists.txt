@@ -11,6 +11,9 @@ qt_add_library(ChessGui STATIC
     EvalSquareWidget.hpp    EvalSquareWidget.cpp
     EvalCriteriaWidget.hpp  EvalCriteriaWidget.cpp
     AnalysisSidebar.hpp     AnalysisSidebar.cpp
+    GameClock.hpp           GameClock.cpp
+    PlayView.hpp            PlayView.cpp
+    ModeSwitch.hpp          ModeSwitch.cpp
     MainWindow.hpp          MainWindow.cpp
 )
 

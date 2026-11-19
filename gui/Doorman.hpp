@@ -20,6 +20,7 @@ class BoardWidget;
 class MoveTreeOverlay;
 class EvalSquareWidget;
 class EvalCriteriaWidget;
+class PlayView;
 class PrincipleDrawer;
 
 //all setters are thread-safe and never emit signals
@@ -51,9 +52,10 @@ public:
 	void setOverallCentipawns(int centipawns);	//white's perspective
 	void setOverallMate(int movesToMate);	//negative: black mates
 	void clearOverallEval();
+	void setGameStatus(GameStatus status);	//a finished game locks the board, checkmate shows in the overall card
 	void setCriterion(EvalCriterion criterion, int value);
 	void clearCriteria();
-	void setSquareValues(const SquareValues& values);	//board control map, positive: good for white
+	void setSquareValues(const SquareValues& values, float balance = 0);	//board control map, positive: good for white; balance tilts the whole map
 
 	//move tree
 	void setTreeOrigin(Clock fullmoveNumber, Color sideToMove);
@@ -81,6 +83,7 @@ public:
 	std::vector<Arrow> getUserArrows() const;
 	ThemeMode getThemeMode() const;
 	ColorValue getColor(ColorRole role) const;
+	GameStatus getGameStatus() const;
 	std::vector<Principle> getPrinciples() const;
 
 	//called by the widgets in their constructors
@@ -89,6 +92,7 @@ public:
 	void attach(EvalSquareWidget& evalSquareWidget);
 	void attach(EvalCriteriaWidget& evalCriteriaWidget);
 	void attach(PrincipleDrawer& principleDrawerWidget);
+	void attach(PlayView& playView);
 
 signals:
 	void moveAttempted(Move move);	//not verified, answer with playMove()
@@ -98,6 +102,7 @@ signals:
 	void treeNodeSelected(NodeId id, const Position& position);	//board already shows the position
 	void principleEnabledChanged(const std::string& title, bool enabled);	//user switched a principle on or off
 	void principlesRefreshRequested();	//refresh button: reload the principles and pass them to setPrinciples
+	void engineMoveRequested(const Position& position);	//play view: the engine's side is to move, answer like a user move
 
 private:
 	template <typename Function>
@@ -120,6 +125,7 @@ private:
 	mutable std::mutex stateMutex;
 	Position currentPosition{};
 	NodeId currentNode = ROOT_NODE;
+	GameStatus gameStatus{};
 	std::vector<Highlight> userHighlights;
 	std::vector<Arrow> userArrows;
 	ThemeMode themeMode = ThemeMode::SYSTEM;

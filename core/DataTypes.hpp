@@ -91,4 +91,12 @@ struct Position {
 	Clock fullmove_counter;
 };
 
+enum class GameResult { WHITE_WIN, BLACK_WIN, DRAW, NONE };
+enum class GameEndingReason { CHECKMATE, STALEMATE, REPETITION, FIFTY_MOVE_RULE, INSUFFICIENT_MATERIAL, RESIGNATION, TIME, AGREEANCE, NONE };
+
+struct GameStatus {
+	GameResult result = GameResult::NONE;
+	GameEndingReason reason = GameEndingReason::NONE;
+};
+
 #endif

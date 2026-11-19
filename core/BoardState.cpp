@@ -1,6 +1,9 @@
 #include "BoardState.hpp"
 
+#include <algorithm>
+
 #include "Bitboard.hpp"
+#include "AttackDetector.hpp"
 
 void BoardState::updateOccupanciesToMatchPieceBB() {
     position.color_occupancy[WHITE] = position.color_occupancy[BLACK] = 0;
@@ -56,13 +59,13 @@ void BoardState::setStartingPosition() {
 	position.fullmove_counter = 1;
 }
 
-const Position& BoardState::getPosition() {
+const Position& BoardState::getPosition() const {
 	return position;
 }
 
 bool BoardState::makeMove(Move m) {
 	Position undo_state{ this->position };
-	undoable_history.push(undo_state);
+	undoable_history.push_back(undo_state);
 
 	//decode move
 	Square source = m & 0x3f;
@@ -178,11 +181,65 @@ bool BoardState::makeMove(Move m) {
 }
 
 int BoardState::unmakeMove() {
-	Position undo_state = undoable_history.top();
+	Position undo_state = undoable_history.back();
 
 	this->position = undo_state;
 
-	undoable_history.pop();
+	undoable_history.pop_back();
 
 	return true;
+}
+
+namespace {
+	//same position in the sense of the repetition rule: the clocks don't count
+	bool isSamePosition(const Position& a, const Position& b) {
+		for (int color = WHITE; color <= BLACK; ++color)
+			for (int piece = PAWN; piece <= KING; ++piece)
+				if (a.pieces[color][piece] != b.pieces[color][piece])
+					return false;
+		return a.side_to_move == b.side_to_move
+			&& a.castling_rights == b.castling_rights
+			&& a.ep_square == b.ep_square;
+	}
+
+	bool isInsufficientMaterial(const Position& pos) {
+		constexpr Bitboard LIGHT_SQUARES = 0x55AA55AA55AA55AAULL;
+		const Bitboard heavy_or_pawns = pos.pieces[WHITE][PAWN] | pos.pieces[BLACK][PAWN]
+			| pos.pieces[WHITE][ROOK] | pos.pieces[BLACK][ROOK]
+			| pos.pieces[WHITE][QUEEN] | pos.pieces[BLACK][QUEEN];
+		if (heavy_or_pawns)
+			return false;
+		const Bitboard knights = pos.pieces[WHITE][KNIGHT] | pos.pieces[BLACK][KNIGHT];
+		const Bitboard bishops = pos.pieces[WHITE][BISHOP] | pos.pieces[BLACK][BISHOP];
+		if (BB::popCount(knights | bishops) <= 1)	//K vs K, K+N vs K, K+B vs K
+			return true;
+		//only bishops, all on the same square color: nobody can ever mate
+		return !knights && (!(bishops & LIGHT_SQUARES) || !(bishops & ~LIGHT_SQUARES));
+	}
+}
+
+GameStatus BoardState::getGameStatus(const MoveList& legalMoves) const {
+	//no moves first: a mate on the 100th halfmove still counts as mate
+	if (legalMoves.count == 0) {
+		if (isInCheck(position.side_to_move, position))
+			return { position.side_to_move == WHITE ? GameResult::BLACK_WIN : GameResult::WHITE_WIN, GameEndingReason::CHECKMATE };
+		return { GameResult::DRAW, GameEndingReason::STALEMATE };
+	}
+
+	if (isInsufficientMaterial(position))
+		return { GameResult::DRAW, GameEndingReason::INSUFFICIENT_MATERIAL };
+
+	if (position.reversible_halfmove_clock >= 100)
+		return { GameResult::DRAW, GameEndingReason::FIFTY_MOVE_RULE };
+
+	//threefold: only positions since the last pawn move or capture can repeat, and only with the same side to move
+	int earlier_occurrences = 0;
+	const std::size_t reach = std::min<std::size_t>(position.reversible_halfmove_clock, undoable_history.size());
+	for (std::size_t plies_back = 2; plies_back <= reach; plies_back += 2) {
+		if (isSamePosition(undoable_history[undoable_history.size() - plies_back], position)
+			&& ++earlier_occurrences >= 2)
+			return { GameResult::DRAW, GameEndingReason::REPETITION };
+	}
+
+	return {};
 }
