@@ -7,6 +7,7 @@ target_link_libraries(ChessEngineGUI PRIVATE
     ChessCore
     ChessUtil
     ChessGui
+    ChessEngine
 )
 
 #principles are read straight from the source tree, so a refresh picks up edits without rebuilding

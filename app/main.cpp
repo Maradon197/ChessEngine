@@ -3,6 +3,7 @@
 #include <filesystem>
 #include <string>
 #include <vector>
+#include <iostream>
 
 #include <QApplication>
 
@@ -16,6 +17,10 @@
 #include "MainWindow.hpp"
 #include "MoveNotation.hpp"
 #include "PrincipleLoader.hpp"
+
+//temporary includes -----------------
+
+#include "PrincipleRegistry.hpp"
 
 namespace {
 
@@ -126,6 +131,7 @@ int main(int argc, char* argv[]) {
 	doorman.setPosition(board.getPosition());
 	showDemoValues(doorman, board, legalMoveGenerator);
 	loadPrinciples(doorman);	//the engine reads the current choice with doorman.getPrinciples()
+
 
 	//the user pressed Refresh in the principle drawer
 	QObject::connect(&doorman, &Doorman::principlesRefreshRequested, &doorman, [&] { loadPrinciples(doorman); });

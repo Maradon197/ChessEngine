@@ -7,7 +7,9 @@
 #include "DataTypes.hpp"
 #include "EngineTypes.hpp"
 
-#include "Principles.hpp"
+#include "PrincipleFunctions.hpp"
+
+std::array<float, size_t(PrincipleId::COUNT)> evaluateAll(const EvalContext& ctx);
 
 inline constexpr std::array PRINCIPLES = {
 	PrincipleInfo{
@@ -42,11 +44,11 @@ namespace principle_registry_checks {
 }
 
 static_assert(PRINCIPLES.size() == static_cast<std::size_t>(PrincipleId::COUNT), 
-	"every PrincipleId needs exactly one entry in PRINCIPLES");
+	"engine/eval/principles/PrincipleRegistry.hpp:every PrincipleId needs exactly one entry in PRINCIPLES");
 static_assert(principle_registry_checks::idsMatchIndices(), 
-	"PRINCIPLES must be in the same order as PrincipleId");
+	"engine/eval/principles/PrincipleRegistry.hpp: PRINCIPLES must be in the same order as PrincipleId");
 static_assert(principle_registry_checks::allHaveScoreFunction(), 
-	"every principle needs a calculateScore function");
+	"engine/eval/principles/PrincipleRegistry.hpp: every principle needs a calculateScore function");
 
 
 #endif //!INCLUDED__CHESS_ENGINE__PRINCIPLE_REGISTRY_HPP
