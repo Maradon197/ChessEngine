@@ -13,21 +13,21 @@ enum class PrincipleFocus { PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING, SPACE, STRA
 - Play theory → opening database
 - Contest the center → attacks on central squares
 	- id: CONTEST_THE_CENTER
-	- title: "Contesting the Center"
+	- title: "Contest the Center"
 	- spotElo: 300
 	- description: "Controlling central space eases development"
 	- gamePart: OPENING, MIDGAME
 	- focus: SPACE
 - Develop knights before bishops → if both knights are still on their starting squares
 	- id: DEVELOP_KNIGHTS_BEFORE_BISHOPS
-	- title: "Developing knights before bishops"
+	- title: "Develop knights before bishops"
 	- spotElo: 1000
 	- description: "Bishops are more valuable down the line"
 	- gamePart: OPENING
 	- focus: COORDINATION
 - Don't move the same piece twice → list of pieces already moved in the opening
 	- id: DONT_MOVE_SAME_PIECE_TWICE
-	- title: "Dont't move the same piece twice"
+	- title: "Don't move the same piece twice"
 	- spotElo: 650
 	- description: "Developing other pieces has more value"
 	- gamePart: OPENING
@@ -121,10 +121,21 @@ enum class PrincipleFocus { PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING, SPACE, STRA
 	- spotElo: 1400
 	- description: "Lock down the center to avoid enemy counterplay"
 	- gamePart: ATTACKING_MIDGAME
-	- focus: 
+	- focus: COORDINATION
 - Vs. opposite-side castling: open the center + pawn storm → pawn pushes + captures in the center, low occupancy
-- Vs. uncastled king: castle, bring pieces
+	- id: OPEN_UP_CENTER
+	- title: "Attack the opposite-side castled king"
+	- spotElo: 1300
+	- description: "Open up the center to create a big attack"
+	- gamePart: ATTACKING_MIDGAME
+	- focus: COORDINATION
 - Create rook lifts → see rooks; prefer 3rd rank if attacking
+	- id: ROOK_LIFTS
+	- title: "Create rook lifts"
+	- spotElo: 1450
+	- description: "Bring rooks to the attack using C- and F- file"
+	- gamePart: ATTACKING_MIDGAME
+	- focus: ROOK
 
 ### B2. Defending
 
@@ -138,16 +149,77 @@ enum class PrincipleFocus { PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING, SPACE, STRA
 #### 1) Pawns
 
 - Take space from the opponent's pieces → prefer attacks on squares the opponent attacks
+	- id: TAKE_PAWN_SPACE
+	- title: "Take space from the opponent's pieces"
+	- spotElo: 1150
+	- description: "Restricting your opponent's movement gains you space"
+	- gamePart: MIDGAME, ENDGAME
+	- focus: SPACE
 - Don't weaken pawn chains → pawn structure strength eval?
-- ~~Avoid (uninfluential) doubled pawns~~ → pawn structure strength
+	- id: STRONG_PAWN_CHAINS
+	- title: "Don't weaken pawn chains"
+	- spotElo: 900
+	- description: "Strong pawn chains restrict your opponent's movement"
+	- gamePart: MIDGAME, ENDGAME
+	- focus: SPACE
+- Avoid doubled pawns → pawn structure strength
+	- id: AVOID_UNINFLUENTIAL_DOUBLED_PAWNS
+	- title: "Avoid doubled pawns"
+	- spotElo: 450
+	- description: "Doubled pawns are easy targets since they defend themselves badly"
+	- gamePart: OPENING, MIDGAME, ENDGAME
+	- focus: PAWN
+- Allow influential doubled pawns
+	- id: ALLOW_INFLUENTIAL_DOUBLED_PAWNS
+	- title: "Allow influential doubled pawns"
+	- spotElo: 1550
+	- description: "Sometimes, doubled pawns can create momentary positional strengths"
+	- gamePart: OPENING, MIDGAME, ENDGAME
+	- focus: PAWN
 - Create pawn breaks → identify break squares
+	- id: PAWN_BREAKS
+	- title: "Create pawn breaks"
+	- spotElo: 1400
+	- description: "Use pawn breaks to strategically weaken your opponent's footing"
+	- gamePart: MIDGAME
+	- focus: PAWN
 - Attack enemy backward pawns → backward pawn: neighbouring pawns are ahead, not on the a/h-file
+	- id: ATTACK_BACKWARDS_PAWNS
+	- title: "Attack backwards pawns"
+	- spotElo: 1500
+	- description: "Weak backwards pawns can become targets for your attack"
+	- gamePart: MIDGAME, ENDGAME
+	- focus: PAWN
 - Stave off enemy isolated pawns → prefer less movement on isolated pawns
+	- id: BLOCK_ISOLATED_PAWNS
+	- title: "Block isolated pawns"
+	- spotElo: 1425
+	- description: "Disallow counterplay around the positional weakness"
+	- gamePart: MIDGAME
+	- focus: PAWN
 - ~~Avoid and reinforce backward pawns~~ → see isolated pawns
 - ~~Keep play dynamic around isolated pawns~~ → see isolated pawns
 - Create space for the king → 3 pawns in front of the king: bad
-- c- and d-pawns go together → prefer d4 together with c4
+	- id: CREATE_KING_LUFT
+	- title: "Create space for your king"
+	- spotElo: 450
+	- description: "Making an escape square stops back rank attacks"
+	- gamePart: MIDGAME, ENDGAME
+	- focus: PAWN
+- c- and d-pawns go together → prefer d4 together with c4, short castle
+	- id: C_AND_D_PAWNS_TOGETHER
+	- title: "C and D pawns go together"
+	- spotElo: 1375
+	- description: "Pushing C and D pawns together allows for a strong center while your king stays safe"
+	- gamePart: OPENING, MIDGAME
+	- focus: PAWN
 - Keep files to your king closed → prefer a+b / g+h pawns
+	- id: KEEP_KING_FILES_CLOSED
+	- title: "Keep files to your king closed"
+	- spotElo: 900
+	- description: "The king is usually safer with these pawns"
+	- gamePart: OPENING, MIDGAME
+	- focus: PAWN
 - ~~Open up files to the opponent's king~~ → see above
 - ~~Create fianchetto squares~~
 - ~~Create and reinforce outpost squares~~ → ~~outpost square: no enemy pawns on the adjacent files, attacked by own pawn~~
