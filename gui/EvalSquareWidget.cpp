@@ -267,7 +267,6 @@ void EvalSquareWidget::paintEvent(QPaintEvent* event) {
 		painter.setPen(QColor(255, 255, 255, 170));
 		painter.drawText(mapRect, Qt::AlignCenter, QString::fromUtf8("–"));
 	}
-	//paintLegend(painter, mapRect);
 }
 
 QPixmap EvalSquareWidget::getScaled(const QImage& image, const QSize& target) const {
@@ -285,36 +284,3 @@ void EvalSquareWidget::paintGrid(QPainter& painter, const QRectF& mapRect) const
 		painter.drawLine(QPointF(mapRect.left(), mapRect.top() + line * step), QPointF(mapRect.right(), mapRect.top() + line * step));
 	}
 }
-#if 0
-//black on the left, white on the right, like the criterion bars
-void EvalSquareWidget::paintLegend(QPainter& painter, const QRectF& mapRect) const {
-	const QPalette& colors = palette();
-	const qreal stripHeight = 5;
-	QFont labelFont = font();
-	labelFont.setPointSizeF(labelFont.pointSizeF() * 0.85);
-	painter.setFont(labelFont);
-	const QFontMetricsF metrics(labelFont);
-	const QString blackLabel = tr("Black");
-	const QString whiteLabel = tr("White");
-	const qreal top = mapRect.bottom() + 9;
-	const qreal labelGap = 6;
-	const QRectF strip(mapRect.left() + metrics.horizontalAdvance(blackLabel) + labelGap, top + (metrics.height() - stripHeight) / 2,
-		mapRect.width() - metrics.horizontalAdvance(blackLabel) - metrics.horizontalAdvance(whiteLabel) - 2 * labelGap, stripHeight);
-
-	QLinearGradient gradient(strip.topLeft(), strip.topRight());
-	gradient.setColorAt(0, BLACK_SIDE);
-	gradient.setColorAt(1, WHITE_SIDE);
-	QColor outline = colors.color(QPalette::Text);
-	outline.setAlpha(110);
-	painter.setPen(QPen(outline, 0.8));
-	painter.setBrush(gradient);
-	painter.drawRoundedRect(strip, stripHeight / 2, stripHeight / 2);
-
-	QColor labelColor = colors.color(QPalette::Text);
-	labelColor.setAlpha(170);
-	painter.setPen(labelColor);
-	const QRectF labelRow(mapRect.left(), top, mapRect.width(), metrics.height());
-	painter.drawText(labelRow, Qt::AlignLeft | Qt::AlignVCenter, blackLabel);
-	painter.drawText(labelRow, Qt::AlignRight | Qt::AlignVCenter, whiteLabel);
-}
-#endif //!if 0

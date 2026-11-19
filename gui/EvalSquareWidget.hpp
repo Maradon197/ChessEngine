@@ -36,7 +36,6 @@ protected:
 private:
 	QRectF getMapRect() const;
 	void paintGrid(QPainter& painter, const QRectF& mapRect) const;
-	//void paintLegend(QPainter& painter, const QRectF& mapRect) const;
 
 	QPixmap getScaled(const QImage& image, const QSize& target) const;
 
