@@ -25,6 +25,15 @@ constexpr int FIELD_SIZE = BOARD_SIZE * SAMPLES_PER_SQUARE;
 constexpr float BASE_SIGMA = 0.4f;
 constexpr float SPREAD_GROWTH = 0.65f;
 constexpr float MAX_SIGMA = 2.5f;
+//the summed field is mapped to grey on a fixed scale, so absolute strength shows: share = 0.5 + 0.5 * s / (|s| + K), s = sum + tilt
+//	OWNERSHIP_SCALE	K, the sum (in input units) that is halfway to full colour; the curve saturates slowly, so busy
+//					middlegames keep their gradation while sparse endgames still show (middlegame sums reach ~150)
+//	TILT_STRENGTH	T, uniform offset for the side that is ahead overall: tilt = T * balance (balance comes from the caller)
+//					it mostly shows in quiet areas, strongly owned ones are already close to saturation
+//values from several positions (e.g. along the engine's best line) can be blended before calling setValues: everything
+//up to the curve is linear, so blending inputs is the same as blending fields
+constexpr float OWNERSHIP_SCALE = 40.0f;
+constexpr float TILT_STRENGTH = 18.0f;
 
 constexpr qreal PADDING = 12;
 constexpr qreal HEADER_HEIGHT = 22;
@@ -93,7 +102,7 @@ EvalSquareWidget::EvalSquareWidget(Doorman& doorman, QWidget* parent)
 	doorman.attach(*this);
 }
 
-void EvalSquareWidget::setValues(const SquareValues& values) {
+void EvalSquareWidget::setValues(const SquareValues& values, float balance) {
 	std::vector<float> sums(FIELD_SIZE * FIELD_SIZE, 0.0f);	//y = 0 is rank 1
 	std::array<float, FIELD_SIZE> across{};	//weights along the rank
 	std::array<float, FIELD_SIZE> along{};	//weights along the file
@@ -137,18 +146,14 @@ void EvalSquareWidget::setValues(const SquareValues& values) {
 		}
 	}
 
-	//0 is mid grey; positive values scale up to the highest point (white), negative ones down to the lowest (black)
-	const auto [lowest, highest] = std::minmax_element(sums.begin(), sums.end());
-	const float whiteScale = std::max(*highest, 0.0f);
-	const float blackScale = std::max(-*lowest, 0.0f);
+	//0 is mid grey; the overall balance tilts the whole map towards the side that is ahead
+	const float tilt = TILT_STRENGTH * balance;
 	field = QImage(FIELD_SIZE, FIELD_SIZE, QImage::Format_Grayscale8);
 	for (int y = 0; y < FIELD_SIZE; ++y) {
 		uchar* pixels = field.scanLine(FIELD_SIZE - 1 - y);	//rank 8 at the top
 		for (int x = 0; x < FIELD_SIZE; ++x) {
-			const float sum = sums[y * FIELD_SIZE + x];
-			const float scale = sum > 0 ? whiteScale : blackScale;
-			const float share = scale > 1e-6f ? 0.5f + 0.5f * sum / scale : 0.5f;
-			pixels[x] = toPerceivedGrey(share);
+			const float sum = sums[y * FIELD_SIZE + x] + tilt;
+			pixels[x] = toPerceivedGrey(0.5f + 0.5f * sum / (std::abs(sum) + OWNERSHIP_SCALE));
 		}
 	}
 	scaledField = QPixmap();
@@ -262,7 +267,7 @@ void EvalSquareWidget::paintEvent(QPaintEvent* event) {
 		painter.setPen(QColor(255, 255, 255, 170));
 		painter.drawText(mapRect, Qt::AlignCenter, QString::fromUtf8("–"));
 	}
-	paintLegend(painter, mapRect);
+	//paintLegend(painter, mapRect);
 }
 
 QPixmap EvalSquareWidget::getScaled(const QImage& image, const QSize& target) const {
@@ -280,7 +285,7 @@ void EvalSquareWidget::paintGrid(QPainter& painter, const QRectF& mapRect) const
 		painter.drawLine(QPointF(mapRect.left(), mapRect.top() + line * step), QPointF(mapRect.right(), mapRect.top() + line * step));
 	}
 }
-
+#if 0
 //black on the left, white on the right, like the criterion bars
 void EvalSquareWidget::paintLegend(QPainter& painter, const QRectF& mapRect) const {
 	const QPalette& colors = palette();
@@ -312,3 +317,4 @@ void EvalSquareWidget::paintLegend(QPainter& painter, const QRectF& mapRect) con
 	painter.drawText(labelRow, Qt::AlignLeft | Qt::AlignVCenter, blackLabel);
 	painter.drawText(labelRow, Qt::AlignRight | Qt::AlignVCenter, whiteLabel);
 }
+#endif //!if 0

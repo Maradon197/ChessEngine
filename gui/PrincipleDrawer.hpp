@@ -36,6 +36,7 @@ public:
 	void setPrincipleUseful(const std::string& title, bool useful);
 	void setProblems(const std::vector<std::string>& problems);
 	void setPanelColor(const QColor& color);
+	void setOpen(bool open);
 
 signals:
 	void principleEnabledChanged(const std::string& title, bool enabled);
@@ -51,7 +52,6 @@ private:
 
 	QWidget* createHeader();
 	QWidget* createDetails();
-	void setOpen(bool open);
 	void closeStep();	//details first, then the drawer
 	void updatePlacement();
 	void applyFilters();

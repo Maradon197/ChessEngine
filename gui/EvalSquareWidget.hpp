@@ -20,7 +20,8 @@ class EvalSquareWidget : public QWidget {
 public:
 	explicit EvalSquareWidget(Doorman& doorman, QWidget* parent = nullptr);
 
-	void setValues(const SquareValues& values);
+	//balance: who is ahead overall, 0 = even, about +-1 = clearly winning for white / black, larger values are allowed
+	void setValues(const SquareValues& values, float balance = 0);
 	void setOrientation(Color bottomColor);
 	void setPanelColor(const QColor& color);
 
@@ -35,7 +36,7 @@ protected:
 private:
 	QRectF getMapRect() const;
 	void paintGrid(QPainter& painter, const QRectF& mapRect) const;
-	void paintLegend(QPainter& painter, const QRectF& mapRect) const;
+	//void paintLegend(QPainter& painter, const QRectF& mapRect) const;
 
 	QPixmap getScaled(const QImage& image, const QSize& target) const;
 

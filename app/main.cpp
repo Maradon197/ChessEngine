@@ -89,7 +89,23 @@ void showDemoValues(Doorman& doorman, BoardState& board, LegalMoveGenerator& gen
 			values[destination] += pushSign * PIECE_VALUES[PAWN];
 		}
 	}
-	doorman.setSquareValues(values);
+
+	//overall balance for the map's tilt: relative material difference, (white - black) / (white + black) in [-1, 1]
+	//(the plain ratio white / black would explode once a side has only its king left)
+	//the emptier the board, the more a material lead decides, so the balance is boosted towards the endgame
+	constexpr float START_MATERIAL = 2 * (8 * PIECE_VALUES[PAWN] + 2 * PIECE_VALUES[KNIGHT] + 2 * PIECE_VALUES[BISHOP]
+		+ 2 * PIECE_VALUES[ROOK] + PIECE_VALUES[QUEEN]);
+	constexpr float ENDGAME_BOOST = 2.0f;	//balance multiplier = 1 + ENDGAME_BOOST * emptiness, so up to 3x on a bare board
+	float material[2] = {0, 0};
+	for (Color color : {WHITE, BLACK}) {
+		for (int type = PAWN; type < KING; ++type) {
+			material[color] += PIECE_VALUES[type] * std::popcount(position.pieces[color][type]);
+		}
+	}
+	const float total = material[WHITE] + material[BLACK];
+	const float relative = total > 0 ? (material[WHITE] - material[BLACK]) / total : 0.0f;
+	const float emptiness = 1 - std::min(total / START_MATERIAL, 1.0f);
+	doorman.setSquareValues(values, relative * (1 + ENDGAME_BOOST * emptiness));
 }
 
 } // !namespace
@@ -121,17 +137,35 @@ int main(int argc, char* argv[]) {
 		doorman.setLegalMoves(legalMoves);
 	});
 
-	//the user tried a move: only legal moves are played, everything else snaps back
-	QObject::connect(&doorman, &Doorman::moveAttempted, &doorman, [&](Move move) {
-		if (!containsMove(legalMoves, move)) {
-			return;
-		}
+	//rule-based game end of the core's current position
+	const auto updateGameStatus = [&] {
+		const Position position = board.getPosition();	//copy: the generator makes and unmakes moves on board
+		doorman.setGameStatus(board.getGameStatus(legalMoveGenerator.generateLegalMovesInPosition(position, board)));
+	};
+
+	//a verified move, from the user or (later) the engine
+	const auto applyMove = [&](Move move) {
 		const std::string label = MoveNotation::buildMoveString(move, board.getPosition());	//before the move is made
 		board.makeMove(move);
 		doorman.playMove(move, label);				//advances or forks the move tree
 		doorman.setPosition(board.getPosition());	//the core's position is authoritative
 		showDemoValues(doorman, board, legalMoveGenerator);
 		legalMoves.count = 0;
+		updateGameStatus();
+	};
+
+	//the user tried a move: only legal moves are played, everything else snaps back
+	QObject::connect(&doorman, &Doorman::moveAttempted, &doorman, [&](Move move) {
+		if (!containsMove(legalMoves, move)) {
+			return;
+		}
+		applyMove(move);
+	});
+
+	//play view: the engine's side is to move. There is no search yet, so nothing happens and the user can move for it.
+	//later: search this position (off the GUI thread), then pass the best move to applyMove in the GUI thread
+	QObject::connect(&doorman, &Doorman::engineMoveRequested, &doorman, [&](const Position& position) {
+		Q_UNUSED(position);
 	});
 
 	//the user jumped to another move in the tree: bring the core to the same position
@@ -139,6 +173,7 @@ int main(int argc, char* argv[]) {
 		replayMoves(board, doorman.getMovesToTreeNode(id));
 		showDemoValues(doorman, board, legalMoveGenerator);
 		legalMoves.count = 0;
+		updateGameStatus();
 	});
 
 	window.show();
