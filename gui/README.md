@@ -35,6 +35,7 @@ The GUI depends on the core only through `DataTypes.hpp`; the core never include
 | `treeNodeSelected(NodeId, Position)`            | User went to another move (M overlay or ←/→). The board already shows that position.                                                                                     |
 | `principleEnabledChanged(title, bool)`        | User switched a principle on or off in the principle drawer (Ctrl+Space). `getPrinciples()` always returns the current choice.                                         |
 | `principlesRefreshRequested()`                | User pressed Refresh in the principle drawer: reload the principle file and pass it to `setPrinciples`.                                                                |
+| `engineMoveRequested(Position)`               | Play view: after a move (or on entering it) the engine's side is to move. Answer with the engine's move the same way as a user move. Nothing answers yet.               |
 
 
 ## Rules
@@ -49,4 +50,5 @@ The GUI depends on the core only through `DataTypes.hpp`; the core never include
 - Promotion picker: appears only if the legal list holds several promotion moves for the dropped square.
 - New game: `clearTree()` then `setPosition(start)`.
 - The move tree is an overlay shown while M is held: the cursor is hidden, mouse movement pans the tree and the node closest to the middle is selected (same as a click). ←/→ step through the tree when the overlay is closed.
+- Two views, switched with Ctrl+Tab or the Analysis | Play pill in the toolbar: Analysis is everything above; Play shows the same board (the one `BoardWidget` moves between the views, so position and move tree are shared) with two clocks and no evaluation, principles or move tree, and their keys do nothing there. The user plays the color at the bottom. The clocks are display only (`GameClock`): a flag shows up, the result is the core's business. F toggles focus mode (fullscreen, Play only), Esc leaves it.
 - The principle drawer slides up on Ctrl+Space and hides again on Ctrl+Space, Esc or a click above it. The Target Elo slider (starts at 600) switches on everything spotted at or below the target and switches off the rest; principles seen for the first time take their state from it. Principles come from `data/principles.json` (layout documented in the file, read by `util/PrincipleLoader`), identified by their unique title. `setPrinciples` keeps the enabled/useful state of titles it already knows. The difficulty tag follows from `spotElo`. Principles the engine hasn't marked `useful` show an orange "!".

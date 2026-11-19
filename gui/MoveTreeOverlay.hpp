@@ -42,6 +42,7 @@ public:
 	std::vector<Move> getMovesToNode(NodeId id) const;
 
 	void setPanelColor(const QColor& color);
+	void endNavigation();	//closes the overlay if it is open
 
 signals:
 	void nodeSelected(NodeId id);
@@ -74,7 +75,6 @@ private:
 	void step(KeyAction action);
 
 	void beginNavigation();
-	void endNavigation();
 	void fadeTo(qreal target);
 	void recenterCursor();
 	void pan(QPointF delta);

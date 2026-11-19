@@ -37,11 +37,15 @@ inline constexpr const char* SETTINGS_APPLICATION = "ChessEngineGUI";
 
 enum class KeyAction {
 	TOGGLE_SIDEBAR, MOVE_TREE, PRINCIPLE_DRAWER, CLOSE_DRAWER, TREE_BACK, TREE_FORWARD,
+	SWITCH_MODE, FOCUS_MODE,
 	COUNT
 };
 constexpr std::size_t KEY_ACTION_COUNT = static_cast<std::size_t>(KeyAction::COUNT);
 
 enum class KeyMode {TOGGLE, HOLD};
+
+//the two pages of the main window: everything for analysing, or just the board and clocks for playing the engine
+enum class ViewMode {ANALYSIS, PLAY};
 
 //own types so they can't be mixed up with Square and Move
 class Highlight {

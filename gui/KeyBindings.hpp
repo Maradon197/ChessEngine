@@ -28,6 +28,10 @@ public:
 	void setMode(KeyAction action, KeyMode mode);
 	void resetToDefaults();
 
+	//disabled actions keep their key but ignore it, e.g. the analysis tools while playing; a held one is released
+	void setActionEnabled(KeyAction action, bool enabled);
+	bool isActionEnabled(KeyAction action) const;
+
 	static bool hasMode(KeyAction action);	//only actions that show something can be held
 	static QKeyCombination getDefaultKey(KeyAction action);
 	static KeyMode getDefaultMode(KeyAction action);
@@ -55,6 +59,7 @@ private:
 	std::array<QKeyCombination, KEY_ACTION_COUNT> keys{};
 	std::array<KeyMode, KEY_ACTION_COUNT> modes{};
 	std::array<int, KEY_ACTION_COUNT> heldKeys{};	//Qt::Key that is down for the action, 0 when up
+	std::array<bool, KEY_ACTION_COUNT> enabledActions{};	//not saved, the window sets them for its current view
 };
 
 #endif

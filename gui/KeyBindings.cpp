@@ -16,6 +16,8 @@ QString getSettingsName(KeyAction action) {
 		case KeyAction::CLOSE_DRAWER: return "closeDrawer";
 		case KeyAction::TREE_BACK: return "treeBack";
 		case KeyAction::TREE_FORWARD: return "treeForward";
+		case KeyAction::SWITCH_MODE: return "switchMode";
+		case KeyAction::FOCUS_MODE: return "focusMode";
 		default: return {};
 	}
 }
@@ -68,6 +70,7 @@ bool reachesBindings(const QWidget& receiver, QKeyCombination key) {
 KeyBindings::KeyBindings(QWidget& window)
 	: QObject(&window)
 	, window(window) {
+	enabledActions.fill(true);
 	load();
 	window.installEventFilter(this);	//focus loss releases held keys
 	qApp->installEventFilter(this);
@@ -127,6 +130,23 @@ void KeyBindings::resetToDefaults() {
 	emit changed();
 }
 
+void KeyBindings::setActionEnabled(KeyAction action, bool enabled) {
+	const auto index = static_cast<std::size_t>(action);
+	if (index >= KEY_ACTION_COUNT || enabledActions[index] == enabled) {
+		return;
+	}
+	enabledActions[index] = enabled;
+	if (!enabled && heldKeys[index] != 0) {
+		heldKeys[index] = 0;
+		emit released(action);
+	}
+}
+
+bool KeyBindings::isActionEnabled(KeyAction action) const {
+	const auto index = static_cast<std::size_t>(action);
+	return index < KEY_ACTION_COUNT && enabledActions[index];
+}
+
 bool KeyBindings::hasMode(KeyAction action) {
 	return action == KeyAction::TOGGLE_SIDEBAR || action == KeyAction::MOVE_TREE || action == KeyAction::PRINCIPLE_DRAWER;
 }
@@ -139,6 +159,8 @@ QKeyCombination KeyBindings::getDefaultKey(KeyAction action) {
 		case KeyAction::CLOSE_DRAWER: return Qt::Key_Escape;
 		case KeyAction::TREE_BACK: return Qt::Key_Left;
 		case KeyAction::TREE_FORWARD: return Qt::Key_Right;
+		case KeyAction::SWITCH_MODE: return Qt::ControlModifier | Qt::Key_Tab;
+		case KeyAction::FOCUS_MODE: return Qt::Key_F;
 		default: return {};
 	}
 }
@@ -152,9 +174,11 @@ QString KeyBindings::getActionName(KeyAction action) {
 		case KeyAction::TOGGLE_SIDEBAR: return tr("Analysis sidebar");
 		case KeyAction::MOVE_TREE: return tr("Move tree");
 		case KeyAction::PRINCIPLE_DRAWER: return tr("Principle drawer");
-		case KeyAction::CLOSE_DRAWER: return tr("Close drawer / details");
+		case KeyAction::CLOSE_DRAWER: return tr("Close drawer / details / focus mode");
 		case KeyAction::TREE_BACK: return tr("Previous move");
 		case KeyAction::TREE_FORWARD: return tr("Next move");
+		case KeyAction::SWITCH_MODE: return tr("Switch Analysis / Play");
+		case KeyAction::FOCUS_MODE: return tr("Focus mode (Play)");
 		default: return {};
 	}
 }
@@ -214,7 +238,13 @@ bool KeyBindings::eventFilter(QObject* watched, QEvent* event) {
 	}
 	const auto modifiers = keyEvent.modifiers() & ~(Qt::KeypadModifier | Qt::GroupSwitchModifier);
 	const QKeyCombination key(modifiers, static_cast<Qt::Key>(code));
-	const std::optional<KeyAction> action = findAction(key);
+	std::optional<KeyAction> action;	//like findAction(), but a disabled action doesn't hide an enabled one with the same key
+	for (std::size_t index = 0; index < KEY_ACTION_COUNT && isBound(key); ++index) {
+		if (keys[index] == key && enabledActions[index]) {
+			action = static_cast<KeyAction>(index);
+			break;
+		}
+	}
 	if (!action || !reachesBindings(*receiver, key)) {
 		return false;
 	}
