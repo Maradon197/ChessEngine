@@ -4,7 +4,8 @@
 #include <cmath>
 #include <cstdlib>
 
-#include <QEvent>
+#include <QFontMetrics>
+#include <QHBoxLayout>
 #include <QLabel>
 #include <QPainter>
 #include <QPainterPath>
@@ -22,6 +23,11 @@ constexpr qreal CARD_RADIUS = 12;
 constexpr int CARD_PADDING = 12;
 constexpr int HEADER_HEIGHT = 22;
 constexpr int ANIMATION_DURATION = 260;
+
+constexpr qreal TRACK_HEIGHT = 20;
+constexpr qreal TRACK_GAP = 6;	//between a criterion's name and its track
+constexpr qreal SEGMENT_GAP = 3;
+constexpr qreal SEGMENT_RADIUS = 4;
 
 //same curve lichess uses for its eval bar: centipawns to the share of the bar that is white
 constexpr double WIN_CHANCE_SLOPE = 0.00368208;
@@ -48,25 +54,6 @@ QString getCriterionName(EvalCriterion criterion) {
 		case EvalCriterion::SPACE: return EvalCriteriaWidget::tr("Space");
 		default: return {};
 	}
-}
-
-//the number in words, for players who don't think in pawns yet
-QString getVerdict(int centipawns) {
-	const int magnitude = std::abs(centipawns);
-	if (magnitude < 25) {
-		return EvalCriteriaWidget::tr("The position is balanced");
-	}
-	const bool white = centipawns > 0;
-	if (magnitude < 75) {
-		return white ? EvalCriteriaWidget::tr("White is slightly better") : EvalCriteriaWidget::tr("Black is slightly better");
-	}
-	if (magnitude < 200) {
-		return white ? EvalCriteriaWidget::tr("White is better") : EvalCriteriaWidget::tr("Black is better");
-	}
-	if (magnitude < 500) {
-		return white ? EvalCriteriaWidget::tr("White is clearly better") : EvalCriteriaWidget::tr("Black is clearly better");
-	}
-	return white ? EvalCriteriaWidget::tr("White is winning") : EvalCriteriaWidget::tr("Black is winning");
 }
 
 QFont makeHeaderFont(const QFont& base) {
@@ -112,20 +99,8 @@ public:
 		update();
 	}
 
-	//muted text, follows the theme
-	void setVerdictLabel(QLabel* label) {
-		verdict = label;
-		updateVerdictColor();
-	}
 
 protected:
-	void changeEvent(QEvent* event) override {
-		QWidget::changeEvent(event);
-		if (event->type() == QEvent::PaletteChange) {
-			updateVerdictColor();
-		}
-	}
-
 	void paintEvent(QPaintEvent* event) override {
 		Q_UNUSED(event);
 		QPainter painter(this);
@@ -141,18 +116,8 @@ protected:
 	}
 
 private:
-	void updateVerdictColor() {
-		if (verdict == nullptr) {
-			return;
-		}
-		QPalette colors = verdict->palette();
-		colors.setColor(QPalette::WindowText, withAlpha(palette().color(QPalette::Text), 175));
-		verdict->setPalette(colors);
-	}
-
 	QString title;
 	QColor panelColor;
-	QLabel* verdict = nullptr;
 };
 
 //one pill, black from the left and white from the right; the split shows who is ahead overall
@@ -182,7 +147,7 @@ public:
 	}
 
 	QSize sizeHint() const override {
-		return {200, 16};
+		return {160, 10};
 	}
 
 protected:
@@ -223,7 +188,7 @@ private:
 	bool hasShare = false;
 };
 
-//tug of war: black pulls to the left, white to the right, the knot shows who wins this criterion
+//one track of three steps: it fills with the color of whoever is ahead on this criterion, empty means equal
 class CriterionBar : public QWidget {
 public:
 	CriterionBar(const QString& name, QWidget* parent)
@@ -235,6 +200,7 @@ public:
 			shownValue = value.toReal();
 			update();
 		});
+		updateToolTip();
 	}
 
 	void setValue(std::optional<int> newValue) {
@@ -245,6 +211,7 @@ public:
 			shownValue = 0;
 		}
 		value = newValue;
+		updateToolTip();
 		update();
 	}
 
@@ -253,7 +220,7 @@ public:
 	}
 
 	QSize sizeHint() const override {
-		return {220, fontMetrics().height() + 26};
+		return {220, static_cast<int>(std::ceil(fontMetrics().height() + TRACK_GAP + TRACK_HEIGHT))};
 	}
 
 	QSize minimumSizeHint() const override {
@@ -265,70 +232,42 @@ protected:
 		Q_UNUSED(event);
 		QPainter painter(this);
 		painter.setRenderHint(QPainter::Antialiasing);
-		const QPalette& colors = palette();
-		const QColor text = colors.color(QPalette::Text);
+		const QColor text = palette().color(QPalette::Text);
 
-		//name and number
 		const qreal textHeight = fontMetrics().height();
-		const QRectF textRow(0, 0, width(), textHeight);
-		painter.setPen(text);
-		painter.drawText(textRow, Qt::AlignLeft | Qt::AlignVCenter, name);
-		QFont valueFont = font();
-		valueFont.setBold(true);
-		painter.setFont(valueFont);
 		painter.setPen(value ? text : withAlpha(text, 120));
-		painter.drawText(textRow, Qt::AlignRight | Qt::AlignVCenter, value ? formatSigned(*value) : DASH);
+		painter.drawText(QRectF(0, 0, width(), textHeight), Qt::AlignLeft | Qt::AlignVCenter, name);
 
-		//rope between the two ends
-		const qreal capRadius = 5;
-		const qreal knotRadius = 7;
-		const qreal ropeY = textHeight + 13;
-		const qreal left = capRadius + 1;
-		const qreal right = width() - capRadius - 1;
-		const qreal inner = knotRadius + 4;	//the knot stops before the end caps
-		const auto toX = [&](qreal criterionValue) {
-			const qreal share = (criterionValue - CRITERION_MIN) / static_cast<qreal>(CRITERION_MAX - CRITERION_MIN);
-			return left + inner + share * (right - left - 2 * inner);
-		};
-
-		painter.setPen(Qt::NoPen);
-		painter.setBrush(withAlpha(text, value ? 45 : 25));
-		painter.drawRoundedRect(QRectF(left, ropeY - 1.5, right - left, 3), 1.5, 1.5);
-
-		//a dot for every step, a line for the middle
-		painter.setBrush(withAlpha(text, value ? 90 : 45));
-		for (int step = CRITERION_MIN; step <= CRITERION_MAX; ++step) {
-			if (step != 0) {
-				painter.drawEllipse(QPointF(toX(step), ropeY), 1.6, 1.6);
-			}
-		}
-		painter.setPen(QPen(withAlpha(text, value ? 150 : 70), 1.5));
-		painter.drawLine(QPointF(toX(0), ropeY - 6), QPointF(toX(0), ropeY + 6));
-
-		const QPen outline(withAlpha(text, 170), 1);
-		painter.setPen(outline);
-		painter.setBrush(BLACK_SIDE);
-		painter.drawEllipse(QPointF(left, ropeY), capRadius, capRadius);
-		painter.setBrush(WHITE_SIDE);
-		painter.drawEllipse(QPointF(right, ropeY), capRadius, capRadius);
-
-		if (!value) {
-			return;
-		}
-		//pulled part of the rope, then the knot
-		const qreal center = toX(0);
-		const qreal knot = toX(shownValue);
+		const QRectF track(0.5, textHeight + TRACK_GAP + 0.5, width() - 1.0, TRACK_HEIGHT - 1.0);
+		const int segmentCount = std::max(CRITERION_MAX, -CRITERION_MIN);
+		const qreal segmentWidth = (track.width() - SEGMENT_GAP * (segmentCount - 1)) / segmentCount;
+		const qreal filled = std::abs(shownValue);	//in segments, fractional while easing
 		const QColor side = shownValue >= 0 ? WHITE_SIDE : BLACK_SIDE;
-		if (std::abs(knot - center) > 0.5) {
-			painter.setBrush(side);
-			painter.drawRoundedRect(QRectF(std::min(center, knot), ropeY - 3, std::abs(knot - center), 6), 3, 3);
+
+		for (int index = 0; index < segmentCount; ++index) {
+			const QRectF segment(track.left() + index * (segmentWidth + SEGMENT_GAP), track.top(), segmentWidth, track.height());
+			QPainterPath shape;
+			shape.addRoundedRect(segment, SEGMENT_RADIUS, SEGMENT_RADIUS);
+			painter.fillPath(shape, withAlpha(text, value ? 22 : 12));
+
+			const qreal fill = value ? std::clamp(filled - index, 0.0, 1.0) : 0.0;
+			if (fill > 0) {
+				painter.save();
+				painter.setClipPath(shape);
+				painter.fillRect(QRectF(segment.left(), segment.top(), segment.width() * fill, segment.height()), side);
+				painter.restore();
+			}
+			painter.setPen(QPen(withAlpha(text, fill > 0 ? 170 : value ? 70 : 40), 1));
+			painter.setBrush(Qt::NoBrush);
+			painter.drawPath(shape);
 		}
-		painter.setBrush(std::abs(shownValue) < 0.05 ? QColor(128, 128, 128) : side);
-		painter.setPen(QPen(text, 1.5));
-		painter.drawEllipse(QPointF(knot, ropeY), knotRadius, knotRadius);
 	}
 
 private:
+	void updateToolTip() {
+		setToolTip(value ? QString("%1: %2").arg(name, formatSigned(*value)) : EvalCriteriaWidget::tr("%1: no evaluation yet").arg(name));
+	}
+
 	QString name;
 	std::optional<int> value;
 	qreal shownValue = 0;
@@ -341,35 +280,29 @@ EvalCriteriaWidget::EvalCriteriaWidget(Doorman& doorman, QWidget* parent)
 	layout->setContentsMargins(0, 0, 0, 0);
 	layout->setSpacing(10);
 
-	//overall: number, sentence, balance
+	//overall: number and balance in one slim row, the criteria below carry the weight
 	overallCard = new Card(tr("Overall"), this);
-	auto* overallLayout = new QVBoxLayout(overallCard);
-	overallLayout->setContentsMargins(CARD_PADDING, CARD_PADDING + HEADER_HEIGHT - 4, CARD_PADDING, CARD_PADDING + 2);
-	overallLayout->setSpacing(2);
+	auto* overallLayout = new QHBoxLayout(overallCard);
+	overallLayout->setContentsMargins(CARD_PADDING, CARD_PADDING + HEADER_HEIGHT - 6, CARD_PADDING, CARD_PADDING - 2);
+	overallLayout->setSpacing(10);
 
 	overallValueLabel = new QLabel(DASH, overallCard);
 	QFont valueFont = overallValueLabel->font();
 	valueFont.setBold(true);
-	valueFont.setPointSizeF(valueFont.pointSizeF() * 2.2);
 	overallValueLabel->setFont(valueFont);
+	overallValueLabel->setMinimumWidth(QFontMetrics(valueFont).horizontalAdvance("+00.00"));
 	overallLayout->addWidget(overallValueLabel);
 
-	verdictLabel = new QLabel(tr("Waiting for the engine"), overallCard);
-	verdictLabel->setWordWrap(true);
-	overallLayout->addWidget(verdictLabel);
-	overallLayout->addSpacing(8);
-
 	balanceBar = new BalanceBar(overallCard);
-	overallCard->setVerdictLabel(verdictLabel);
 	balanceBar->setToolTip(tr("Black's share on the left, white's on the right. The line in the middle means equal."));
-	overallLayout->addWidget(balanceBar);
+	overallLayout->addWidget(balanceBar, 1, Qt::AlignVCenter);
 	layout->addWidget(overallCard);
 
-	//one tug of war per criterion
+	//one three-step track per criterion
 	criteriaCard = new Card(tr("Why"), this);
 	auto* criteriaLayout = new QVBoxLayout(criteriaCard);
 	criteriaLayout->setContentsMargins(CARD_PADDING, CARD_PADDING + HEADER_HEIGHT, CARD_PADDING, CARD_PADDING);
-	criteriaLayout->setSpacing(10);
+	criteriaLayout->setSpacing(14);
 	for (std::size_t index = 0; index < CRITERION_COUNT; ++index) {
 		bars[index] = new CriterionBar(getCriterionName(static_cast<EvalCriterion>(index)), criteriaCard);
 		criteriaLayout->addWidget(bars[index]);
@@ -383,7 +316,6 @@ void EvalCriteriaWidget::setOverallCentipawns(int centipawns) {
 	const QString magnitude = QString::number(std::abs(centipawns) / 100.0, 'f', 2);
 	const QString sign = centipawns > 0 ? "+" : centipawns < 0 ? MINUS_SIGN : "";
 	overallValueLabel->setText(sign + magnitude);
-	verdictLabel->setText(getVerdict(centipawns));
 	const double share = 1.0 / (1.0 + std::exp(-WIN_CHANCE_SLOPE * centipawns));
 	balanceBar->setShare(std::clamp(share, MIN_SHARE, 1 - MIN_SHARE));
 }
@@ -391,22 +323,11 @@ void EvalCriteriaWidget::setOverallCentipawns(int centipawns) {
 void EvalCriteriaWidget::setOverallMate(int movesToMate) {
 	overallValueLabel->setText("#" + (movesToMate < 0 ? MINUS_SIGN : QString()) + QString::number(std::abs(movesToMate)));
 	const bool white = movesToMate > 0;
-	if (movesToMate == 0) {
-		verdictLabel->setText(tr("Checkmate"));
-	} else {
-		const int moves = std::abs(movesToMate);
-		if (moves == 1) {
-			verdictLabel->setText(white ? tr("White mates in 1 move") : tr("Black mates in 1 move"));
-		} else {
-			verdictLabel->setText((white ? tr("White mates in %1 moves") : tr("Black mates in %1 moves")).arg(moves));
-		}
-	}
 	balanceBar->setShare(movesToMate == 0 ? 0.5 : white ? 1.0 : 0.0);
 }
 
 void EvalCriteriaWidget::clearOverall() {
 	overallValueLabel->setText(DASH);
-	verdictLabel->setText(tr("Waiting for the engine"));
 	balanceBar->setShare(std::nullopt);
 }
 

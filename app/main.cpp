@@ -16,6 +16,8 @@
 #include "MainWindow.hpp"
 #include "MoveNotation.hpp"
 
+#include "Evaluator.hpp"
+
 //temporary includes -----------------
 
 //------------------------------------
@@ -92,6 +94,31 @@ void showDemoValues(Doorman& doorman, BoardState& board, LegalMoveGenerator& gen
 	doorman.setSquareValues(values, relative * (1 + ENDGAME_BOOST * emptiness));
 }
 
+int criterionSquaresFromEvalValue(EvalValue score) {
+	constexpr EvalValue LIMITS[] = { 0.9f, 3.0f, 5.0f };
+	int crit_sq = 0;
+	for (EvalValue current_limit : LIMITS) {
+		if (std::abs(score) >= current_limit)
+			crit_sq++;
+	}
+	return score < 0 ? -crit_sq : crit_sq;
+}
+
+void showEvaluation(Doorman& dm, const BoardState& state, Evaluator& eval) {
+	const Position& pos = state.getPosition();
+	EvalValue overall_score = eval.overallScore(pos);
+	EvalValue weighted_material = eval.weightedMaterial(pos);
+
+	if (pos.side_to_move == BLACK) {
+		overall_score = -overall_score;
+		weighted_material = -weighted_material;
+	}
+	
+	dm.setCriterion(EvalCriterion::WEIGHTED_MATERIAL, criterionSquaresFromEvalValue(weighted_material));
+	dm.setOverallCentipawns(static_cast<int> (overall_score * 100));
+
+}
+
 } // !namespace
 
 int main(int argc, char* argv[]) {
@@ -100,6 +127,7 @@ int main(int argc, char* argv[]) {
 
 	Doorman doorman;
 	MainWindow window(doorman);
+	Evaluator evaluator;
 
 	//core state
 	BoardState board;
@@ -109,6 +137,7 @@ int main(int argc, char* argv[]) {
 
 	doorman.setPosition(board.getPosition());
 	showDemoValues(doorman, board, legalMoveGenerator);
+	showEvaluation(doorman, board, evaluator);
 	doorman.loadPrinciplesFromEngine();
 
 	//the user picked up a piece: show its legal moves
@@ -131,6 +160,7 @@ int main(int argc, char* argv[]) {
 		doorman.playMove(move, label);				//advances or forks the move tree
 		doorman.setPosition(board.getPosition());	//the core's position is authoritative
 		showDemoValues(doorman, board, legalMoveGenerator);
+		showEvaluation(doorman, board, evaluator);
 		legalMoves.count = 0;
 		updateGameStatus();
 	};
@@ -153,6 +183,7 @@ int main(int argc, char* argv[]) {
 	QObject::connect(&doorman, &Doorman::treeNodeSelected, &doorman, [&](NodeId id, const Position&) {
 		replayMoves(board, doorman.getMovesToTreeNode(id));
 		showDemoValues(doorman, board, legalMoveGenerator);
+		showEvaluation(doorman, board, evaluator);
 		legalMoves.count = 0;
 		updateGameStatus();
 	});

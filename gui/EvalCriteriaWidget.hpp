@@ -14,7 +14,7 @@ class CriterionBar;
 class Doorman;
 class QLabel;
 
-//overall evaluation as a number, a sentence and a black/white balance, then one tug-of-war per criterion
+//overall evaluation as a slim number and black/white balance, then one three-step track per criterion
 class EvalCriteriaWidget : public QWidget {
 	Q_OBJECT
 
@@ -37,7 +37,6 @@ private:
 	Card* overallCard = nullptr;
 	Card* criteriaCard = nullptr;
 	QLabel* overallValueLabel = nullptr;
-	QLabel* verdictLabel = nullptr;
 	BalanceBar* balanceBar = nullptr;
 	std::array<CriterionBar*, CRITERION_COUNT> bars{};
 };

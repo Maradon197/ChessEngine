@@ -84,7 +84,7 @@ namespace {
 
 	constexpr int PHASE_WEIGHT[6] = { 0, 1, 1, 2, 4, 0 };	//24 = all pieces on board = pure middlegame
 	constexpr int BISHOP_PAIR_BONUS = 30;
-}
+}//!namespace
 
 //@return: pawns (1.0 = one pawn) from the side to move's perspective, so negamax can use it directly
 float Evaluator::weightedMaterial(const Position& pos) {
