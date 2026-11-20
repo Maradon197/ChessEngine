@@ -2,12 +2,13 @@
 #define GUITYPES_HPP
 
 #include <array>
+#include <string>
 #include <cstddef>
 #include <cstdint>
 
 #include "DataTypes.hpp"
 #include "MoveBits.hpp"
-#include "Principle.hpp"
+#include "EngineTypes.hpp"
 
 using NodeId = std::uint32_t;
 constexpr NodeId ROOT_NODE = 0;	//starting position, always exists
@@ -76,6 +77,20 @@ public:
 
 private:
 	Move move = 0;
+};
+
+//GUI copy of one PRINCIPLES entry with added runtime state
+struct Principle {
+	PrincipleId id = PrincipleId::COUNT;
+	std::string title;
+	std::string imagePath;
+	int spotElo = 0;
+	std::string description;
+	std::string explanation;
+	GamePartFlags gamePart;
+	PrincipleFocusFlags focus;
+	bool enabled = true;   //chosen by the user
+	bool useful = false;   //decided by the engine
 };
 
 #endif

@@ -34,13 +34,11 @@ public:
 	void setPrinciples(const std::vector<Principle>& principles);
 	void setPrincipleEnabled(const std::string& title, bool enabled);
 	void setPrincipleUseful(const std::string& title, bool useful);
-	void setProblems(const std::vector<std::string>& problems);
 	void setPanelColor(const QColor& color);
 	void setOpen(bool open);
 
 signals:
 	void principleEnabledChanged(const std::string& title, bool enabled);
-	void refreshRequested();
 
 protected:
 	bool eventFilter(QObject* watched, QEvent* event) override;
@@ -75,7 +73,6 @@ private:
 	qreal progress = 0;
 	bool isOpen = false;
 
-	QLabel* problemsLabel = nullptr;
 	EloSlider* eloSlider = nullptr;
 	QLineEdit* searchEdit = nullptr;
 	QComboBox* difficultyFilter = nullptr;

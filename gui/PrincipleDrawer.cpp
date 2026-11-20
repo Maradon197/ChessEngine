@@ -18,6 +18,7 @@
 #include <QLabel>
 #include <QLineEdit>
 #include <QMouseEvent>
+#include <QStringList>
 #include <QPainter>
 #include <QPainterPath>
 #include <QPushButton>
@@ -43,14 +44,14 @@ constexpr qreal CARD_GAP = 24;
 constexpr qreal CARD_PADDING = 12;
 constexpr qreal CARD_RADIUS = 12;
 constexpr qreal IMAGE_HEIGHT = 118;
-constexpr qreal GRID_MARGIN = 22;	//room for the shadows
+constexpr qreal GRID_MARGIN = 22;	//room for shadows
 constexpr qreal SHADOW_MARGIN = 26;
 constexpr qreal HOVER_LIFT = 3;
 constexpr qreal USEFUL_DOT_RADIUS = 9;
 constexpr qreal DISABLED_OPACITY = 0.4;
-constexpr qreal CARD_ANIMATION_TIME = 90;	//ms, time constant of the hover/select/enable easing
+constexpr qreal CARD_ANIMATION_TIME = 90;	//ms
 
-constexpr qreal DRAWER_SHARE = 0.66;	//of the window height
+constexpr qreal DRAWER_SHARE = 0.66;
 constexpr int DRAWER_MIN_HEIGHT = 420;
 constexpr qreal DRAWER_RADIUS = 14;
 constexpr int SLIDE_DURATION = 320;
@@ -77,7 +78,6 @@ QString getGamePartName(GamePart part) {
 		case GamePart::OPENING: return PrincipleDrawer::tr("Opening");
 		case GamePart::MIDGAME: return PrincipleDrawer::tr("Midgame");
 		case GamePart::ATTACKING_MIDGAME: return PrincipleDrawer::tr("Attacking midgame");
-		case GamePart::DEFENDING_MIDGAME: return PrincipleDrawer::tr("Defending midgame");
 		case GamePart::ENDGAME: return PrincipleDrawer::tr("Endgame");
 		default: return {};
 	}
@@ -114,6 +114,38 @@ QString getFocusGlyph(PrincipleFocus focus) {
 	}
 }
 
+//all game parts of a principle in one chip text, e.g. "Opening · Midgame"
+QString getGamePartNames(GamePartFlags parts) {
+	QStringList names;
+	for (int index = 0; index < static_cast<int>(GamePart::COUNT); ++index) {
+		if (parts.has(static_cast<GamePart>(index))) {
+			names.append(getGamePartName(static_cast<GamePart>(index)));
+		}
+	}
+	return names.join(QString::fromUtf8(" | "));
+}
+
+//the placeholder image has room for one glyph only: the first focus in enum order
+PrincipleFocus getFirstFocus(PrincipleFocusFlags focuses) {
+	for (int index = 0; index < static_cast<int>(PrincipleFocus::COUNT); ++index) {
+		if (focuses.has(static_cast<PrincipleFocus>(index))) {
+			return static_cast<PrincipleFocus>(index);
+		}
+	}
+	return PrincipleFocus::COUNT;
+}
+
+//same for focus
+QString getFocusNames(PrincipleFocusFlags focuses) {
+	QStringList names;
+	for (int index = 0; index < static_cast<int>(PrincipleFocus::COUNT); ++index) {
+		if (focuses.has(static_cast<PrincipleFocus>(index))) {
+			names.append(getFocusName(static_cast<PrincipleFocus>(index)));
+		}
+	}
+	return names.join(QString::fromUtf8(" | "));
+}
+
 //muted traffic light for the difficulty levels, one color each for the other two categories
 QColor getDifficultyColor(PrincipleDifficulty difficulty) {
 	switch (difficulty) {
@@ -136,8 +168,8 @@ std::array<Chip, 3> getChips(const Principle& principle) {
 	const PrincipleDifficulty difficulty = getPrincipleDifficulty(principle.spotElo);
 	return {{
 		{getDifficultyName(difficulty), getDifficultyColor(difficulty)},
-		{getGamePartName(principle.gamePart), GAME_PART_COLOR},
-		{getFocusName(principle.focus), FOCUS_COLOR},
+		{getGamePartNames(principle.gamePart), GAME_PART_COLOR},
+		{getFocusNames(principle.focus), FOCUS_COLOR},
 	}};
 }
 
@@ -252,7 +284,7 @@ void paintPrincipleImage(QPainter& painter, const QRectF& rect, const Principle&
 		glyphFont.setPixelSize(static_cast<int>(rect.height() * 0.55));
 		painter.setFont(glyphFont);
 		painter.setPen(QColor(255, 255, 255, 215));
-		painter.drawText(rect, Qt::AlignCenter, getFocusGlyph(principle.focus));
+		painter.drawText(rect, Qt::AlignCenter, getFocusGlyph(getFirstFocus(principle.focus)));
 	}
 	painter.restore();
 }
@@ -596,7 +628,7 @@ protected:
 		if (drawer.shown.empty()) {
 			painter.setPen(palette().color(QPalette::PlaceholderText));
 			painter.drawText(rect(), Qt::AlignCenter, drawer.principles.empty()
-				? PrincipleDrawer::tr("No principles loaded. Check the principle file and press Refresh.")
+				? PrincipleDrawer::tr("No principles registered.")
 				: PrincipleDrawer::tr("No principles match the filters."));
 			return;
 		}
@@ -950,17 +982,9 @@ QWidget* PrincipleDrawer::createHeader() {
 	auto* disableButton = new QPushButton(tr("Disable shown"), header);
 	connect(enableButton, &QPushButton::clicked, this, [this] { setShownEnabled(true); });
 	connect(disableButton, &QPushButton::clicked, this, [this] { setShownEnabled(false); });
-	problemsLabel = new QLabel(header);
-	problemsLabel->setStyleSheet(QString("color: %1; font-weight: bold;").arg(NOT_USEFUL_COLOR.name()));
-	problemsLabel->hide();
-	bottom->addWidget(problemsLabel);
 	bottom->addWidget(enableButton);
 	bottom->addWidget(disableButton);
 
-	auto* refreshButton = new QPushButton(QString::fromUtf8("⟳ ") + tr("Refresh"), header);
-	refreshButton->setToolTip(tr("Reload the principle file"));
-	connect(refreshButton, &QPushButton::clicked, this, &PrincipleDrawer::refreshRequested);
-	bottom->addWidget(refreshButton);
 	rows->addLayout(bottom);
 	return header;
 }
@@ -1082,16 +1106,6 @@ void PrincipleDrawer::setPrincipleUseful(const std::string& title, bool useful) 
 	grid->update();
 }
 
-void PrincipleDrawer::setProblems(const std::vector<std::string>& problems) {
-	QStringList lines;
-	for (const std::string& problem : problems) {
-		lines << QString::fromStdString(problem);
-	}
-	problemsLabel->setVisible(!lines.isEmpty());
-	problemsLabel->setText(QString::fromUtf8("⚠ ") + (lines.size() == 1 ? tr("1 problem in the file") : tr("%1 problems in the file").arg(lines.size())));
-	problemsLabel->setToolTip(lines.join('\n'));
-}
-
 void PrincipleDrawer::setPanelColor(const QColor& color) {
 	panelColor = color;
 	frame->setColor(color);
@@ -1198,8 +1212,8 @@ void PrincipleDrawer::applyFilters() {
 	for (int index = 0; index < static_cast<int>(principles.size()); ++index) {
 		const Principle& principle = principles[index];
 		if ((difficulty >= 0 && static_cast<int>(getPrincipleDifficulty(principle.spotElo)) != difficulty)
-			|| (gamePart >= 0 && static_cast<int>(principle.gamePart) != gamePart)
-			|| (focus >= 0 && static_cast<int>(principle.focus) != focus)
+			|| (gamePart >= 0 && !principle.gamePart.has(static_cast<GamePart>(gamePart)))
+			|| (focus >= 0 && !principle.focus.has(static_cast<PrincipleFocus>(focus)))
 			|| (state >= 0 && principle.enabled != (state == 1))) {
 			continue;
 		}

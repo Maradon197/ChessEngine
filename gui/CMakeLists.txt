@@ -22,6 +22,7 @@ target_include_directories(ChessGui PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(ChessGui PUBLIC
     ChessCore
     ChessUtil
+    ChessEngine
     Qt::Core
     Qt::Widgets
 )

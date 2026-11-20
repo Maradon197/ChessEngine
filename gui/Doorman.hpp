@@ -68,7 +68,8 @@ public:
 	void setPrinciples(const std::vector<Principle>& principles);	//titles already known keep their enabled and useful state
 	void setPrincipleEnabled(const std::string& title, bool enabled);
 	void setPrincipleUseful(const std::string& title, bool useful);	//whether the engine can actually work with it
-	void setPrincipleProblems(const std::vector<std::string>& problems);	//shown in the drawer, e.g. mistakes in the principle file
+
+	void loadPrinciplesFromEngine();	//copies PRINCIPLES from the engine into the drawer list
 
 	//appearance
 	void setThemeMode(ThemeMode mode);
@@ -101,7 +102,6 @@ signals:
 	void userAnnotationsChanged(const std::vector<Highlight>& highlights, const std::vector<Arrow>& arrows);
 	void treeNodeSelected(NodeId id, const Position& position);	//board already shows the position
 	void principleEnabledChanged(const std::string& title, bool enabled);	//user switched a principle on or off
-	void principlesRefreshRequested();	//refresh button: reload the principles and pass them to setPrinciples
 	void engineMoveRequested(const Position& position);	//play view: the engine's side is to move, answer like a user move
 
 private:

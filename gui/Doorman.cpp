@@ -7,6 +7,7 @@
 #include <QGuiApplication>
 #include <QStyleHints>
 
+#include "PrincipleRegistry.hpp"
 #include "BoardWidget.hpp"
 #include "EvalCriteriaWidget.hpp"
 #include "EvalSquareWidget.hpp"
@@ -266,9 +267,26 @@ void Doorman::setPrincipleUseful(const std::string& title, bool useful) {
 	runInGuiThread([this, title, useful] { if (principleDrawer) principleDrawer->setPrincipleUseful(title, useful); });
 }
 
-void Doorman::setPrincipleProblems(const std::vector<std::string>& problems) {
-	runInGuiThread([this, problems] { if (principleDrawer) principleDrawer->setProblems(problems); });
+void Doorman::loadPrinciplesFromEngine() {
+	std::vector<Principle> list;
+	list.reserve(PRINCIPLES.size());
+
+	for (const PrincipleInfo& info : PRINCIPLES) {
+		Principle principle;
+		principle.id = info.id;
+		principle.title = std::string(info.title);
+		principle.imagePath = std::string(info.imagePath);
+		principle.spotElo = info.spotElo;
+		principle.description = std::string(info.description);
+		principle.explanation = std::string(info.explanation);
+		principle.gamePart = info.gamePart;
+		principle.focus = info.focus;
+		list.push_back(principle);
+	}
+
+	setPrinciples(list);
 }
+
 
 void Doorman::setThemeMode(ThemeMode mode) {
 	runInGuiThread([this, mode] {
@@ -391,7 +409,6 @@ void Doorman::attach(PrincipleDrawer& principleDrawerWidget) {
 		storePrincipleFlag(title, &Principle::enabled, enabled);
 		emit principleEnabledChanged(title, enabled);
 	});
-	connect(&principleDrawerWidget, &PrincipleDrawer::refreshRequested, this, &Doorman::principlesRefreshRequested);
 	principleDrawerWidget.setPrinciples(getPrinciples());
 }
 
