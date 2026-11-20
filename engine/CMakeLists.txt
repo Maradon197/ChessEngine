@@ -4,6 +4,8 @@ add_library(ChessEngine STATIC
     eval/principles/PrincipleRegistry.hpp
     eval/principles/PrincipleRegistry.cpp
     eval/principles/OpeningPrinciples.cpp
+    eval/principles/MidgamePrinciples.cpp
+    eval/principles/EndgamePrinciples.cpp
 )
 
 target_include_directories(ChessEngine PUBLIC

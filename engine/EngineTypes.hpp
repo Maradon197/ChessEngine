@@ -1,6 +1,7 @@
 #ifndef INCLUDED__CHESS_ENGINE__ENGINE_TYPES_HPP
 #define INCLUDED__CHESS_ENGINE__ENGINE_TYPES_HPP
 
+#include <cstdint>
 #include <string_view>
 
 #include "DataTypes.hpp"
@@ -11,12 +12,87 @@ enum class GamePart { OPENING, MIDGAME, ATTACKING_MIDGAME, ENDGAME, COUNT };
 enum class PrincipleFocus { PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING, SPACE, STRATEGY, COORDINATION, COUNT };
 
 
+//Set of enum values stored as bits: bit i is set iff enum value i is contained
+//The enums themselves stay plain indices, so COUNT keeps working for loops / arrays
+//Usage: GamePart::OPENING | GamePart::MIDGAME, flags.has(GamePart::ENDGAME)
+template <typename E>
+struct EnumFlags {
+	static_assert(static_cast<unsigned>(E::COUNT) <= 32, "EnumFlags: enum has too many values for 32 bits");
+
+	std::uint32_t bits = 0;
+
+	constexpr EnumFlags() = default;
+	constexpr EnumFlags(E value) : bits(1u << static_cast<unsigned>(value)) {}	//implicit on purpose: single values are valid sets
+
+	constexpr bool has(E value) const { return (bits & EnumFlags(value).bits) != 0; }
+	constexpr bool empty() const { return bits == 0; }
+
+	constexpr EnumFlags operator|(EnumFlags other) const {
+		EnumFlags result;
+		result.bits = bits | other.bits;
+		return result;
+	}
+};
+
+using GamePartFlags = EnumFlags<GamePart>;
+using PrincipleFocusFlags = EnumFlags<PrincipleFocus>;
+
+constexpr GamePartFlags operator|(GamePart a, GamePart b) { return GamePartFlags(a) | b; }
+constexpr PrincipleFocusFlags operator|(PrincipleFocus a, PrincipleFocus b) { return PrincipleFocusFlags(a) | b; }
+
+
 //This struct is more important than it looks!
 //The order here determines the order in:
 //		namespace
 //		function declarations
 //		final output vector!
-enum class PrincipleId { THIS_RETURNS_ZERO_POINT_FIVE, COUNT };
+enum class PrincipleId {
+	THIS_RETURNS_ZERO_POINT_FIVE,
+	CONTEST_THE_CENTER,
+	DEVELOP_KNIGHTS_BEFORE_BISHOPS,
+	DONT_MOVE_SAME_PIECE_TWICE,
+	KICK_OUT_PIECES,
+	NO_EARLY_QUEEN_MOVES,
+	CASTLE_OFTEN_EARLY,
+	CENTRALIZE_ROOKS,
+	UNPIN_KNIGHTS_WITH_BISHOPS,
+	TRADE_WHEN_UP_MATERIAL,
+	RULE_OF_PLUS_TWO,
+	CREATE_THREATS,
+	KEEP_ATTACKERS,
+	COORDINATE_ATTACKERS,
+	TEMPO_WINNING_MOVES,
+	LOCK_DOWN_CENTER,
+	OPEN_UP_CENTER,
+	ROOK_LIFTS,
+	TAKE_PAWN_SPACE,
+	STRONG_PAWN_CHAINS,
+	AVOID_UNINFLUENTIAL_DOUBLED_PAWNS,
+	ALLOW_INFLUENTIAL_DOUBLED_PAWNS,
+	PAWN_BREAKS,
+	ATTACK_BACKWARDS_PAWNS,
+	BLOCK_ISOLATED_PAWNS,
+	CREATE_KING_LUFT,
+	C_AND_D_PAWNS_TOGETHER,
+	KEEP_KING_FILES_CLOSED,
+	F_AND_H_PAWN_STORMS,
+	OUTPOST_SQUARES,
+	KNIGHT_REROUTES,
+	BLOCKADE_SQUARES,
+	FIANCHETTO_SQUARES,
+	BISHOP_QUEEN_BATTERIES,
+	CREATE_PINS,
+	BISHOP_BLOCKADE_SQUARES,
+	ROOKS_ON_OPEN_FILES,
+	ROOKS_ON_SEMI_OPEN_FILES,
+	ACTIVATE_KING_WITHOUT_QUEENS,
+	CREATE_PASSED_PAWNS,
+	PUSH_BAD_BISHOP_PAWNS,
+	PUSH_PASSED_PAWNS,
+	ROOKS_BEHIND_PASSED_PAWNS,
+	KING_OFF_BACK_RANK,
+	COUNT
+};
 
 
 constexpr PrincipleDifficulty getPrincipleDifficulty(int spotElo) {
@@ -44,8 +120,8 @@ struct PrincipleInfo {
 	int spotElo = 0;
 	std::string_view description;
 	std::string_view explanation;	//optional
-	GamePart gamePart = GamePart::COUNT;
-	PrincipleFocus focus = PrincipleFocus::COUNT;
+	GamePartFlags gamePart;			//empty = unset
+	PrincipleFocusFlags focus;		//empty = unset
 	PrincipleEvalFunction calculateScore = nullptr;
 };
 
