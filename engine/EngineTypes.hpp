@@ -123,7 +123,7 @@ struct EvalContext {
 
 //@return: float[-1,+1] in the perspective of the side to move
 using PrincipleEvalFunction = float (*)(const EvalContext&);
-
+using EvalValue = float;
 
 struct PrincipleInfo {
 	PrincipleId id = PrincipleId::COUNT;	//primary key

@@ -9,7 +9,7 @@ add_library(ChessEngine STATIC
     eval/principles/PieceActivityPrinciples.cpp
     eval/principles/AttackPrinciples.cpp
     eval/principles/EndgamePrinciples.cpp
-)
+ "eval/Evaluator.cpp")
 
 target_include_directories(ChessEngine PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}
