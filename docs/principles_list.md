@@ -1,141 +1,143 @@
 # Principles
-id: free enum value
-title: This principle is about ...
-spotElo: chess.com rapid
+
+id: free enum value 
+title: This principle is about ... 
+spotElo: chess.com rapid 
 description: We do this because...
+
 ```cpp
 enum class GamePart { OPENING, MIDGAME, ATTACKING_MIDGAME, ENDGAME };
 enum class PrincipleFocus { PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING, SPACE, STRATEGY, COORDINATION };
-``` 
+```
 
 ## A. Opening
 
 - Play theory → opening database
 - Contest the center → attacks on central squares
-	- id: CONTEST_THE_CENTER
-	- title: "Contest the Center"
-	- spotElo: 300
-	- description: "Controlling central space eases development"
-	- gamePart: OPENING, MIDGAME
-	- focus: SPACE
+    - id: CONTEST_THE_CENTER
+    - title: "Contest the Center"
+    - spotElo: 300
+    - description: "Controlling central space eases development"
+    - gamePart: OPENING, MIDGAME
+    - focus: SPACE
 - Develop knights before bishops → if both knights are still on their starting squares
-	- id: DEVELOP_KNIGHTS_BEFORE_BISHOPS
-	- title: "Develop knights before bishops"
-	- spotElo: 1000
-	- description: "Bishops are more valuable down the line"
-	- gamePart: OPENING
-	- focus: COORDINATION
+    - id: DEVELOP_KNIGHTS_BEFORE_BISHOPS
+    - title: "Develop knights before bishops"
+    - spotElo: 850
+    - description: "Bishops are more valuable down the line"
+    - gamePart: OPENING
+    - focus: KNIGHT, BISHOP, COORDINATION
 - Don't move the same piece twice → list of pieces already moved in the opening
-	- id: DONT_MOVE_SAME_PIECE_TWICE
-	- title: "Don't move the same piece twice"
-	- spotElo: 650
-	- description: "Developing other pieces has more value"
-	- gamePart: OPENING
-	- focus: COORDINATION
+    - id: DONT_MOVE_SAME_PIECE_TWICE
+    - title: "Don't move the same piece twice"
+    - spotElo: 650
+    - description: "Developing other pieces has more value"
+    - gamePart: OPENING
+    - focus: COORDINATION
 - Kick out enemy pieces → pawn attacks on pieces on ranks
-	- id: KICK_OUT_PIECES
-	- title: "Kick out enemy pieces"
-	- spotElo: 400
-	- description: "Forcing back opponent's pieces gains space"
-	- gamePart: OPENING, MIDGAME
-	- focus: SPACE
+    - id: KICK_OUT_PIECES
+    - title: "Kick out enemy pieces"
+    - spotElo: 575
+    - description: "Forcing back opponent's pieces gains space"
+    - gamePart: OPENING, MIDGAME
+    - focus: PAWN, SPACE
 - Don't bring the queen out too early → queen's share of attacks in the opponent's half, queen moves in early plies
-	- id: NO_EARLY_QUEEN_MOVES
-	- title: "Don't bring the queen out too early"
-	- spotElo: 850
-	- description: "Developing pieces gains space more sustainably"
-	- gamePart: OPENING
-	- focus: QUEEN
+    - id: NO_EARLY_QUEEN_MOVES
+    - title: "Don't bring the queen out too early"
+    - spotElo: 625
+    - description: "Developing pieces gains space more sustainably"
+    - gamePart: OPENING
+    - focus: QUEEN
 - Castle often and early → castle if possible
-	- id: CASTLE_OFTEN_EARLY
-	- title: "Castle often, castle early"
-	- spotElo: 400
-	- description: "Castling gets your king to safety"
-	- gamePart: OPENING, MIDGAME
-	- focus: KING
+    - id: CASTLE_OFTEN_EARLY
+    - title: "Castle often, castle early"
+    - spotElo: 400
+    - description: "Castling gets your king to safety"
+    - gamePart: OPENING, MIDGAME
+    - focus: KING
 - Centralize rooks → rooks see each other; more points towards the d/e-files
-	- id: CENTRALIZE_ROOKS
-	- title: "Centralize your rooks"
-	- spotElo: 1100
-	- description: "Centralizing your rooks supports your position"
-	- gamePart: OPENING, MIDGAME
-	- focus: ROOK
+    - id: CENTRALIZE_ROOKS
+    - title: "Centralize your rooks"
+    - spotElo: 1100
+    - description: "Centralizing your rooks supports your position"
+    - gamePart: OPENING, MIDGAME
+    - focus: ROOK, COORDINATION
 - Use bishops to unpin knights → unmake pinned knight
-	- id: UNPIN_KNIGHTS_WITH_BISHOPS
-	- title: "Use bishops to unpin knights"
-	- spotElo: 350
-	- description: "Remove pressure from your knights"
-	- gamePart: OPENING
-	- focus: BISHOP
+    - id: UNPIN_KNIGHTS_WITH_BISHOPS
+    - title: "Use bishops to unpin knights"
+    - spotElo: 875
+    - description: "Remove pressure from your knights"
+    - gamePart: OPENING
+    - focus: KNIGHT, BISHOP, STRATEGY
 
 ## B. Middlegame
 
 - If you're up material, trade → prefer equal trades if ahead in absolute (unweighted) material
-	- id: TRADE_WHEN_UP_MATERIAL
-	- title: "Trade if you're up material"
-	- spotElo: 600
-	- description: "It's the simplest way to convert a winning position"
-	- gamePart: MIDGAME, ENDGAME
-	- focus: STRATEGY
+    - id: TRADE_WHEN_UP_MATERIAL
+    - title: "Trade if you're up material"
+    - spotElo: 825
+    - description: "It's the simplest way to convert a winning position"
+    - gamePart: MIDGAME, ENDGAME
+    - focus: STRATEGY
 - Know when to attack / defend (Rule of +2) → count attackers / defenders of the squares around the king
-	- id: RULE_OF_PLUS_TWO
-	- title: "Know when to attack (Rule of +2)"
-	- spotElo: 1250
-	- description: "A successful attack usually requires at least 2 more attackers than defenders"
-	- gamePart: MIDGAME
-	- focus: COORDINATION
+    - id: RULE_OF_PLUS_TWO
+    - title: "Know when to attack (Rule of +2)"
+    - spotElo: 1650
+    - description: "A successful attack usually requires at least 2 more attackers than defenders"
+    - gamePart: MIDGAME
+    - focus: COORDINATION
 
 ### B1. Attacking
 
 - Create threats to the king, pieces and position → MVV/LVA principle: count and weight threats
-	- id: CREATE_THREATS
-	- title: "Create threats to the enemy"
-	- spotElo: 200
-	- description: "Creating threats to the enemy king, pieces or position is the only way to win"
-	- gamePart: OPENING, MIDGAME, END_GAME
-	- focus: STRATEGY
+    - id: CREATE_THREATS
+    - title: "Create threats to the enemy"
+    - spotElo: 200
+    - description: "Creating threats to the enemy king, pieces or position is the only way to win"
+    - gamePart: OPENING, MIDGAME, ENDGAME
+    - focus: STRATEGY
 - Keep attackers on the board → bonus for moves that keep king attackers on the board
-	- id: KEEP_ATTACKERS
-	- title: "Keep vital attackers on the board"
-	- spotElo: 1350
-	- description: "Without sufficient material presence, your attack can be stopped easily"
-	- gamePart: ATTACKING_MIDGAME
-	- focus: STRATEGY
+    - id: KEEP_ATTACKERS
+    - title: "Keep vital attackers on the board"
+    - spotElo: 1525
+    - description: "Without sufficient material presence, your attack can be stopped easily"
+    - gamePart: ATTACKING_MIDGAME
+    - focus: STRATEGY
 - Bring / coordinate your pieces → bonus for attacking the same squares
-	- id: COORDINATE_ATTACKERS
-	- title: "Coordinate your attack"
-	- spotElo: 1400
-	- description: "Bring and coordinate your attackers to overwhelm the enemy position"
-	- gamePart: ATTACKING_MIDGAME
-	- focus: COORDINATION
-- Play tempo-winning moves → define tempo (tempo eval?)
-	- id: TEMPO_WINNING_MOVES
-	- title: "Play tempo-winning moves"
-	- spotElo: 1000
-	- description: "Momentum allows you to take control over the game"
-	- gamePart: MIDGAME, ENDGAME
-	- focus: STRATEGY
+    - id: COORDINATE_ATTACKERS
+    - title: "Coordinate your attack"
+    - spotElo: 1400
+    - description: "Bring and coordinate your attackers to overwhelm the enemy position"
+    - gamePart: ATTACKING_MIDGAME
+    - focus: COORDINATION
+- Play tempo-winning moves → define tempo
+    - id: TEMPO_WINNING_MOVES
+    - title: "Play tempo-winning moves"
+    - spotElo: 1175
+    - description: "Momentum allows you to take control over the game"
+    - gamePart: MIDGAME, ENDGAME
+    - focus: STRATEGY
 - Vs. same-side castling: lock down the center → silent moves + high occupancy + few effective attacks in the center
-	- id: LOCK_DOWN_CENTER
-	- title: "Attack the same-side castled king"
-	- spotElo: 1400
-	- description: "Lock down the center to avoid enemy counterplay"
-	- gamePart: ATTACKING_MIDGAME
-	- focus: COORDINATION
+    - id: LOCK_DOWN_CENTER
+    - title: "Attack the same-side castled king"
+    - spotElo: 1725
+    - description: "Lock down the center to avoid enemy counterplay"
+    - gamePart: ATTACKING_MIDGAME
+    - focus: COORDINATION
 - Vs. opposite-side castling: open the center + pawn storm → pawn pushes + captures in the center, low occupancy
-	- id: OPEN_UP_CENTER
-	- title: "Attack the opposite-side castled king"
-	- spotElo: 1300
-	- description: "Open up the center to create a big attack"
-	- gamePart: ATTACKING_MIDGAME
-	- focus: COORDINATION
+    - id: OPEN_UP_CENTER
+    - title: "Attack the opposite-side castled king"
+    - spotElo: 1475
+    - description: "Open up the center to create a big attack"
+    - gamePart: ATTACKING_MIDGAME
+    - focus: COORDINATION
 - Create rook lifts → see rooks; prefer 3rd rank if attacking
-	- id: ROOK_LIFTS
-	- title: "Create rook lifts"
-	- spotElo: 1450
-	- description: "Bring rooks to the attack using C- and F- file"
-	- gamePart: ATTACKING_MIDGAME
-	- focus: ROOK
+    - id: ROOK_LIFTS
+    - title: "Create rook lifts"
+    - spotElo: 1625
+    - description: "Bring rooks to the attack using C- and F- file"
+    - gamePart: ATTACKING_MIDGAME
+    - focus: ROOK, COORDINATION
 
 ### B2. Defending
 
@@ -149,115 +151,211 @@ enum class PrincipleFocus { PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING, SPACE, STRA
 #### 1) Pawns
 
 - Take space from the opponent's pieces → prefer attacks on squares the opponent attacks
-	- id: TAKE_PAWN_SPACE
-	- title: "Take space from the opponent's pieces"
-	- spotElo: 1150
-	- description: "Restricting your opponent's movement gains you space"
-	- gamePart: MIDGAME, ENDGAME
-	- focus: SPACE
+    - id: TAKE_PAWN_SPACE
+    - title: "Take space from the opponent's pieces"
+    - spotElo: 1275
+    - description: "Restricting your opponent's movement gains you space"
+    - gamePart: MIDGAME, ENDGAME
+    - focus: PAWN, SPACE
 - Don't weaken pawn chains → pawn structure strength eval?
-	- id: STRONG_PAWN_CHAINS
-	- title: "Don't weaken pawn chains"
-	- spotElo: 900
-	- description: "Strong pawn chains restrict your opponent's movement"
-	- gamePart: MIDGAME, ENDGAME
-	- focus: SPACE
+    - id: STRONG_PAWN_CHAINS
+    - title: "Don't weaken pawn chains"
+    - spotElo: 1075
+    - description: "Strong pawn chains restrict your opponent's possibilities"
+    - gamePart: MIDGAME, ENDGAME
+    - focus: PAWN, SPACE, COORDINATION
 - Avoid doubled pawns → pawn structure strength
-	- id: AVOID_UNINFLUENTIAL_DOUBLED_PAWNS
-	- title: "Avoid doubled pawns"
-	- spotElo: 450
-	- description: "Doubled pawns are easy targets since they defend themselves badly"
-	- gamePart: OPENING, MIDGAME, ENDGAME
-	- focus: PAWN
+    - id: AVOID_UNINFLUENTIAL_DOUBLED_PAWNS
+    - title: "Avoid doubled pawns"
+    - spotElo: 675
+    - description: "Doubled pawns are easy targets since they defend themselves badly"
+    - gamePart: OPENING, MIDGAME, ENDGAME
+    - focus: PAWN, COORDINATION
 - Allow influential doubled pawns
-	- id: ALLOW_INFLUENTIAL_DOUBLED_PAWNS
-	- title: "Allow influential doubled pawns"
-	- spotElo: 1550
-	- description: "Sometimes, doubled pawns can create momentary positional strengths"
-	- gamePart: OPENING, MIDGAME, ENDGAME
-	- focus: PAWN
+    - id: ALLOW_INFLUENTIAL_DOUBLED_PAWNS
+    - title: "Allow influential doubled pawns"
+    - spotElo: 1825
+    - description: "Sometimes, doubled pawns can create momentary positional strengths"
+    - gamePart: OPENING, MIDGAME, ENDGAME
+    - focus: PAWN, COORDINATION
 - Create pawn breaks → identify break squares
-	- id: PAWN_BREAKS
-	- title: "Create pawn breaks"
-	- spotElo: 1400
-	- description: "Use pawn breaks to strategically weaken your opponent's footing"
-	- gamePart: MIDGAME
-	- focus: PAWN
+    - id: PAWN_BREAKS
+    - title: "Create pawn breaks"
+    - spotElo: 1575
+    - description: "Use pawn breaks to strategically weaken your opponent's footing"
+    - gamePart: MIDGAME
+    - focus: PAWN
 - Attack enemy backward pawns → backward pawn: neighbouring pawns are ahead, not on the a/h-file
-	- id: ATTACK_BACKWARDS_PAWNS
-	- title: "Attack backwards pawns"
-	- spotElo: 1500
-	- description: "Weak backwards pawns can become targets for your attack"
-	- gamePart: MIDGAME, ENDGAME
-	- focus: PAWN
+    - id: ATTACK_BACKWARDS_PAWNS
+    - title: "Attack backwards pawns"
+    - spotElo: 1675
+    - description: "Weak backwards pawns can become targets for your attack"
+    - gamePart: MIDGAME, ENDGAME
+    - focus: PAWN, STRATEGY
 - Stave off enemy isolated pawns → prefer less movement on isolated pawns
-	- id: BLOCK_ISOLATED_PAWNS
-	- title: "Block isolated pawns"
-	- spotElo: 1425
-	- description: "Disallow counterplay around the positional weakness"
-	- gamePart: MIDGAME
-	- focus: PAWN
+    - id: BLOCK_ISOLATED_PAWNS
+    - title: "Block isolated pawns"
+    - spotElo: 1750
+    - description: "Disallow counterplay around the positional weakness"
+    - gamePart: MIDGAME
+    - focus: PAWN, STRATEGY
 - ~~Avoid and reinforce backward pawns~~ → see isolated pawns
 - ~~Keep play dynamic around isolated pawns~~ → see isolated pawns
 - Create space for the king → 3 pawns in front of the king: bad
-	- id: CREATE_KING_LUFT
-	- title: "Create space for your king"
-	- spotElo: 450
-	- description: "Making an escape square stops back rank attacks"
-	- gamePart: MIDGAME, ENDGAME
-	- focus: PAWN
+    - id: CREATE_KING_LUFT
+    - title: "Create space for your king"
+    - spotElo: 725
+    - description: "Making an escape square stops back rank attacks"
+    - gamePart: MIDGAME, ENDGAME
+    - focus: PAWN, SPACE
 - c- and d-pawns go together → prefer d4 together with c4, short castle
-	- id: C_AND_D_PAWNS_TOGETHER
-	- title: "C and D pawns go together"
-	- spotElo: 1375
-	- description: "Pushing C and D pawns together allows for a strong center while your king stays safe"
-	- gamePart: OPENING, MIDGAME
-	- focus: PAWN
+    - id: C_AND_D_PAWNS_TOGETHER
+    - title: "C and D pawns go together"
+    - spotElo: 1375
+    - description: "Pushing C and D pawns together allows for a strong center while your king stays safe"
+    - gamePart: OPENING, MIDGAME
+    - focus: PAWN, COORDINATION
 - Keep files to your king closed → prefer a+b / g+h pawns
-	- id: KEEP_KING_FILES_CLOSED
-	- title: "Keep files to your king closed"
-	- spotElo: 900
-	- description: "The king is usually safer with these pawns"
-	- gamePart: OPENING, MIDGAME
-	- focus: PAWN
+    - id: KEEP_KING_FILES_CLOSED
+    - title: "Keep files to your king closed"
+    - spotElo: 900
+    - description: "The king is usually safer with these pawns"
+    - gamePart: OPENING, MIDGAME
+    - focus: PAWN, SPACE
 - ~~Open up files to the opponent's king~~ → see above
 - ~~Create fianchetto squares~~
 - ~~Create and reinforce outpost squares~~ → ~~outpost square: no enemy pawns on the adjacent files, attacked by own pawn~~
 - Create pawn storms with the h- and f-pawns → prefer h4–h5 or f4 when the opponent has castled kingside
+    - id: F_AND_H_PAWN_STORMS
+    - title: "Create Pawn storms with F4 & H4, H5"
+    - spotElo: 1500
+    - description: "F and H pawn pushes apply pressure and take space from the opponent's kingside"
+    - gamePart: ATTACKING_MIDGAME
+    - focus: PAWN, SPACE, STRATEGY
 
 #### 2) Knights
 
 - ~~Develop knights to the center~~ → piece-weighted values
 - ~~Prefer knights over bishops in closed positions~~ → piece-weighted values (positional eval?)
 - Use outpost squares → no enemy pawns, attacked by own pawn
+    - id: OUTPOST_SQUARES
+    - title: "Create outposts"
+    - spotElo: 1350
+    - description: "Outposts are dominant positions for your knights"
+    - gamePart: MIDGAME, ENDGAME
+    - focus: KNIGHT, COORDINATION
 - Reroute knights that are stuck → stuck knight: heavy enemy attacks / pawn attacks on the squares it attacks
+    - id: KNIGHT_REROUTES
+    - title: "Reroute knights that are stuck"
+    - spotElo: 1525
+    - description: "Counterintuitive backwards moves may allow you to place knights on more active squares"
+    - gamePart: MIDGAME, ENDGAME
+    - focus: KNIGHT, COORDINATION
 - ~~Prefer bishops over knights by default~~ (positional eval?)
-- Use blockade squares → blockade square: in front of a pawn + can't be kicked out in 1 move
+- Use blockade squares → blockade square: in front of a passed pawn + can't be kicked out in 1 move
+    - id: BLOCKADE_SQUARES
+    - title: "Blockade passed pawns"
+    - spotElo: 1475
+    - description: "Placing a piece in front of a passed pawn restricts your opponent's play"
+    - gamePart: MIDGAME, ENDGAME
+    - focus: PAWN, KNIGHT, BISHOP, SPACE
 
 #### 3) Bishops
 
 - ~~Place bishops on strong diagonals (few / weak pawns)~~ → weighted material
 - Use fianchetto squares → fianchetto square: b2/g2 + undeveloped bishop
+    - id: FIANCHETTO_SQUARES
+    - title: "Fianchetto Bishops"
+    - spotElo: 925
+    - description: "Creating fianchettos can be a good alternative for developing bishops to a strong diagonal"
+    - gamePart: OPENING, MIDGAME
+    - focus: PAWN, BISHOP
 - Create queen batteries → same diagonal as the queen
+    - id: BISHOP_QUEEN_BATTERIES
+    - title: "Create Batteries with Queen and Bishop"
+    - spotElo: 500
+    - description: "Having a queen and bishop on the same diagonal can apply lots of pressure"
+    - gamePart: OPENING, MIDGAME, ENDGAME
+    - focus: BISHOP, QUEEN, COORDINATION
 - ~~Place bishops on diagonals with valuable victims~~ → weighted material
 - Create pins → pin: 1 enemy piece in front of the MVV
+    - id: CREATE_PINS
+    - title: "Create pins"
+    - spotElo: 725
+    - description: "Pinned pieces can't move freely and become easy targets"
+    - gamePart: OPENING, MIDGAME, ENDGAME
+    - focus: BISHOP, STRATEGY
 - ~~Preserve the bishop pair~~ → weighted material
 - Use blockade squares a knight can't take → blockade square + no knight attacks
+    - id: BISHOP_BLOCKADE_SQUARES
+    - title: "Blockade with bishops out of knight reach"
+    - spotElo: 1775
+    - description: "A blockading bishop that no knight attacks is hard to remove"
+    - gamePart: MIDGAME, ENDGAME
+    - focus: PAWN, BISHOP, SPACE
 
 #### 4) Rooks
 
 - Place rooks on open files → no enemy pawn occupancy
+    - id: ROOKS_ON_OPEN_FILES
+    - title: "Place rooks on open files"
+    - spotElo: 950
+    - description: "Open files give your rooks full reach into the enemy position"
+    - gamePart: MIDGAME, ENDGAME
+    - focus: ROOK, SPACE
 - ~~Don't block in rooks~~ → weighted material
 - Place rooks on semi-open files with valuable victims → max. 1 pawn in total, king / queen as well
+    - id: ROOKS_ON_SEMI_OPEN_FILES
+    - title: "Place rooks on semi-open files"
+    - spotElo: 1325
+    - description: "A single pawn in the way still lets your rook pressure valuable targets behind it"
+    - gamePart: MIDGAME, ATTACKING_MIDGAME
+    - focus: ROOK, STRATEGY
 
 ## C. Endgame
 
-- If you're up material, trade → prefer equal trades if pure value (no weights) is higher
+- ~~If you're up material, trade~~ → see TRADE_WHEN_UP_MATERIAL
 - Bring your king in iff the queens are off the board → key squares good iff no queens
+    - id: ACTIVATE_KING_WITHOUT_QUEENS
+    - title: "Bring your king in once the queens are off"
+    - spotElo: 1025
+    - description: "Without queens, the king is safe enough to become a strong attacking piece"
+    - gamePart: ENDGAME
+    - focus: KING, STRATEGY
 - Create passed pawns → no pawns ahead
-- Avoid doubled pawns → 2 pawns on the same file
+    - id: CREATE_PASSED_PAWNS
+    - title: "Create passed pawns"
+    - spotElo: 1050
+    - description: "Passed pawns tie down enemy pieces and threaten to promote"
+    - gamePart: ENDGAME
+    - focus: PAWN, STRATEGY
+- ~~Avoid doubled pawns~~ → see AVOID_UNINFLUENTIAL_DOUBLED_PAWNS
 - Prefer pawns of the opponent's bad bishop
+    - id: PUSH_BAD_BISHOP_PAWNS
+    - title: "Push pawns on the bad bishop's color"
+    - spotElo: 1800
+    - description: "Push to promotion squares unavailable to that bishop"
+    - gamePart: ENDGAME
+    - focus: PAWN, BISHOP, STRATEGY
 - ~~Take key squares~~
 - Push passed pawns
+    - id: PUSH_PASSED_PAWNS
+    - title: "Push passed pawns"
+    - spotElo: 650
+    - description: "Every step closer to promotion forces your opponent to react"
+    - gamePart: ENDGAME
+    - focus: PAWN
 - Rooks behind passed pawns
+    - id: ROOKS_BEHIND_PASSED_PAWNS
+    - title: "Put rooks behind passed pawns"
+    - spotElo: 1450
+    - description: "A rook behind a passed pawn gains activity with every push"
+    - gamePart: MIDGAME, ENDGAME
+    - focus: PAWN, ROOK, COORDINATION
 - King off the back rank
+    - id: KING_OFF_BACK_RANK
+    - title: "Get your king off the back rank"
+    - spotElo: 825
+    - description: "A king on the back rank is passive and vulnerable to back rank mates"
+    - gamePart: ENDGAME
+    - focus: KING, SPACE
