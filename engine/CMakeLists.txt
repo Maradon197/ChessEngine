@@ -3,8 +3,11 @@ add_library(ChessEngine STATIC
     eval/principles/PrincipleFunctions.hpp
     eval/principles/PrincipleRegistry.hpp
     eval/principles/PrincipleRegistry.cpp
-    eval/principles/OpeningPrinciples.cpp
-    eval/principles/MidgamePrinciples.cpp
+    eval/principles/DevelopmentPrinciples.cpp
+    eval/principles/CenterPrinciples.cpp
+    eval/principles/PawnStructurePrinciples.cpp
+    eval/principles/PieceActivityPrinciples.cpp
+    eval/principles/AttackPrinciples.cpp
     eval/principles/EndgamePrinciples.cpp
 )
 

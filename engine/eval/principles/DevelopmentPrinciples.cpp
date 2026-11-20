@@ -13,19 +13,11 @@ namespace principles {
 		return 0.5f;
 	}
 
-	float contestTheCenter(const EvalContext& ctx) {
-		return 0.0f; //TODO
-	}
-
 	float developKnightsBeforeBishops(const EvalContext& ctx) {
 		return 0.0f; //TODO
 	}
 
 	float dontMoveSamePieceTwice(const EvalContext& ctx) {
-		return 0.0f; //TODO
-	}
-
-	float kickOutPieces(const EvalContext& ctx) {
 		return 0.0f; //TODO
 	}
 
@@ -42,6 +34,10 @@ namespace principles {
 	}
 
 	float unpinKnightsWithBishops(const EvalContext& ctx) {
+		return 0.0f; //TODO
+	}
+
+	float fianchettoSquares(const EvalContext& ctx) {
 		return 0.0f; //TODO
 	}
 }

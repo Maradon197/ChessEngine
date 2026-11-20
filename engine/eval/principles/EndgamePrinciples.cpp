@@ -9,15 +9,19 @@ namespace {
 
 
 namespace principles {
+	float tradeWhenUpMaterial(const EvalContext& ctx) {
+		return 0.0f; //TODO
+	}
+
 	float activateKingWithoutQueens(const EvalContext& ctx) {
 		return 0.0f; //TODO
 	}
 
-	float createPassedPawns(const EvalContext& ctx) {
+	float kingOffBackRank(const EvalContext& ctx) {
 		return 0.0f; //TODO
 	}
 
-	float pushBadBishopPawns(const EvalContext& ctx) {
+	float createPassedPawns(const EvalContext& ctx) {
 		return 0.0f; //TODO
 	}
 
@@ -29,7 +33,15 @@ namespace principles {
 		return 0.0f; //TODO
 	}
 
-	float kingOffBackRank(const EvalContext& ctx) {
+	float blockadeSquares(const EvalContext& ctx) {
+		return 0.0f; //TODO
+	}
+
+	float bishopBlockadeSquares(const EvalContext& ctx) {
+		return 0.0f; //TODO
+	}
+
+	float pushBadBishopPawns(const EvalContext& ctx) {
 		return 0.0f; //TODO
 	}
 }

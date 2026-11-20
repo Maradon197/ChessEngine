@@ -12,6 +12,7 @@
 std::array<float, size_t(PrincipleId::COUNT)> evaluateAll(const EvalContext& ctx);
 
 inline constexpr std::array PRINCIPLES = {
+	//Development
 	PrincipleInfo{
 		.id = PrincipleId::THIS_RETURNS_ZERO_POINT_FIVE,
 		.title = "Test function: return 0.5f",
@@ -21,17 +22,6 @@ inline constexpr std::array PRINCIPLES = {
 		.gamePart = GamePart::OPENING,
 		.focus = PrincipleFocus::STRATEGY,
 		.calculateScore = principles::thisReturnsZeroPointFive,
-	},
-
-	PrincipleInfo{
-		.id = PrincipleId::CONTEST_THE_CENTER,
-		.title = "Contest the Center",
-		.imagePath = "",
-		.spotElo = 300,
-		.description = "Controlling central space eases development",
-		.gamePart = GamePart::OPENING | GamePart::MIDGAME,
-		.focus = PrincipleFocus::SPACE,
-		.calculateScore = principles::contestTheCenter,
 	},
 
 	PrincipleInfo{
@@ -54,17 +44,6 @@ inline constexpr std::array PRINCIPLES = {
 		.gamePart = GamePart::OPENING,
 		.focus = PrincipleFocus::COORDINATION,
 		.calculateScore = principles::dontMoveSamePieceTwice,
-	},
-
-	PrincipleInfo{
-		.id = PrincipleId::KICK_OUT_PIECES,
-		.title = "Kick out enemy pieces",
-		.imagePath = "",
-		.spotElo = 575,
-		.description = "Forcing back opponent's pieces gains space",
-		.gamePart = GamePart::OPENING | GamePart::MIDGAME,
-		.focus = PrincipleFocus::PAWN | PrincipleFocus::SPACE,
-		.calculateScore = principles::kickOutPieces,
 	},
 
 	PrincipleInfo{
@@ -112,102 +91,38 @@ inline constexpr std::array PRINCIPLES = {
 	},
 
 	PrincipleInfo{
-		.id = PrincipleId::TRADE_WHEN_UP_MATERIAL,
-		.title = "Trade if you're up material",
+		.id = PrincipleId::FIANCHETTO_SQUARES,
+		.title = "Fianchetto Bishops",
 		.imagePath = "",
-		.spotElo = 825,
-		.description = "It's the simplest way to convert a winning position",
-		.gamePart = GamePart::MIDGAME | GamePart::ENDGAME,
-		.focus = PrincipleFocus::STRATEGY,
-		.calculateScore = principles::tradeWhenUpMaterial,
+		.spotElo = 925,
+		.description = "Creating fianchettos can be a good alternative for developing bishops to a strong diagonal",
+		.gamePart = GamePart::OPENING | GamePart::MIDGAME,
+		.focus = PrincipleFocus::PAWN | PrincipleFocus::BISHOP,
+		.calculateScore = principles::fianchettoSquares,
+	},
+
+
+	//Center & Space
+	PrincipleInfo{
+		.id = PrincipleId::CONTEST_THE_CENTER,
+		.title = "Contest the Center",
+		.imagePath = "",
+		.spotElo = 300,
+		.description = "Controlling central space eases development",
+		.gamePart = GamePart::OPENING | GamePart::MIDGAME,
+		.focus = PrincipleFocus::SPACE,
+		.calculateScore = principles::contestTheCenter,
 	},
 
 	PrincipleInfo{
-		.id = PrincipleId::RULE_OF_PLUS_TWO,
-		.title = "Know when to attack (Rule of +2)",
+		.id = PrincipleId::KICK_OUT_PIECES,
+		.title = "Kick out enemy pieces",
 		.imagePath = "",
-		.spotElo = 1650,
-		.description = "A successful attack usually requires at least 2 more attackers than defenders",
-		.gamePart = GamePart::MIDGAME,
-		.focus = PrincipleFocus::COORDINATION,
-		.calculateScore = principles::ruleOfPlusTwo,
-	},
-
-	PrincipleInfo{
-		.id = PrincipleId::CREATE_THREATS,
-		.title = "Create threats to the enemy",
-		.imagePath = "",
-		.spotElo = 200,
-		.description = "Creating threats to the enemy king, pieces or position is the only way to win",
-		.gamePart = GamePart::OPENING | GamePart::MIDGAME | GamePart::ENDGAME,
-		.focus = PrincipleFocus::STRATEGY,
-		.calculateScore = principles::createThreats,
-	},
-
-	PrincipleInfo{
-		.id = PrincipleId::KEEP_ATTACKERS,
-		.title = "Keep vital attackers on the board",
-		.imagePath = "",
-		.spotElo = 1525,
-		.description = "Without sufficient material presence, your attack can be stopped easily",
-		.gamePart = GamePart::ATTACKING_MIDGAME,
-		.focus = PrincipleFocus::STRATEGY,
-		.calculateScore = principles::keepAttackers,
-	},
-
-	PrincipleInfo{
-		.id = PrincipleId::COORDINATE_ATTACKERS,
-		.title = "Coordinate your attack",
-		.imagePath = "",
-		.spotElo = 1400,
-		.description = "Bring and coordinate your attackers to overwhelm the enemy position",
-		.gamePart = GamePart::ATTACKING_MIDGAME,
-		.focus = PrincipleFocus::COORDINATION,
-		.calculateScore = principles::coordinateAttackers,
-	},
-
-	PrincipleInfo{
-		.id = PrincipleId::TEMPO_WINNING_MOVES,
-		.title = "Play tempo-winning moves",
-		.imagePath = "",
-		.spotElo = 1175,
-		.description = "Momentum allows you to take control over the game",
-		.gamePart = GamePart::MIDGAME | GamePart::ENDGAME,
-		.focus = PrincipleFocus::STRATEGY,
-		.calculateScore = principles::tempoWinningMoves,
-	},
-
-	PrincipleInfo{
-		.id = PrincipleId::LOCK_DOWN_CENTER,
-		.title = "Attack the same-side castled king",
-		.imagePath = "",
-		.spotElo = 1725,
-		.description = "Lock down the center to avoid enemy counterplay",
-		.gamePart = GamePart::ATTACKING_MIDGAME,
-		.focus = PrincipleFocus::COORDINATION,
-		.calculateScore = principles::lockDownCenter,
-	},
-
-	PrincipleInfo{
-		.id = PrincipleId::OPEN_UP_CENTER,
-		.title = "Attack the opposite-side castled king",
-		.imagePath = "",
-		.spotElo = 1475,
-		.description = "Open up the center to create a big attack",
-		.gamePart = GamePart::ATTACKING_MIDGAME,
-		.focus = PrincipleFocus::COORDINATION,
-		.calculateScore = principles::openUpCenter,
-	},
-
-	PrincipleInfo{
-		.id = PrincipleId::ROOK_LIFTS,
-		.title = "Create rook lifts",
-		.imagePath = "",
-		.spotElo = 1625,
-		.description = "Bring rooks to the attack using C- and F- file",
-		.gamePart = GamePart::ATTACKING_MIDGAME,
-		.focus = PrincipleFocus::ROOK | PrincipleFocus::COORDINATION,
-		.calculateScore = principles::rookLifts,
+		.spotElo = 575,
+		.description = "Forcing back opponent's pieces gains space",
+		.gamePart = GamePart::OPENING | GamePart::MIDGAME,
+		.focus = PrincipleFocus::PAWN | PrincipleFocus::SPACE,
+		.calculateScore = principles::kickOutPieces,
 	},
 
 	PrincipleInfo{
@@ -221,6 +136,19 @@ inline constexpr std::array PRINCIPLES = {
 		.calculateScore = principles::takePawnSpace,
 	},
 
+	PrincipleInfo{
+		.id = PrincipleId::C_AND_D_PAWNS_TOGETHER,
+		.title = "C and D pawns go together",
+		.imagePath = "",
+		.spotElo = 1375,
+		.description = "Pushing C and D pawns together allows for a strong center while your king stays safe",
+		.gamePart = GamePart::OPENING | GamePart::MIDGAME,
+		.focus = PrincipleFocus::PAWN | PrincipleFocus::COORDINATION,
+		.calculateScore = principles::cAndDPawnsTogether,
+	},
+
+
+	//Pawn Structure
 	PrincipleInfo{
 		.id = PrincipleId::STRONG_PAWN_CHAINS,
 		.title = "Don't weaken pawn chains",
@@ -288,28 +216,6 @@ inline constexpr std::array PRINCIPLES = {
 	},
 
 	PrincipleInfo{
-		.id = PrincipleId::CREATE_KING_LUFT,
-		.title = "Create space for your king",
-		.imagePath = "",
-		.spotElo = 725,
-		.description = "Making an escape square stops back rank attacks",
-		.gamePart = GamePart::MIDGAME | GamePart::ENDGAME,
-		.focus = PrincipleFocus::PAWN | PrincipleFocus::SPACE,
-		.calculateScore = principles::createKingLuft,
-	},
-
-	PrincipleInfo{
-		.id = PrincipleId::C_AND_D_PAWNS_TOGETHER,
-		.title = "C and D pawns go together",
-		.imagePath = "",
-		.spotElo = 1375,
-		.description = "Pushing C and D pawns together allows for a strong center while your king stays safe",
-		.gamePart = GamePart::OPENING | GamePart::MIDGAME,
-		.focus = PrincipleFocus::PAWN | PrincipleFocus::COORDINATION,
-		.calculateScore = principles::cAndDPawnsTogether,
-	},
-
-	PrincipleInfo{
 		.id = PrincipleId::KEEP_KING_FILES_CLOSED,
 		.title = "Keep files to your king closed",
 		.imagePath = "",
@@ -321,16 +227,18 @@ inline constexpr std::array PRINCIPLES = {
 	},
 
 	PrincipleInfo{
-		.id = PrincipleId::F_AND_H_PAWN_STORMS,
-		.title = "Create Pawn storms with F4 & H4, H5",
+		.id = PrincipleId::CREATE_KING_LUFT,
+		.title = "Create space for your king",
 		.imagePath = "",
-		.spotElo = 1500,
-		.description = "F and H pawn pushes apply pressure and take space from the opponent's kingside",
-		.gamePart = GamePart::ATTACKING_MIDGAME,
-		.focus = PrincipleFocus::PAWN | PrincipleFocus::SPACE | PrincipleFocus::STRATEGY,
-		.calculateScore = principles::fAndHPawnStorms,
+		.spotElo = 725,
+		.description = "Making an escape square stops back rank attacks",
+		.gamePart = GamePart::MIDGAME | GamePart::ENDGAME,
+		.focus = PrincipleFocus::PAWN | PrincipleFocus::SPACE,
+		.calculateScore = principles::createKingLuft,
 	},
 
+
+	//Piece Activity
 	PrincipleInfo{
 		.id = PrincipleId::OUTPOST_SQUARES,
 		.title = "Create outposts",
@@ -351,28 +259,6 @@ inline constexpr std::array PRINCIPLES = {
 		.gamePart = GamePart::MIDGAME | GamePart::ENDGAME,
 		.focus = PrincipleFocus::KNIGHT | PrincipleFocus::COORDINATION,
 		.calculateScore = principles::knightReroutes,
-	},
-
-	PrincipleInfo{
-		.id = PrincipleId::BLOCKADE_SQUARES,
-		.title = "Blockade passed pawns",
-		.imagePath = "",
-		.spotElo = 1475,
-		.description = "Placing a piece in front of a passed pawn restricts your opponent's play",
-		.gamePart = GamePart::MIDGAME | GamePart::ENDGAME,
-		.focus = PrincipleFocus::PAWN | PrincipleFocus::KNIGHT | PrincipleFocus::BISHOP | PrincipleFocus::SPACE,
-		.calculateScore = principles::blockadeSquares,
-	},
-
-	PrincipleInfo{
-		.id = PrincipleId::FIANCHETTO_SQUARES,
-		.title = "Fianchetto Bishops",
-		.imagePath = "",
-		.spotElo = 925,
-		.description = "Creating fianchettos can be a good alternative for developing bishops to a strong diagonal",
-		.gamePart = GamePart::OPENING | GamePart::MIDGAME,
-		.focus = PrincipleFocus::PAWN | PrincipleFocus::BISHOP,
-		.calculateScore = principles::fianchettoSquares,
 	},
 
 	PrincipleInfo{
@@ -398,17 +284,6 @@ inline constexpr std::array PRINCIPLES = {
 	},
 
 	PrincipleInfo{
-		.id = PrincipleId::BISHOP_BLOCKADE_SQUARES,
-		.title = "Blockade with bishops out of knight reach",
-		.imagePath = "",
-		.spotElo = 1775,
-		.description = "A blockading bishop that no knight attacks is hard to remove",
-		.gamePart = GamePart::MIDGAME | GamePart::ENDGAME,
-		.focus = PrincipleFocus::PAWN | PrincipleFocus::BISHOP | PrincipleFocus::SPACE,
-		.calculateScore = principles::bishopBlockadeSquares,
-	},
-
-	PrincipleInfo{
 		.id = PrincipleId::ROOKS_ON_OPEN_FILES,
 		.title = "Place rooks on open files",
 		.imagePath = "",
@@ -430,6 +305,120 @@ inline constexpr std::array PRINCIPLES = {
 		.calculateScore = principles::rooksOnSemiOpenFiles,
 	},
 
+
+	//Attack & Initiative
+	PrincipleInfo{
+		.id = PrincipleId::CREATE_THREATS,
+		.title = "Create threats to the enemy",
+		.imagePath = "",
+		.spotElo = 200,
+		.description = "Creating threats to the enemy king, pieces or position is the only way to win",
+		.gamePart = GamePart::OPENING | GamePart::MIDGAME | GamePart::ENDGAME,
+		.focus = PrincipleFocus::STRATEGY,
+		.calculateScore = principles::createThreats,
+	},
+
+	PrincipleInfo{
+		.id = PrincipleId::TEMPO_WINNING_MOVES,
+		.title = "Play tempo-winning moves",
+		.imagePath = "",
+		.spotElo = 1175,
+		.description = "Momentum allows you to take control over the game",
+		.gamePart = GamePart::MIDGAME | GamePart::ENDGAME,
+		.focus = PrincipleFocus::STRATEGY,
+		.calculateScore = principles::tempoWinningMoves,
+	},
+
+	PrincipleInfo{
+		.id = PrincipleId::RULE_OF_PLUS_TWO,
+		.title = "Know when to attack (Rule of +2)",
+		.imagePath = "",
+		.spotElo = 1650,
+		.description = "A successful attack usually requires at least 2 more attackers than defenders",
+		.gamePart = GamePart::MIDGAME,
+		.focus = PrincipleFocus::COORDINATION,
+		.calculateScore = principles::ruleOfPlusTwo,
+	},
+
+	PrincipleInfo{
+		.id = PrincipleId::KEEP_ATTACKERS,
+		.title = "Keep vital attackers on the board",
+		.imagePath = "",
+		.spotElo = 1525,
+		.description = "Without sufficient material presence, your attack can be stopped easily",
+		.gamePart = GamePart::ATTACKING_MIDGAME,
+		.focus = PrincipleFocus::STRATEGY,
+		.calculateScore = principles::keepAttackers,
+	},
+
+	PrincipleInfo{
+		.id = PrincipleId::COORDINATE_ATTACKERS,
+		.title = "Coordinate your attack",
+		.imagePath = "",
+		.spotElo = 1400,
+		.description = "Bring and coordinate your attackers to overwhelm the enemy position",
+		.gamePart = GamePart::ATTACKING_MIDGAME,
+		.focus = PrincipleFocus::COORDINATION,
+		.calculateScore = principles::coordinateAttackers,
+	},
+
+	PrincipleInfo{
+		.id = PrincipleId::LOCK_DOWN_CENTER,
+		.title = "Attack the same-side castled king",
+		.imagePath = "",
+		.spotElo = 1725,
+		.description = "Lock down the center to avoid enemy counterplay",
+		.gamePart = GamePart::ATTACKING_MIDGAME,
+		.focus = PrincipleFocus::COORDINATION,
+		.calculateScore = principles::lockDownCenter,
+	},
+
+	PrincipleInfo{
+		.id = PrincipleId::OPEN_UP_CENTER,
+		.title = "Attack the opposite-side castled king",
+		.imagePath = "",
+		.spotElo = 1475,
+		.description = "Open up the center to create a big attack",
+		.gamePart = GamePart::ATTACKING_MIDGAME,
+		.focus = PrincipleFocus::COORDINATION,
+		.calculateScore = principles::openUpCenter,
+	},
+
+	PrincipleInfo{
+		.id = PrincipleId::ROOK_LIFTS,
+		.title = "Create rook lifts",
+		.imagePath = "",
+		.spotElo = 1625,
+		.description = "Bring rooks to the attack using C- and F- file",
+		.gamePart = GamePart::ATTACKING_MIDGAME,
+		.focus = PrincipleFocus::ROOK | PrincipleFocus::COORDINATION,
+		.calculateScore = principles::rookLifts,
+	},
+
+	PrincipleInfo{
+		.id = PrincipleId::F_AND_H_PAWN_STORMS,
+		.title = "Create Pawn storms with F4 & H4, H5",
+		.imagePath = "",
+		.spotElo = 1500,
+		.description = "F and H pawn pushes apply pressure and take space from the opponent's kingside",
+		.gamePart = GamePart::ATTACKING_MIDGAME,
+		.focus = PrincipleFocus::PAWN | PrincipleFocus::SPACE | PrincipleFocus::STRATEGY,
+		.calculateScore = principles::fAndHPawnStorms,
+	},
+
+
+	//Endgame & Conversion
+	PrincipleInfo{
+		.id = PrincipleId::TRADE_WHEN_UP_MATERIAL,
+		.title = "Trade if you're up material",
+		.imagePath = "",
+		.spotElo = 825,
+		.description = "It's the simplest way to convert a winning position",
+		.gamePart = GamePart::MIDGAME | GamePart::ENDGAME,
+		.focus = PrincipleFocus::STRATEGY,
+		.calculateScore = principles::tradeWhenUpMaterial,
+	},
+
 	PrincipleInfo{
 		.id = PrincipleId::ACTIVATE_KING_WITHOUT_QUEENS,
 		.title = "Bring your king in once the queens are off",
@@ -442,6 +431,17 @@ inline constexpr std::array PRINCIPLES = {
 	},
 
 	PrincipleInfo{
+		.id = PrincipleId::KING_OFF_BACK_RANK,
+		.title = "Get your king off the back rank",
+		.imagePath = "",
+		.spotElo = 825,
+		.description = "A king on the back rank is passive and vulnerable to back rank mates",
+		.gamePart = GamePart::ENDGAME,
+		.focus = PrincipleFocus::KING | PrincipleFocus::SPACE,
+		.calculateScore = principles::kingOffBackRank,
+	},
+
+	PrincipleInfo{
 		.id = PrincipleId::CREATE_PASSED_PAWNS,
 		.title = "Create passed pawns",
 		.imagePath = "",
@@ -450,17 +450,6 @@ inline constexpr std::array PRINCIPLES = {
 		.gamePart = GamePart::ENDGAME,
 		.focus = PrincipleFocus::PAWN | PrincipleFocus::STRATEGY,
 		.calculateScore = principles::createPassedPawns,
-	},
-
-	PrincipleInfo{
-		.id = PrincipleId::PUSH_BAD_BISHOP_PAWNS,
-		.title = "Push pawns on the bad bishop's color",
-		.imagePath = "",
-		.spotElo = 1800,
-		.description = "Push to promotion squares unavailable to that bishop",
-		.gamePart = GamePart::ENDGAME,
-		.focus = PrincipleFocus::PAWN | PrincipleFocus::BISHOP | PrincipleFocus::STRATEGY,
-		.calculateScore = principles::pushBadBishopPawns,
 	},
 
 	PrincipleInfo{
@@ -486,14 +475,36 @@ inline constexpr std::array PRINCIPLES = {
 	},
 
 	PrincipleInfo{
-		.id = PrincipleId::KING_OFF_BACK_RANK,
-		.title = "Get your king off the back rank",
+		.id = PrincipleId::BLOCKADE_SQUARES,
+		.title = "Blockade passed pawns",
 		.imagePath = "",
-		.spotElo = 825,
-		.description = "A king on the back rank is passive and vulnerable to back rank mates",
+		.spotElo = 1475,
+		.description = "Placing a piece in front of a passed pawn restricts your opponent's play",
+		.gamePart = GamePart::MIDGAME | GamePart::ENDGAME,
+		.focus = PrincipleFocus::PAWN | PrincipleFocus::KNIGHT | PrincipleFocus::BISHOP | PrincipleFocus::SPACE,
+		.calculateScore = principles::blockadeSquares,
+	},
+
+	PrincipleInfo{
+		.id = PrincipleId::BISHOP_BLOCKADE_SQUARES,
+		.title = "Blockade with bishops out of knight reach",
+		.imagePath = "",
+		.spotElo = 1775,
+		.description = "A blockading bishop that no knight attacks is hard to remove",
+		.gamePart = GamePart::MIDGAME | GamePart::ENDGAME,
+		.focus = PrincipleFocus::PAWN | PrincipleFocus::BISHOP | PrincipleFocus::SPACE,
+		.calculateScore = principles::bishopBlockadeSquares,
+	},
+
+	PrincipleInfo{
+		.id = PrincipleId::PUSH_BAD_BISHOP_PAWNS,
+		.title = "Push pawns on the bad bishop's color",
+		.imagePath = "",
+		.spotElo = 1800,
+		.description = "Push to promotion squares unavailable to that bishop",
 		.gamePart = GamePart::ENDGAME,
-		.focus = PrincipleFocus::KING | PrincipleFocus::SPACE,
-		.calculateScore = principles::kingOffBackRank,
+		.focus = PrincipleFocus::PAWN | PrincipleFocus::BISHOP | PrincipleFocus::STRATEGY,
+		.calculateScore = principles::pushBadBishopPawns,
 	},
 };
 
