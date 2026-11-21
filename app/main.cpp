@@ -1,10 +1,16 @@
 #include <algorithm>
 #include <bit>
+#include <functional>
 #include <string>
+#include <thread>
 #include <vector>
 #include <iostream>
 
 #include <QApplication>
+#include <QDateTime>
+#include <QDir>
+#include <QFile>
+#include <QStandardPaths>
 
 #include "DataTypes.hpp"
 
@@ -15,14 +21,19 @@
 #include "LegalMoveGenerator.hpp"
 #include "MainWindow.hpp"
 #include "MoveNotation.hpp"
+#include "PgnWriter.hpp"
 
 #include "Evaluator.hpp"
+#include "Searcher.hpp"
 
 //temporary includes -----------------
 
 //------------------------------------
 
 namespace {
+
+constexpr Color ENGINE_COLOR = BLACK;	//fixed for now, the user plays white
+constexpr int ENGINE_SEARCH_DEPTH = 4;	//plies
 
 bool containsMove(const MoveList& moves, Move move) {
 	const Move* end = moves.moves + moves.count;
@@ -119,10 +130,36 @@ void showEvaluation(Doorman& dm, const BoardState& state, Evaluator& eval) {
 
 }
 
+//a finished game goes into the app's data folder as a PGN file named after the time it ended
+//(QStandardPaths::AppDataLocation, on Windows %APPDATA%/ChessEngineGUI/games)
+void saveGame(const std::vector<Move>& moves, GameStatus status) {
+	const QString folder = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + "/games";
+	if (!QDir().mkpath(folder)) {
+		std::cerr << "Could not create the game folder " << folder.toStdString() << std::endl;
+		return;
+	}
+	const QDateTime now = QDateTime::currentDateTime();
+	PgnWriter::Headers headers;
+	headers.date = now.toString("yyyy.MM.dd").toStdString();
+	headers.white = "Player";
+	headers.black = "Engine";
+	const std::string pgn = PgnWriter::buildPgn(moves, status, headers);
+
+	const QString path = folder + "/" + now.toString("yyyy-MM-dd_HH-mm-ss") + ".pgn";
+	QFile file(path);
+	if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+		std::cerr << "Could not save the game to " << path.toStdString() << std::endl;
+		return;
+	}
+	file.write(pgn.data(), static_cast<qint64>(pgn.size()));
+	std::cout << "Game saved to " << path.toStdString() << std::endl;
+}
+
 } // !namespace
 
 int main(int argc, char* argv[]) {
 	QApplication application(argc, argv);
+	QApplication::setApplicationName(SETTINGS_APPLICATION);	//names the data folder the games are saved in
 	initAttackTables();
 
 	Doorman doorman;
@@ -134,6 +171,7 @@ int main(int argc, char* argv[]) {
 	board.setStartingPosition();
 	LegalMoveGenerator legalMoveGenerator{};
 	MoveList legalMoves{};
+	unsigned positionVersion = 0;	//counts changes of the core's position, an engine answer for an older one is dropped
 
 	doorman.setPosition(board.getPosition());
 	showDemoValues(doorman, board, legalMoveGenerator);
@@ -153,7 +191,7 @@ int main(int argc, char* argv[]) {
 		doorman.setGameStatus(board.getGameStatus(legalMoveGenerator.generateLegalMovesInPosition(position, board)));
 	};
 
-	//a verified move, from the user or (later) the engine
+	//a verified move, from the user or the engine
 	const auto applyMove = [&](Move move) {
 		const std::string label = MoveNotation::buildMoveString(move, board.getPosition());	//before the move is made
 		board.makeMove(move);
@@ -162,7 +200,14 @@ int main(int argc, char* argv[]) {
 		showDemoValues(doorman, board, legalMoveGenerator);
 		showEvaluation(doorman, board, evaluator);
 		legalMoves.count = 0;
+		++positionVersion;
 		updateGameStatus();
+
+		//a game played in the play view just ended: keep it
+		const GameStatus status = doorman.getGameStatus();
+		if (status.result != GameResult::NONE && window.getViewMode() == ViewMode::PLAY) {
+			saveGame(doorman.getMovesToTreeNode(doorman.getCurrentTreeNode()), status);
+		}
 	};
 
 	//the user tried a move: only legal moves are played, everything else snaps back
@@ -173,15 +218,53 @@ int main(int argc, char* argv[]) {
 		applyMove(move);
 	});
 
-	//play view: the engine's side is to move. There is no search yet, so nothing happens and the user can move for it.
-	//later: search this position (off the GUI thread), then pass the best move to applyMove in the GUI thread
-	QObject::connect(&doorman, &Doorman::engineMoveRequested, &doorman, [&](const Position& position) {
-		Q_UNUSED(position);
+	//engine: searches a copy of the core's board in its own thread so the GUI stays responsive, the board is locked meanwhile
+	//the answer comes back to the GUI thread and is played like a user move, unless the position changed in between
+	Searcher searcher;
+	std::thread searchThread;
+	bool engineThinking = false;
+	bool searchAgain = false;	//asked again while thinking, e.g. after switching views back and forth
+	std::function<void()> startSearch = [&] {
+		if (engineThinking) {
+			searchAgain = true;
+			return;
+		}
+		if (searchThread.joinable()) {
+			searchThread.join();	//the previous search is done already, its answer has arrived
+		}
+		engineThinking = true;
+		searchAgain = false;
+		doorman.setBoardInteractive(false);
+		const unsigned version = positionVersion;
+		searchThread = std::thread([&, version, boardCopy = board, generatorCopy = legalMoveGenerator, evaluatorCopy = evaluator]() mutable {
+			const SearchResult result = searcher.searchPosition(boardCopy, generatorCopy, evaluatorCopy,
+				ENGINE_SEARCH_DEPTH, SearchLimits::NO_SEARCH_TIME_LIMIT);
+			QMetaObject::invokeMethod(&doorman, [&, version, result] {
+				engineThinking = false;
+				if (version == positionVersion && result.bestMove != 0) {
+					applyMove(result.bestMove);	//unlocks the board again through the game status
+					return;
+				}
+				//outdated (the user jumped around in the tree meanwhile) or no move at all
+				doorman.setBoardInteractive(doorman.getGameStatus().result == GameResult::NONE);
+				if (searchAgain && board.getPosition().side_to_move == ENGINE_COLOR && doorman.getGameStatus().result == GameResult::NONE) {
+					startSearch();
+				}
+			}, Qt::QueuedConnection);
+		});
+	};
+
+	//play view: the engine's side is to move
+	QObject::connect(&doorman, &Doorman::engineMoveRequested, &doorman, [&](const Position&) {
+		if (board.getPosition().side_to_move == ENGINE_COLOR) {	//the core's position is authoritative
+			startSearch();
+		}
 	});
 
 	//the user jumped to another move in the tree: bring the core to the same position
 	QObject::connect(&doorman, &Doorman::treeNodeSelected, &doorman, [&](NodeId id, const Position&) {
 		replayMoves(board, doorman.getMovesToTreeNode(id));
+		++positionVersion;
 		showDemoValues(doorman, board, legalMoveGenerator);
 		showEvaluation(doorman, board, evaluator);
 		legalMoves.count = 0;
@@ -189,5 +272,9 @@ int main(int argc, char* argv[]) {
 	});
 
 	window.show();
-	return QApplication::exec();
+	const int exitCode = QApplication::exec();
+	if (searchThread.joinable()) {
+		searchThread.join();	//the search can't be stopped yet, closing mid-search waits for it to finish
+	}
+	return exitCode;
 }

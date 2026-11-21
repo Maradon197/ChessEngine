@@ -45,7 +45,7 @@ constexpr std::size_t KEY_ACTION_COUNT = static_cast<std::size_t>(KeyAction::COU
 
 enum class KeyMode {TOGGLE, HOLD};
 
-//the two pages of the main window: everything for analysing, or just the board and clocks for playing the engine
+//the two pages of the main window: everything for analysing, or just the board for playing the engine
 enum class ViewMode {ANALYSIS, PLAY};
 
 //own types so they can't be mixed up with Square and Move

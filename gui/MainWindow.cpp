@@ -51,7 +51,7 @@ MainWindow::MainWindow(Doorman& doorman, QWidget* parent)
 	analysisLayout->addWidget(new AnalysisSidebar(doorman, *keyBindings, analysisView));
 	views->addWidget(analysisView);
 
-	//play: the same board with clocks, it moves over when the view changes
+	//play: the same board, it moves over when the view changes
 	playView = new PlayView(doorman, *keyBindings, views);
 	views->addWidget(playView);
 	views->setCurrentWidget(analysisView);

@@ -1,5 +1,6 @@
 add_library(ChessUtil STATIC
     MoveNotation.hpp        MoveNotation.cpp
+    PgnWriter.hpp           PgnWriter.cpp
 )
 
 target_include_directories(ChessUtil PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})

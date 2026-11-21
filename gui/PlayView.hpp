@@ -7,16 +7,13 @@
 #include "GuiTypes.hpp"
 
 class BoardWidget;
-class ClockFace;
 class Doorman;
-class GameClock;
 class KeyBindings;
-class QComboBox;
 class QHBoxLayout;
 class QToolButton;
 
-//the "play the engine" page: the shared board, two clocks and nothing that evaluates
-//the user plays the color at the bottom of the board, the engine the other one
+//the "play the engine" page: the shared board and nothing that evaluates
+//for now the user always plays white and the engine black; a new game means restarting the app
 class PlayView : public QWidget {
 	Q_OBJECT
 
@@ -28,34 +25,27 @@ public:
 	void placeBoard(BoardWidget& board);
 	void releaseBoard(BoardWidget& board);
 
-	void setActive(bool active);	//shown or not: the clock only runs while playing here
+	void setActive(bool active);	//shown or not: the engine is only asked to move while playing here
 	void setFocusMode(bool focus);	//the window goes fullscreen, this view hides its extras
 
-	//placeholder: a game setup (side, hints, time control, ...) will configure the game here; not built yet
+	static constexpr Color USER_COLOR = WHITE;
 
 signals:
-	void engineMoveRequested(const Position& position);	//the engine's side is to move; nothing answers yet
+	void engineMoveRequested(const Position& position);	//the engine's side is to move and the game isn't over
 	void focusModeRequested(bool focus);	//the focus button was clicked
 
 protected:
 	void changeEvent(QEvent* event) override;
 
 private:
-	void checkPosition();	//after every move: switch the clock, ask the engine when it's its turn
+	void checkPosition();	//after every move: ask the engine when it's its turn
 	void rememberPosition(const Position& position);
-	void applyTimeControl(int index);
-	void updateClocks();
 	void updateFocusButton();
-	Color getUserColor() const;
 
 	Doorman& doorman;
 	KeyBindings& keyBindings;
 	BoardWidget* board = nullptr;
 	QHBoxLayout* boardRow = nullptr;
-	GameClock* clock = nullptr;
-	ClockFace* engineClock = nullptr;
-	ClockFace* userClock = nullptr;
-	QComboBox* timeControlBox = nullptr;
 	QToolButton* focusButton = nullptr;
 
 	bool active = false;

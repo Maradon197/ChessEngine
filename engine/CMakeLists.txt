@@ -16,6 +16,7 @@ target_include_directories(ChessEngine PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/eval
     ${CMAKE_CURRENT_SOURCE_DIR}/eval/principles
+    ${CMAKE_CURRENT_SOURCE_DIR}/search
 )
 
 target_link_libraries(ChessEngine PUBLIC ChessCore)

@@ -18,7 +18,7 @@ class QPropertyAnimation;
 class QStackedWidget;
 class ToolBarWidget;
 
-//two views over the same board: Analysis (evaluation, principles, move tree) and Play (board and clocks only)
+//two views over the same board: Analysis (evaluation, principles, move tree) and Play (board only)
 //Ctrl+Tab or the switch in the toolbar changes between them; the one BoardWidget moves to the shown view
 class MainWindow : public QMainWindow {
 	Q_OBJECT
