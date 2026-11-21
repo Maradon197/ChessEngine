@@ -9,7 +9,8 @@ add_library(ChessEngine STATIC
     eval/principles/PieceActivityPrinciples.cpp
     eval/principles/AttackPrinciples.cpp
     eval/principles/EndgamePrinciples.cpp
-)
+    search/Searcher.hpp                             search/Searcher.cpp
+ "search/Searcher.cpp")
 
 target_include_directories(ChessEngine PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}
