@@ -1,6 +1,6 @@
 # ChessEngine
 
-A bitboard chess engine in C++ with a Qt GUI.
+A bitboard chess engine in C++ with a GUI sponsored by Qt.
 
 ```
 app/       the GUI program (ChessEngineGUI): the starter
@@ -11,14 +11,25 @@ gui/       Qt widgets + Doorman (ChessGui): see gui/README.md (slop section- I d
 
 ```
 
-Dependencies only point one way: `app` → `gui` → `core`
-
 ## Versions and build
 
-CMake 3.19+, a C++20 compiler and, for the GUI, Qt 6.5+.
+Required versions: CMake 3.19+, a C++20 compiler and Qt 6.5+. Runs best on Clang and MSVC.
+*Move gen is decided by compiler and slower with gcc or your homebrewed compiler (you nerd).*
 
 - **Visual Studio:** *File → Open → Folder…*, pick this folder. Tell CMake where Qt is, e.g. in `CMakeSettings.json` / a preset: `CMAKE_PREFIX_PATH=C:/Qt/6.x/msvc2022_64`.
 - **Qt Creator:** *Open Project…* → `CMakeLists.txt`, choose a Qt 6 kit.
 - **Without Qt:** configure with `-DCHESS_BUILD_GUI=OFF` to build only the core lib.
 
-To run `ChessEngineGUI.exe` outside the IDE, call `windeployqt` on it once so the Qt DLLs sit next to it.
+
+## AI disclaimer:
+I used Generative AI as follows while writing code:
+- UI creation and changes (Claude Opus 5.5)
+- Research on Chess Engines (Claude Opus 5.5)
+
+- Inline code suggestions across the project (Kimi K3 and GPT 5.6-Luna via GitHub Copilot)
+- Code review and bugfixing
+- Identifying performance issues 
+
+AI was NOT used at all in design and conceptualization of the core or engine. 
+
+What are you waiting for? Get the code, have fun and play the engine yourself!
