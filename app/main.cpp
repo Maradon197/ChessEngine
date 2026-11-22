@@ -33,7 +33,7 @@
 namespace {
 
 constexpr Color ENGINE_COLOR = BLACK;	//fixed for now, the user plays white
-constexpr int ENGINE_SEARCH_DEPTH = 4;	//plies
+constexpr int ENGINE_SEARCH_DEPTH = 5;	//plies
 
 bool containsMove(const MoveList& moves, Move move) {
 	const Move* end = moves.moves + moves.count;

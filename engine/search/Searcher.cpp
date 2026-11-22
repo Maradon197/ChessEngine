@@ -8,8 +8,16 @@
 
 
 //"I" refers to the view of the currently examined player
-// -> not necessarily the player to move (at root level) right now!
+// -> not necessarily the player to move (at root level)!
 EvalValue Searcher::recursiveSearch(SearchInfo current_info) {
+
+	//am I a leaf vertex?
+	if (current_info.remainingDepth == 0)
+		return quiescenceSearch(current_info);
+
+	//guess I'll have to do the work if im here
+	//...
+	//get information about my current position
 	const Position& pos = board.getPosition();
 	MoveList legal_moves = generator.generateLegalMovesInPosition(pos, board);
 
@@ -22,10 +30,6 @@ EvalValue Searcher::recursiveSearch(SearchInfo current_info) {
 	//is it a draw?
 	if (status.reason != GameEndingReason::NONE)
 		return static_cast<EvalValue>(0.0f);
-
-	//am I a leaf vertex?
-	if (current_info.remainingDepth == 0)
-		return quiescenceSearch(current_info);
 
 	for (std::size_t i = 0; i < legal_moves.count; ++i) {
 		board.makeMove(legal_moves.moves[i]);
