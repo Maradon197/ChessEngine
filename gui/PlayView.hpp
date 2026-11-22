@@ -10,6 +10,8 @@ class BoardWidget;
 class Doorman;
 class KeyBindings;
 class QHBoxLayout;
+class QLabel;
+class QSlider;
 class QToolButton;
 
 //the "play the engine" page: the shared board and nothing that evaluates
@@ -28,10 +30,13 @@ public:
 	void setActive(bool active);	//shown or not: the engine is only asked to move while playing here
 	void setFocusMode(bool focus);	//the window goes fullscreen, this view hides its extras
 
+	QWidget* getEngineSettings() const;	//the tutorial points at it
+	int getSearchDepth() const;
+
 	static constexpr Color USER_COLOR = WHITE;
 
 signals:
-	void engineMoveRequested(const Position& position);	//the engine's side is to move and the game isn't over
+	void engineMoveRequested(const Position& position, int depth);	//the engine's side is to move and the game isn't over, depth in plies
 	void focusModeRequested(bool focus);	//the focus button was clicked
 
 protected:
@@ -41,15 +46,20 @@ private:
 	void checkPosition();	//after every move: ask the engine when it's its turn
 	void rememberPosition(const Position& position);
 	void updateFocusButton();
+	void setSearchDepth(int depth);	//slider moved: shown and kept in the settings, used from the next engine move on
 
 	Doorman& doorman;
 	KeyBindings& keyBindings;
 	BoardWidget* board = nullptr;
 	QHBoxLayout* boardRow = nullptr;
 	QToolButton* focusButton = nullptr;
+	QWidget* engineSettings = nullptr;
+	QSlider* depthSlider = nullptr;
+	QLabel* depthValue = nullptr;
 
 	bool active = false;
 	bool focusMode = false;
+	int searchDepth = DEFAULT_SEARCH_DEPTH;
 	Color seenSide = WHITE;
 	Bitboard seenOccupancy = 0;
 };

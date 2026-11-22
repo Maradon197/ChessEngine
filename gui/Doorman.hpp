@@ -102,7 +102,7 @@ signals:
 	void userAnnotationsChanged(const std::vector<Highlight>& highlights, const std::vector<Arrow>& arrows);
 	void treeNodeSelected(NodeId id, const Position& position);	//board already shows the position
 	void principleEnabledChanged(const std::string& title, bool enabled);	//user switched a principle on or off
-	void engineMoveRequested(const Position& position);	//play view: the engine's side is to move, answer like a user move
+	void engineMoveRequested(const Position& position, int depth);	//play view: the engine's side is to move, search depth plies and answer like a user move
 
 private:
 	template <typename Function>

@@ -1125,8 +1125,10 @@ bool PrincipleDrawer::eventFilter(QObject* watched, QEvent* event) {
 		return false;	//popups, dialogs and the drawer itself handle their own input
 	}
 
-	if (receiver->inherits("MoveTreeOverlay")) {
-		return false;
+	for (QWidget* widget = receiver; widget != nullptr; widget = widget->parentWidget()) {
+		if (widget->inherits("MoveTreeOverlay") || widget->inherits("TutorialOverlay")) {
+			return false;	//those overlays lie above the drawer and handle their own clicks
+		}
 	}
 	const QPoint point = mapFromGlobal(static_cast<QMouseEvent*>(event)->globalPosition().toPoint());
 	if (point.y() < 0) {

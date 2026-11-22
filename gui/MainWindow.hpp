@@ -5,6 +5,7 @@
 
 #include "GuiTypes.hpp"
 
+class AnalysisSidebar;
 class BoardWidget;
 class Doorman;
 class KeyBindings;
@@ -16,7 +17,11 @@ class QBoxLayout;
 class QLabel;
 class QPropertyAnimation;
 class QStackedWidget;
+class QToolButton;
 class ToolBarWidget;
+class TutorialOverlay;
+enum class TutorialTarget;
+struct TutorialLesson;
 
 //two views over the same board: Analysis (evaluation, principles, move tree) and Play (board only)
 //Ctrl+Tab or the switch in the toolbar changes between them; the one BoardWidget moves to the shown view
@@ -32,6 +37,8 @@ public:
 	void setFocusMode(bool focus);	//play view only: fullscreen without the toolbar
 	bool isFocusMode() const;
 
+	void startTutorial();	//on the first start and from the toolbar button
+
 protected:
 	void changeEvent(QEvent* event) override;
 
@@ -39,6 +46,9 @@ private:
 	void updateKeyScope();	//the analysis keys do nothing while playing and the other way round
 	void updateSwitchTip();
 	void crossFade(const QPixmap& from);
+	QWidget* getTutorialTarget(TutorialTarget target) const;
+	void enterTutorialLesson(const TutorialLesson& lesson);
+	void endTutorial();
 
 	KeyBindings* keyBindings = nullptr;
 	ToolBarWidget* toolBar = nullptr;
@@ -48,14 +58,19 @@ private:
 	QBoxLayout* analysisLayout = nullptr;
 	PlayView* playView = nullptr;
 	BoardWidget* board = nullptr;
+	AnalysisSidebar* sidebar = nullptr;
 	PrincipleDrawer* principleDrawer = nullptr;
 	MoveTreeOverlay* moveTree = nullptr;
 	QLabel* fadeCover = nullptr;	//snapshot of the old view, fades out over the new one
 	QPropertyAnimation* fade = nullptr;
+	QToolButton* tutorialButton = nullptr;
+	TutorialOverlay* tutorial = nullptr;
 
 	ViewMode viewMode = ViewMode::ANALYSIS;
 	bool focusMode = false;
 	bool maximizedBeforeFocus = false;
+	ViewMode viewBeforeTutorial = ViewMode::ANALYSIS;	//the tutorial switches around, afterwards everything goes back
+	bool sidebarBeforeTutorial = true;
 };
 
 #endif

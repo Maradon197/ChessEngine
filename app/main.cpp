@@ -11,6 +11,7 @@
 #include <QDir>
 #include <QFile>
 #include <QStandardPaths>
+#include <QTimer>
 
 #include "DataTypes.hpp"
 
@@ -22,6 +23,7 @@
 #include "MainWindow.hpp"
 #include "MoveNotation.hpp"
 #include "PgnWriter.hpp"
+#include "TutorialOverlay.hpp"
 
 #include "Evaluator.hpp"
 #include "Searcher.hpp"
@@ -33,7 +35,6 @@
 namespace {
 
 constexpr Color ENGINE_COLOR = BLACK;	//fixed for now, the user plays white
-constexpr int ENGINE_SEARCH_DEPTH = 5;	//plies
 
 bool containsMove(const MoveList& moves, Move move) {
 	const Move* end = moves.moves + moves.count;
@@ -224,6 +225,7 @@ int main(int argc, char* argv[]) {
 	std::thread searchThread;
 	bool engineThinking = false;
 	bool searchAgain = false;	//asked again while thinking, e.g. after switching views back and forth
+	int searchDepth = DEFAULT_SEARCH_DEPTH;	//plies, the play view sends it with every request
 	std::function<void()> startSearch = [&] {
 		if (engineThinking) {
 			searchAgain = true;
@@ -236,9 +238,9 @@ int main(int argc, char* argv[]) {
 		searchAgain = false;
 		doorman.setBoardInteractive(false);
 		const unsigned version = positionVersion;
-		searchThread = std::thread([&, version, boardCopy = board, generatorCopy = legalMoveGenerator, evaluatorCopy = evaluator]() mutable {
+		searchThread = std::thread([&, version, depth = searchDepth, boardCopy = board, generatorCopy = legalMoveGenerator, evaluatorCopy = evaluator]() mutable {
 			const SearchResult result = searcher.searchPosition(boardCopy, generatorCopy, evaluatorCopy,
-				ENGINE_SEARCH_DEPTH, SearchLimits::NO_SEARCH_TIME_LIMIT);
+				depth, SearchLimits::NO_SEARCH_TIME_LIMIT);
 			QMetaObject::invokeMethod(&doorman, [&, version, result] {
 				engineThinking = false;
 				if (version == positionVersion && result.bestMove != 0) {
@@ -255,7 +257,8 @@ int main(int argc, char* argv[]) {
 	};
 
 	//play view: the engine's side is to move
-	QObject::connect(&doorman, &Doorman::engineMoveRequested, &doorman, [&](const Position&) {
+	QObject::connect(&doorman, &Doorman::engineMoveRequested, &doorman, [&](const Position&, int depth) {
+		searchDepth = depth;
 		if (board.getPosition().side_to_move == ENGINE_COLOR) {	//the core's position is authoritative
 			startSearch();
 		}
@@ -272,6 +275,10 @@ int main(int argc, char* argv[]) {
 	});
 
 	window.show();
+	//first start, or the marker file next to the saved games is gone or was changed
+	if (!TutorialOverlay::isMarkerCurrent()) {
+		QTimer::singleShot(400, &window, &MainWindow::startTutorial);	//once the window has settled
+	}
 	const int exitCode = QApplication::exec();
 	if (searchThread.joinable()) {
 		searchThread.join();	//the search can't be stopped yet, closing mid-search waits for it to finish

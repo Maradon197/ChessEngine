@@ -48,6 +48,11 @@ enum class KeyMode {TOGGLE, HOLD};
 //the two pages of the main window: everything for analysing, or just the board for playing the engine
 enum class ViewMode {ANALYSIS, PLAY};
 
+//how far the engine looks ahead in the play view, in plies (half-moves); chosen on the slider there
+constexpr int MIN_SEARCH_DEPTH = 1;
+constexpr int MAX_SEARCH_DEPTH = 6;
+constexpr int DEFAULT_SEARCH_DEPTH = 5;
+
 //own types so they can't be mixed up with Square and Move
 class Highlight {
 public:

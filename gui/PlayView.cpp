@@ -1,9 +1,14 @@
 #include "PlayView.hpp"
 
+#include <algorithm>
+
 #include <QEvent>
 #include <QHBoxLayout>
+#include <QLabel>
 #include <QPainter>
 #include <QPixmap>
+#include <QSettings>
+#include <QSlider>
 #include <QToolButton>
 #include <QVBoxLayout>
 
@@ -16,6 +21,11 @@ namespace {
 constexpr int GAP_TO_BOARD = 12;
 constexpr int SIDE_COLUMN_WIDTH = 210;	//keeps the board where it sits in the analysis view
 constexpr int FOCUS_ICON_SIZE = 18;
+const char* const SEARCH_DEPTH_KEY = "engine/searchDepth";
+
+QString getDepthText(int depth) {
+	return depth == 1 ? QObject::tr("1 ply") : QObject::tr("%1 plies").arg(depth);
+}
 
 QColor withAlpha(QColor color, int alpha) {
 	color.setAlpha(alpha);
@@ -66,6 +76,31 @@ PlayView::PlayView(Doorman& doorman, KeyBindings& keyBindings, QWidget* parent)
 	columnLayout->setContentsMargins(GAP_TO_BOARD, 0, 0, 0);
 	columnLayout->setSpacing(10);
 
+	//engine settings: for now only how far it looks ahead
+	engineSettings = new QWidget(column);
+	auto* settingsLayout = new QVBoxLayout(engineSettings);
+	settingsLayout->setContentsMargins(0, 0, 0, 0);
+	settingsLayout->setSpacing(4);
+	auto* depthRow = new QHBoxLayout;
+	auto* depthCaption = new QLabel(tr("Engine depth"), engineSettings);
+	QFont captionFont = depthCaption->font();
+	captionFont.setBold(true);
+	depthCaption->setFont(captionFont);
+	depthValue = new QLabel(engineSettings);
+	depthRow->addWidget(depthCaption);
+	depthRow->addStretch(1);
+	depthRow->addWidget(depthValue);
+	settingsLayout->addLayout(depthRow);
+	depthSlider = new QSlider(Qt::Horizontal, engineSettings);
+	depthSlider->setRange(MIN_SEARCH_DEPTH, MAX_SEARCH_DEPTH);
+	depthSlider->setPageStep(1);
+	depthSlider->setTickPosition(QSlider::TicksBelow);
+	depthSlider->setTickInterval(1);
+	depthSlider->setFocusPolicy(Qt::NoFocus);	//the arrow keys stay with the key bindings
+	depthSlider->setCursor(Qt::PointingHandCursor);
+	depthSlider->setToolTip(tr("How many half-moves the engine looks ahead. Deeper is stronger, but slower."));
+	settingsLayout->addWidget(depthSlider);
+
 	focusButton = new QToolButton(column);
 	focusButton->setAutoRaise(true);
 	focusButton->setFocusPolicy(Qt::NoFocus);
@@ -73,9 +108,17 @@ PlayView::PlayView(Doorman& doorman, KeyBindings& keyBindings, QWidget* parent)
 	focusButton->setCursor(Qt::PointingHandCursor);
 
 	columnLayout->addStretch(1);
+	columnLayout->addWidget(engineSettings);
+	columnLayout->addSpacing(16);
 	columnLayout->addWidget(focusButton, 0, Qt::AlignLeft);
 	columnLayout->addStretch(1);
 	boardRow->addWidget(column);	//the board goes in front of it, see placeBoard()
+
+	const int storedDepth = QSettings(SETTINGS_ORGANIZATION, SETTINGS_APPLICATION).value(SEARCH_DEPTH_KEY, DEFAULT_SEARCH_DEPTH).toInt();
+	searchDepth = std::clamp(storedDepth, MIN_SEARCH_DEPTH, MAX_SEARCH_DEPTH);
+	depthSlider->setValue(searchDepth);
+	depthValue->setText(getDepthText(searchDepth));
+	connect(depthSlider, &QSlider::valueChanged, this, &PlayView::setSearchDepth);
 
 	connect(focusButton, &QToolButton::clicked, this, [this] { emit focusModeRequested(!focusMode); });
 	connect(&keyBindings, &KeyBindings::changed, this, &PlayView::updateFocusButton);
@@ -116,13 +159,27 @@ void PlayView::setActive(bool isActive) {
 	const Position position = doorman.getPosition();
 	rememberPosition(position);
 	if (position.side_to_move != USER_COLOR && doorman.getGameStatus().result == GameResult::NONE) {
-		emit engineMoveRequested(position);
+		emit engineMoveRequested(position, searchDepth);
 	}
 }
 
 void PlayView::setFocusMode(bool focus) {
 	focusMode = focus;
 	updateFocusButton();
+}
+
+QWidget* PlayView::getEngineSettings() const {
+	return engineSettings;
+}
+
+int PlayView::getSearchDepth() const {
+	return searchDepth;
+}
+
+void PlayView::setSearchDepth(int depth) {
+	searchDepth = depth;
+	depthValue->setText(getDepthText(depth));
+	QSettings(SETTINGS_ORGANIZATION, SETTINGS_APPLICATION).setValue(SEARCH_DEPTH_KEY, depth);
 }
 
 void PlayView::changeEvent(QEvent* event) {
@@ -139,7 +196,7 @@ void PlayView::checkPosition() {
 	}
 	rememberPosition(position);
 	if (position.side_to_move != USER_COLOR && doorman.getGameStatus().result == GameResult::NONE) {
-		emit engineMoveRequested(position);
+		emit engineMoveRequested(position, searchDepth);
 	}
 }
 

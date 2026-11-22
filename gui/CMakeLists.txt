@@ -13,6 +13,8 @@ qt_add_library(ChessGui STATIC
     AnalysisSidebar.hpp     AnalysisSidebar.cpp
     PlayView.hpp            PlayView.cpp
     ModeSwitch.hpp          ModeSwitch.cpp
+    TutorialOverlay.hpp     TutorialOverlay.cpp
+    TutorialLessons.cpp
     MainWindow.hpp          MainWindow.cpp
 )
 

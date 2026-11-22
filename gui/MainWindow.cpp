@@ -7,6 +7,7 @@
 #include <QLabel>
 #include <QPropertyAnimation>
 #include <QStackedWidget>
+#include <QToolButton>
 
 #include "AnalysisSidebar.hpp"
 #include "BoardWidget.hpp"
@@ -17,6 +18,7 @@
 #include "PlayView.hpp"
 #include "PrincipleDrawer.hpp"
 #include "ToolBarWidget.hpp"
+#include "TutorialOverlay.hpp"
 
 namespace {
 
@@ -39,6 +41,16 @@ MainWindow::MainWindow(Doorman& doorman, QWidget* parent)
 	toolBar->insertWidget(firstAction, modeSwitch);
 	toolBar->insertSeparator(firstAction);
 
+	//tutorial, at the far right
+	auto* toolBarSpacer = new QWidget(toolBar);
+	toolBarSpacer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
+	toolBar->addWidget(toolBarSpacer);
+	tutorialButton = new QToolButton(toolBar);
+	tutorialButton->setText(tr("Tutorial"));
+	tutorialButton->setToolTip(tr("Show the tutorial again"));
+	tutorialButton->setFocusPolicy(Qt::NoFocus);
+	toolBar->addWidget(tutorialButton);
+
 	views = new QStackedWidget(this);
 
 	//analysis: board | evaluation, the sidebar slides away on its key and the board takes the room
@@ -48,7 +60,8 @@ MainWindow::MainWindow(Doorman& doorman, QWidget* parent)
 	analysisLayout->setSpacing(0);
 	board = new BoardWidget(doorman, analysisView);
 	analysisLayout->addWidget(board, 1);
-	analysisLayout->addWidget(new AnalysisSidebar(doorman, *keyBindings, analysisView));
+	sidebar = new AnalysisSidebar(doorman, *keyBindings, analysisView);
+	analysisLayout->addWidget(sidebar);
 	views->addWidget(analysisView);
 
 	//play: the same board, it moves over when the view changes
@@ -75,6 +88,12 @@ MainWindow::MainWindow(Doorman& doorman, QWidget* parent)
 
 	//move tree, shown over everything (analysis only)
 	moveTree = new MoveTreeOverlay(doorman, *keyBindings, *this);
+
+	//tutorial, over everything else, so it is created last
+	tutorial = new TutorialOverlay(*this, buildTutorialLessons(), [this](TutorialTarget target) { return getTutorialTarget(target); });
+	connect(tutorial, &TutorialOverlay::lessonEntered, this, &MainWindow::enterTutorialLesson);
+	connect(tutorial, &TutorialOverlay::finished, this, &MainWindow::endTutorial);
+	connect(tutorialButton, &QToolButton::clicked, this, &MainWindow::startTutorial);
 
 	connect(modeSwitch, &ModeSwitch::modeRequested, this, &MainWindow::setViewMode);
 	connect(playView, &PlayView::focusModeRequested, this, &MainWindow::setFocusMode);
@@ -165,6 +184,12 @@ void MainWindow::changeEvent(QEvent* event) {
 }
 
 void MainWindow::updateKeyScope() {
+	if (tutorial != nullptr && tutorial->isRunning()) {	//no key does anything behind the tutorial
+		for (std::size_t index = 0; index < KEY_ACTION_COUNT; ++index) {
+			keyBindings->setActionEnabled(static_cast<KeyAction>(index), false);
+		}
+		return;
+	}
 	const bool analysis = viewMode == ViewMode::ANALYSIS;
 	for (KeyAction action : {KeyAction::TOGGLE_SIDEBAR, KeyAction::MOVE_TREE, KeyAction::PRINCIPLE_DRAWER, KeyAction::TREE_BACK, KeyAction::TREE_FORWARD}) {
 		keyBindings->setActionEnabled(action, analysis);
@@ -187,4 +212,45 @@ void MainWindow::crossFade(const QPixmap& from) {
 	fade->setStartValue(1.0);
 	fade->setEndValue(0.0);
 	fade->start();
+}
+
+void MainWindow::startTutorial() {
+	if (tutorial->isRunning()) {
+		return;
+	}
+	setFocusMode(false);
+	moveTree->endNavigation();
+	viewBeforeTutorial = viewMode;
+	sidebarBeforeTutorial = sidebar->isShown();
+	tutorial->start();
+	updateKeyScope();
+}
+
+QWidget* MainWindow::getTutorialTarget(TutorialTarget target) const {
+	switch (target) {
+		case TutorialTarget::BOARD: return board;
+		case TutorialTarget::TOOLBAR: return toolBar;
+		case TutorialTarget::MODE_SWITCH: return modeSwitch;
+		case TutorialTarget::ENGINE_SETTINGS: return playView->getEngineSettings();
+		case TutorialTarget::EVAL_SIDEBAR: return sidebar;
+		case TutorialTarget::PRINCIPLE_DRAWER: return principleDrawer;
+		case TutorialTarget::TUTORIAL_BUTTON: return tutorialButton;
+		default: return nullptr;
+	}
+}
+
+//every lesson brings its view, and the drawer or the sidebar when it is about them
+void MainWindow::enterTutorialLesson(const TutorialLesson& lesson) {
+	setViewMode(lesson.view);	//closes the drawer when the view changes
+	principleDrawer->setOpen(lesson.target == TutorialTarget::PRINCIPLE_DRAWER);
+	sidebar->setShown(sidebarBeforeTutorial || lesson.target == TutorialTarget::EVAL_SIDEBAR);
+	updateKeyScope();
+}
+
+void MainWindow::endTutorial() {
+	principleDrawer->setOpen(false);
+	sidebar->setShown(sidebarBeforeTutorial);
+	setViewMode(viewBeforeTutorial);
+	updateKeyScope();
+	TutorialOverlay::writeMarker();
 }
