@@ -17,8 +17,7 @@ EvalValue Searcher::recursiveSearch(SearchInfo current_info) {
 
 	//am I a leaf vertex?
 	if (current_info.remainingDepth == 0)
-		//TODO: return quiescenceRecursiveSearch(current_info);
-		return evaluator.overallScore(board.getPosition());
+		return quiescenceRecursiveSearch(current_info);
 
 	//guess I'll have to do the work if im here
 	//...
@@ -68,20 +67,40 @@ EvalValue Searcher::recursiveSearch(SearchInfo current_info) {
 	return current_info.minGuaranteedScore;
 }
 
-EvalValue Searcher::quiescenceRecursiveSearch(SearchInfo parent_node) {
-	std::cout << "Searcher::quiescenceRecursiveSearch: Searching at depth: " << parent_node.currentDepth << "\n";
-	EvalValue child_val = evaluator.overallScore(board.getPosition());
+EvalValue Searcher::quiescenceRecursiveSearch(SearchInfo node) {
+	EvalValue stand_pat = evaluator.overallScore(board.getPosition());
 
-	if (parent_node.currentDepth == SearchLimits::MAX_DEPTH ||
-		parent_node.currentDepth == SearchLimits::MAX_QUIESCENCE_DEPTH ||
-		(parent_node.quiescenceEval &&
-			std::abs(parent_node.quiescenceEval.value() - child_val) < SearchLimits::NOISY_MOVE_MINIMUM_DELTA)) {
-		return child_val;
+	if (node.currentDepth >= SearchLimits::MAX_QUIESCENCE_DEPTH)
+		return stand_pat;
+
+	//stand pat: I don't HAVE to capture
+	if (stand_pat >= node.mostAllowedScore)
+		return node.mostAllowedScore;
+	if (stand_pat > node.minGuaranteedScore)
+		node.minGuaranteedScore = stand_pat;
+
+	MoveList legal_moves = generator.generateLegalMovesInPosition(board.getPosition(), board);
+
+	for (std::size_t i = 0; i < legal_moves.count; ++i) {
+
+		const Move move = legal_moves.moves[i];
+		if (!(move & (Move{ 1 } << 18))) continue;	//is capture?
+
+		board.makeMove(move);
+
+		SearchInfo child = { node.remainingDepth - 1, node.currentDepth + 1,
+			-node.mostAllowedScore, -node.minGuaranteedScore };
+		EvalValue score = -quiescenceRecursiveSearch(child);
+
+		board.unmakeMove();
+
+		if (score >= node.mostAllowedScore) 
+			return node.mostAllowedScore;
+
+		if (score > node.minGuaranteedScore) 
+			node.minGuaranteedScore = score;
 	}
-	
-	//TODO: actually make the move
-	return quiescenceRecursiveSearch({ 0, ++parent_node.currentDepth,
-		parent_node.minGuaranteedScore, parent_node.mostAllowedScore, child_val });
+	return node.minGuaranteedScore;
 }
 
 
