@@ -1,6 +1,8 @@
 #ifndef MAINWINDOW_HPP
 #define MAINWINDOW_HPP
 
+#include <vector>
+
 #include <QMainWindow>
 
 #include "GuiTypes.hpp"
@@ -42,6 +44,15 @@ public:
 	void startTutorial();	//on the first start and from the toolbar button
 
 	void setSearchRecorder(SearchRecorder& recorder);	//what the search window (W) shows
+	int getPlayDepth() const;	//the engine's search depth in the play view, plies
+	int getAnalysisDepth() const;	//and in the analysis
+	bool isEngineArrowShown() const;	//analysis: the engine draws its best move
+
+signals:
+	void viewModeChanged(ViewMode mode);
+	void analysisDepthChanged(int depth);
+	void engineArrowShownChanged(bool shown);
+	void searchLineChosen(NodeId origin, const std::vector<Move>& moves);	//clicked in the search window: play these from origin
 
 protected:
 	void changeEvent(QEvent* event) override;

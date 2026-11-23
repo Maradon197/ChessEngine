@@ -58,11 +58,11 @@ int getBestRootNode(const SearchTreeModel& model) {
 
 } // !namespace
 
-//the numbers: status, depth, where it is, mode, nodes, speed, time, best move
+//a column at the window's right edge: how far through the root moves the search is on top, the numbers as tiles below
 class SearchStatsBar : public QWidget {
 public:
 	explicit SearchStatsBar(QWidget* parent) : QWidget(parent) {
-		setFixedHeight(64);
+		setFixedWidth(COLUMN_WIDTH);
 		clock.start();
 	}
 
@@ -85,17 +85,17 @@ protected:
 			QColor accent;
 		};
 		std::vector<Tile> tiles;
+		const bool searching = model && !model->getSnapshot().finished;
 		if (!model) {
-			tiles.push_back({tr("Waiting"), tr("no search yet"), withAlpha(text, 120)});
+			tiles.push_back({tr("Waiting"), tr("status"), withAlpha(text, 120)});
 		} else {
 			const SearchSnapshot& snapshot = model->getSnapshot();
 			const bool done = snapshot.finished;
-			tiles.push_back({done ? tr("Done") : tr("Thinking"), done ? tr("move chosen") : tr("live, %1× per second").arg(1000 / SearchWindow::UPDATE_INTERVAL_MS),
-				done ? BEST_COLOR : SEARCHING_COLOR});
-			tiles.push_back({QString::number(snapshot.depth), tr("plies deep (max)"), {}});
-			tiles.push_back({done ? QString::fromUtf8("–") : tr("ply %1").arg(snapshot.currentPly),
-				tr("now · deepest %1").arg(snapshot.deepestPly), done ? QColor() : SEARCHING_COLOR});
-			tiles.push_back({tr("Max strength"), tr("alpha-beta · fixed depth"), {}});
+			tiles.push_back({done ? tr("Done") : tr("Thinking"), tr("status"), done ? BEST_COLOR : SEARCHING_COLOR});
+			tiles.push_back({QString::number(snapshot.depth), tr("Maximum depth"), {}});
+			tiles.push_back({done ? QString::fromUtf8("–") : QString::number(snapshot.currentPly), tr("Current depth"),
+				done ? QColor() : SEARCHING_COLOR});
+			tiles.push_back({tr("Max"), tr("Target Elo"), {}});
 			tiles.push_back({formatCount(static_cast<double>(snapshot.totalNodes)),
 				snapshot.truncated ? tr("nodes · %1 recorded").arg(formatCount(static_cast<double>(snapshot.nodes.size()))) : tr("nodes"), {}});
 			tiles.push_back({formatCount(snapshot.seconds > 0.01 ? snapshot.totalNodes / snapshot.seconds : 0.0) + tr("/s"), tr("nodes per second"), {}});
@@ -110,22 +110,25 @@ protected:
 			}
 		}
 
-		const qreal gap = 8;
-		const qreal width = (this->width() - gap * (static_cast<qreal>(tiles.size()) + 1)) / static_cast<qreal>(tiles.size());
+		//progress on top, the tiles stacked below it
+		constexpr qreal gap = 8;
+		const QRectF progress(gap, gap, width() - 2 * gap, PROGRESS_HEIGHT);
+		const auto count = static_cast<qreal>(tiles.size());
+		const qreal tilesTop = progress.bottom() + gap;
+		const qreal tileHeight = std::clamp((height() - tilesTop - gap * count) / count, 40.0, 62.0);
 		QFont valueFont = font();
-		valueFont.setPointSizeF(valueFont.pointSizeF() * 1.35);
+		valueFont.setPointSizeF(valueFont.pointSizeF() * 1.3);
 		valueFont.setBold(true);
 		QFont captionFont = font();
 		captionFont.setPointSizeF(captionFont.pointSizeF() * 0.82);
-		const bool searching = model && !model->getSnapshot().finished;
 		for (std::size_t index = 0; index < tiles.size(); ++index) {
 			const Tile& tile = tiles[index];
-			const QRectF box(gap + static_cast<qreal>(index) * (width + gap), 8, width, height() - 16);
+			const QRectF box(gap, tilesTop + static_cast<qreal>(index) * (tileHeight + gap), width() - 2 * gap, tileHeight);
 			painter.setPen(QPen(tile.accent.isValid() ? withAlpha(tile.accent, 150) : withAlpha(text, 35), tile.accent.isValid() ? 1.5 : 1));
 			painter.setBrush(palette().color(QPalette::Base));
 			painter.drawRoundedRect(box, 7, 7);
 
-			QRectF inner = box.adjusted(10, 4, -8, -4);
+			QRectF inner = box.adjusted(12, 4, -10, -4);
 			if (index == 0) {	//status light
 				const QPointF light(inner.left() + 5, inner.top() + inner.height() * 0.34);
 				const qreal alpha = searching ? 120 + 135 * getPulse(clock) : 255;
@@ -143,9 +146,82 @@ protected:
 			const QString caption = QFontMetricsF(captionFont).elidedText(tile.caption, Qt::ElideRight, inner.width());
 			painter.drawText(QRectF(inner.left(), inner.top() + inner.height() * 0.58, inner.width(), inner.height() * 0.42), Qt::AlignLeft | Qt::AlignVCenter, caption);
 		}
+
+		paintProgress(painter, progress);
 	}
 
+public:
+	static constexpr int COLUMN_WIDTH = 230;
+
 private:
+	static constexpr qreal PROGRESS_HEIGHT = 100;
+
+	//"7 / 20 root moves", the move being searched, a bar
+	void paintProgress(QPainter& painter, const QRectF& box) {
+		const QColor text = palette().color(QPalette::Text);
+		const bool searching = model && !model->getSnapshot().finished;
+		const QColor accent = !model ? withAlpha(text, 120) : searching ? SEARCHING_COLOR : BEST_COLOR;
+		painter.setPen(QPen(withAlpha(accent, 150), 1.5));
+		painter.setBrush(palette().color(QPalette::Base));
+		painter.drawRoundedRect(box, 7, 7);
+		if (!model || box.width() < 60) {
+			return;
+		}
+
+		int total = static_cast<int>(model->getRootMoves().size());
+		int done = 0;
+		QString current;
+		for (int child : model->getChildren(0)) {
+			if (model->getNode(child).finished) {
+				++done;
+			} else {
+				current = model->getMoveName(child);
+			}
+		}
+		total = std::max(total, 1);
+		const QRectF inner = box.adjusted(14, 8, -14, -10);
+
+		//"7 / 20", underneath what it counts and the move being searched
+		QFont bigFont = font();
+		bigFont.setPointSizeF(bigFont.pointSizeF() * 2.0);
+		bigFont.setBold(true);
+		painter.setFont(bigFont);
+		painter.setPen(accent);
+		const qreal bigHeight = QFontMetricsF(bigFont).height();
+		painter.drawText(QRectF(inner.left(), inner.top(), inner.width(), bigHeight), Qt::AlignLeft | Qt::AlignVCenter,
+			QString("%1 / %2").arg(done).arg(total));
+		painter.setPen(withAlpha(text, 150));
+		QFont percentFont = font();
+		painter.setFont(percentFont);
+		painter.drawText(QRectF(inner.left(), inner.top(), inner.width(), bigHeight), Qt::AlignRight | Qt::AlignVCenter,
+			QString("%1%").arg(100 * done / total));
+
+		const qreal lineHeight = QFontMetricsF(font()).height();
+		const QRectF captionRow(inner.left(), inner.top() + bigHeight, inner.width(), lineHeight);
+		painter.setPen(withAlpha(text, 170));
+		painter.drawText(captionRow, Qt::AlignLeft | Qt::AlignVCenter, tr("root moves searched"));
+		if (searching && !current.isEmpty()) {
+			QFont nowFont = font();
+			nowFont.setBold(true);
+			painter.setFont(nowFont);
+			painter.setPen(SEARCHING_COLOR);
+			painter.drawText(captionRow.translated(0, lineHeight), Qt::AlignLeft | Qt::AlignVCenter, tr("now: %1").arg(current));
+		}
+
+		//the bar: finished moves solid, the one being searched pulsing
+		const QRectF track(inner.left(), inner.bottom() - 7, inner.width(), 7);
+		painter.setPen(Qt::NoPen);
+		painter.setBrush(withAlpha(text, 30));
+		painter.drawRoundedRect(track, 3.5, 3.5);
+		const qreal fraction = static_cast<qreal>(done) / total;
+		painter.setBrush(accent);
+		painter.drawRoundedRect(QRectF(track.left(), track.top(), track.width() * fraction, track.height()), 3.5, 3.5);
+		if (searching && done < total) {
+			painter.setBrush(withAlpha(SEARCHING_COLOR, static_cast<int>(60 + 120 * getPulse(clock))));
+			painter.drawRoundedRect(QRectF(track.left() + track.width() * fraction, track.top(), track.width() / total, track.height()), 3.5, 3.5);
+		}
+	}
+
 	std::shared_ptr<const SearchTreeModel> model;
 };
 
@@ -154,7 +230,7 @@ private:
 class RootMovesStrip : public QWidget {
 public:
 	explicit RootMovesStrip(QWidget* parent) : QWidget(parent) {
-		setFixedHeight(58);
+		setFixedHeight(48);
 		setMouseTracking(true);
 		clock.start();
 	}
@@ -179,15 +255,6 @@ protected:
 			return;
 		}
 		const auto& moves = model->getRootMoves();
-		const int searched = static_cast<int>(model->getChildren(0).size());
-
-		QFont captionFont = font();
-		captionFont.setPointSizeF(captionFont.pointSizeF() * 0.85);
-		painter.setFont(captionFont);
-		painter.setPen(withAlpha(text, 150));
-		const QRectF captionRect(10, 0, CAPTION_WIDTH - 14, height());
-		painter.drawText(captionRect, Qt::AlignVCenter | Qt::AlignLeft,
-			tr("Root moves\n%1 / %2 searched").arg(searched).arg(moves.size()));
 
 		const int best = getBestRootNode(*model);
 		std::uint32_t maxEffort = 1;
@@ -261,14 +328,14 @@ protected:
 	}
 
 private:
-	static constexpr qreal CAPTION_WIDTH = 130;
+	static constexpr qreal MARGIN = 8;
 
 	QRectF getChipRect(std::size_t index) const {
 		const auto count = static_cast<qreal>(model->getRootMoves().size());
-		const qreal space = width() - CAPTION_WIDTH - 10;
-		const qreal step = std::min(72.0, space / count);
+		const qreal space = width() - 2 * MARGIN;
+		const qreal step = std::min(84.0, space / count);
 		const qreal chipWidth = std::max(6.0, step - 5);
-		return {CAPTION_WIDTH + static_cast<qreal>(index) * step, 12, chipWidth, 26};
+		return {MARGIN + static_cast<qreal>(index) * step, 6, chipWidth, 28};
 	}
 
 	int findNode(QPointF point) const {
@@ -381,11 +448,14 @@ protected:
 		painter.drawRoundedRect(QRectF(x, y - 6, 70, 12), 3, 3);
 		x += 76;
 		painter.setPen(withAlpha(text, 160));
-		const QString evalText = tr("good for Black ↔ good for White");
+		const QString evalText = tr("Black ↔ White better");
 		painter.drawText(QPointF(x, y + metrics.ascent() / 2 - 1), evalText);
 		x += metrics.horizontalAdvance(evalText) + 22;
 
 		const auto item = [&](const QPen& pen, const QString& label) {
+			if (x + 25 + metrics.horizontalAdvance(label) > width() - 4) {
+				return;	//no room left, the tooltips explain it too
+			}
 			painter.setPen(pen);
 			painter.setBrush(getShade(0));
 			painter.drawRoundedRect(QRectF(x, y - 6, 20, 12), 3, 3);
@@ -396,12 +466,10 @@ protected:
 		};
 		item(QPen(LINE_COLOR, 2.4), tr("best line"));
 		item(QPen(CUTOFF_COLOR, 2.4), tr("caused a beta cutoff"));
-		item(QPen(CUTOFF_COLOR, 1.8, Qt::DashLine), tr("cut short (✂ moves skipped)"));
-		item(QPen(BEST_COLOR, 1.8), tr("best so far (raised alpha)"));
-		item(QPen(withAlpha(text, 90), 1), tr("not better (bound)"));
+		item(QPen(CUTOFF_COLOR, 1.8, Qt::DashLine), tr("cut short (✂ skipped)"));
+		item(QPen(BEST_COLOR, 1.8), tr("raised alpha"));
+		item(QPen(withAlpha(text, 90), 1), tr("not better"));
 		item(QPen(SEARCHING_COLOR, 2.4), tr("searching"));
-		painter.setPen(withAlpha(text, 120));
-		painter.drawText(QPointF(x, y + metrics.ascent() / 2 - 1), tr("· thicker edge = more nodes below"));
 	}
 
 private:
@@ -417,12 +485,16 @@ SearchWindow::SearchWindow(KeyBindings& keyBindings, QWidget& mainWindow)
 		restoreGeometry(geometry.toByteArray());
 	}
 
-	auto* layout = new QVBoxLayout(this);
-	layout->setContentsMargins(6, 4, 6, 6);
+	//left: root moves, tree, best line; right: progress and numbers
+	auto* outer = new QHBoxLayout(this);
+	outer->setContentsMargins(6, 4, 2, 6);
+	outer->setSpacing(4);
+	auto* layout = new QVBoxLayout;
 	layout->setSpacing(2);
-
+	outer->addLayout(layout, 1);
 	stats = new SearchStatsBar(this);
-	layout->addWidget(stats);
+	outer->addWidget(stats);
+
 	rootMoves = new RootMovesStrip(this);
 	layout->addWidget(rootMoves);
 	treeView = new SearchTreeView(this);
@@ -478,6 +550,17 @@ SearchWindow::SearchWindow(KeyBindings& keyBindings, QWidget& mainWindow)
 	connect(treeView, &SearchTreeView::followingChanged, this, &SearchWindow::updateControls);
 	connect(treeView, &SearchTreeView::displayChanged, this, &SearchWindow::updateControls);
 	rootMoves->onNodeClicked = [this](int node) { treeView->centerOn(node); };
+	connect(treeView, &SearchTreeView::nodeActivated, this, [this](int node) {
+		if (!model) {
+			return;
+		}
+		std::vector<Move> moves;
+		for (int current = node; current > 0; current = model->getNode(current).parent) {
+			moves.push_back(model->getNode(current).move);
+		}
+		std::reverse(moves.begin(), moves.end());
+		emit lineChosen(model->getSnapshot().origin, moves);
+	});
 
 	pollTimer = new QTimer(this);
 	pollTimer->setInterval(UPDATE_INTERVAL_MS);
@@ -516,12 +599,14 @@ void SearchWindow::showEvent(QShowEvent* event) {
 	poll();
 	pollTimer->start();
 	treeView->setFocus();
+	emit shownChanged(true);
 }
 
 void SearchWindow::hideEvent(QHideEvent* event) {
 	QWidget::hideEvent(event);
 	pollTimer->stop();	//nobody asks for snapshots anymore, the search runs undisturbed
 	QSettings(SETTINGS_ORGANIZATION, SETTINGS_APPLICATION).setValue(GEOMETRY_KEY, saveGeometry());
+	emit shownChanged(false);
 }
 
 //W (or whatever opens it) and Escape close it again; the main window's key bindings don't reach this window
@@ -551,10 +636,9 @@ void SearchWindow::poll() {
 
 void SearchWindow::updateControls() {
 	const int expand = treeView->getExpandPly();
-	const int shown = treeView->getShownPly();
-	expandLabel->setText(shown < expand ? tr("all of %1 plies (max %2)").arg(shown).arg(expand)
-		: expand == 1 ? tr("all of 1 ply") : tr("all of %1 plies").arg(expand));
-	expandLabel->setToolTip(tr("Plies shown completely; deeper only each move's best continuation. %1 nodes shown.")
-		.arg(treeView->getShownNodeCount()));
+	expandLabel->setText(expand == 1 ? tr("1 ply · %1 lines").arg(treeView->getLineCount())
+		: tr("%1 plies · %2 lines").arg(expand).arg(treeView->getLineCount()));
+	expandLabel->setToolTip(tr("1 ply: only the root moves with their best lines. 2 plies: also their other replies, as far as %1 lines allow; the rest is gathered in groups.")
+		.arg(SearchTreeView::MAX_LINES));
 	followButton->setChecked(treeView->isFollowing());
 }

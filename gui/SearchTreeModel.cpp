@@ -18,7 +18,10 @@ constexpr float MATE_THRESHOLD = 900.0f;	//|score| above this is a mate, see Sea
 SearchTreeModel::SearchTreeModel(std::shared_ptr<const SearchSnapshot> newSnapshot, const SearchTreeModel* previous)
 	: snapshot(std::move(newSnapshot)) {
 	const std::size_t count = snapshot->nodes.size();
-	children.resize(count);
+	firstChildren.resize(count, -1);
+	lastChildren.resize(count, -1);
+	nextSiblings.resize(count, -1);
+	childCounts.resize(count, 0);
 	kinds.resize(count, SearchNodeKind::ROOT);
 	bestChildren.resize(count, -1);
 	onBestLine.resize(count, false);
@@ -29,10 +32,18 @@ SearchTreeModel::SearchTreeModel(std::shared_ptr<const SearchSnapshot> newSnapsh
 		legalMoveCounts = previous->legalMoveCounts;
 	}
 
-	//children in search order: parents always come before their children
+	//children in search order (parents always come before their children), kinds, preferred moves: one pass
 	for (std::size_t index = 1; index < count; ++index) {
 		const SearchTreeNode& node = snapshot->nodes[index];
-		children[static_cast<std::size_t>(node.parent)].push_back(static_cast<int>(index));
+		const auto parent = static_cast<std::size_t>(node.parent);
+		const int child = static_cast<int>(index);
+		if (lastChildren[parent] < 0) {
+			firstChildren[parent] = child;
+		} else {
+			nextSiblings[static_cast<std::size_t>(lastChildren[parent])] = child;
+		}
+		lastChildren[parent] = child;
+		++childCounts[parent];
 		maxSubtree = std::max(maxSubtree, node.subtreeNodes);
 
 		//the node got the window (-parent beta, -parent alpha), its score is from the parent's view
@@ -45,15 +56,9 @@ SearchTreeModel::SearchTreeModel(std::shared_ptr<const SearchSnapshot> newSnapsh
 		} else {
 			kinds[index] = SearchNodeKind::FAILED_LOW;
 		}
-	}
-
-	//a node prefers the last move that raised its alpha (or cut it off)
-	for (std::size_t index = 0; index < count; ++index) {
-		for (int child : children[index]) {
-			const SearchNodeKind kind = kinds[static_cast<std::size_t>(child)];
-			if (kind == SearchNodeKind::BEST || kind == SearchNodeKind::CUTOFF) {
-				bestChildren[index] = child;
-			}
+		//a node prefers the last move that raised its alpha (or cut it off)
+		if (kinds[index] == SearchNodeKind::BEST || kinds[index] == SearchNodeKind::CUTOFF) {
+			bestChildren[parent] = child;
 		}
 	}
 	if (count > 0) {
@@ -72,12 +77,15 @@ SearchTreeModel::SearchTreeModel(std::shared_ptr<const SearchSnapshot> newSnapsh
 		BoardState board = snapshot->root;
 		const Position position = board.getPosition();	//copy: the generator makes and unmakes moves on board
 		const MoveList legal = LegalMoveGenerator{}.generateLegalMovesInPosition(position, board);
-		const std::vector<int>& searched = children[0];
-		for (int child : searched) {
+		for (int child : getChildren(0)) {
 			rootMoves.push_back({snapshot->nodes[static_cast<std::size_t>(child)].move, child});
 		}
+		const std::vector<Move>& restricted = snapshot->rootMoves;
 		for (std::size_t index = 0; index < legal.count; ++index) {
 			const Move move = legal.moves[index];
+			if (!restricted.empty() && std::find(restricted.begin(), restricted.end(), move) == restricted.end()) {
+				continue;	//not one of the moves this search looks at
+			}
 			const bool known = std::any_of(rootMoves.begin(), rootMoves.end(), [move](const RootMove& root) { return root.move == move; });
 			if (!known) {
 				rootMoves.push_back({move, -1});
@@ -86,14 +94,22 @@ SearchTreeModel::SearchTreeModel(std::shared_ptr<const SearchSnapshot> newSnapsh
 	}
 }
 
+std::vector<int> SearchTreeModel::getChildren(int index) const {
+	std::vector<int> list;
+	list.reserve(static_cast<std::size_t>(getChildCount(index)));
+	for (int child = firstChildren[static_cast<std::size_t>(index)]; child >= 0; child = nextSiblings[static_cast<std::size_t>(child)]) {
+		list.push_back(child);
+	}
+	return list;
+}
+
 bool SearchTreeModel::hasAllChildrenRecorded(int index) const {
-	return getChildren(index).size() == getNode(index).searchedChildren;
+	return getChildCount(index) == getNode(index).searchedChildren;
 }
 
 bool SearchTreeModel::isCutShort(int index) const {
-	const std::vector<int>& list = getChildren(index);
-	return getNode(index).finished && !list.empty() && hasAllChildrenRecorded(index)
-		&& getKind(list.back()) == SearchNodeKind::CUTOFF;
+	const int last = getLastChild(index);
+	return getNode(index).finished && last >= 0 && hasAllChildrenRecorded(index) && getKind(last) == SearchNodeKind::CUTOFF;
 }
 
 int SearchTreeModel::getSkippedMoves(int index) const {

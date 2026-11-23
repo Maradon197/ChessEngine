@@ -92,6 +92,14 @@ MainWindow::MainWindow(Doorman& doorman, QWidget* parent)
 
 	//what the engine is thinking, its own window (both views)
 	searchWindow = new SearchWindow(*keyBindings, *this);
+	connect(searchWindow, &SearchWindow::lineChosen, this, [this](NodeId origin, const std::vector<Move>& moves) {
+		emit searchLineChosen(origin, moves);
+		raise();
+		activateWindow();
+	});
+	connect(sidebar, &AnalysisSidebar::searchDepthChanged, this, &MainWindow::analysisDepthChanged);
+	connect(sidebar, &AnalysisSidebar::engineArrowShownChanged, this, &MainWindow::engineArrowShownChanged);
+	connect(searchWindow, &SearchWindow::shownChanged, sidebar, [this](bool shown) { sidebar->setSearchStatusShown(!shown); });
 
 	//tutorial, over everything else, so it is created last
 	tutorial = new TutorialOverlay(*this, buildTutorialLessons(), [this](TutorialTarget target) { return getTutorialTarget(target); });
@@ -127,6 +135,19 @@ MainWindow::MainWindow(Doorman& doorman, QWidget* parent)
 
 void MainWindow::setSearchRecorder(SearchRecorder& recorder) {
 	searchWindow->setRecorder(recorder);
+	sidebar->setSearchRecorder(recorder);
+}
+
+int MainWindow::getPlayDepth() const {
+	return playView->getSearchDepth();
+}
+
+int MainWindow::getAnalysisDepth() const {
+	return sidebar->getSearchDepth();
+}
+
+bool MainWindow::isEngineArrowShown() const {
+	return sidebar->isEngineArrowShown();
 }
 
 void MainWindow::setViewMode(ViewMode mode) {
@@ -157,6 +178,7 @@ void MainWindow::setViewMode(ViewMode mode) {
 	if (animate) {
 		crossFade(snapshot);
 	}
+	emit viewModeChanged(mode);
 }
 
 ViewMode MainWindow::getViewMode() const {
@@ -202,8 +224,11 @@ void MainWindow::updateKeyScope() {
 		return;
 	}
 	const bool analysis = viewMode == ViewMode::ANALYSIS;
-	for (KeyAction action : {KeyAction::TOGGLE_SIDEBAR, KeyAction::MOVE_TREE, KeyAction::PRINCIPLE_DRAWER, KeyAction::TREE_BACK, KeyAction::TREE_FORWARD}) {
+	for (KeyAction action : {KeyAction::TOGGLE_SIDEBAR, KeyAction::PRINCIPLE_DRAWER}) {
 		keyBindings->setActionEnabled(action, analysis);
+	}
+	for (KeyAction action : {KeyAction::MOVE_TREE, KeyAction::TREE_BACK, KeyAction::TREE_FORWARD, KeyAction::SEARCH_WINDOW}) {
+		keyBindings->setActionEnabled(action, true);	//both views
 	}
 	keyBindings->setActionEnabled(KeyAction::FOCUS_MODE, !analysis);
 }

@@ -9,7 +9,8 @@ SearchRecorder::SearchRecorder() {
 	frames.resize(SearchLimits::MAX_DEPTH + 2);
 }
 
-void SearchRecorder::begin(const BoardState& rootBoard, int searchDepth) {
+void SearchRecorder::begin(const BoardState& rootBoard, int searchDepth, NodeId searchOrigin, unsigned searchTag,
+	const std::vector<Move>& searchedRootMoves) {
 	nodes.clear();
 	root = rootBoard;
 	depth = searchDepth;
@@ -18,6 +19,11 @@ void SearchRecorder::begin(const BoardState& rootBoard, int searchDepth) {
 	truncated = false;
 	bestMove = 0;
 	bestScore = 0;
+	bestMoveSoFar = 0;
+	bestScoreSoFar = 0;
+	origin = searchOrigin;
+	tag = searchTag;
+	rootMoves = searchedRootMoves;
 	startTime = std::chrono::steady_clock::now();
 	++searchId;
 
@@ -34,6 +40,8 @@ void SearchRecorder::begin(const BoardState& rootBoard, int searchDepth) {
 void SearchRecorder::finish(const SearchResult& result) {
 	bestMove = result.bestMove;
 	bestScore = result.evaluation;
+	bestMoveSoFar = result.bestMove;
+	bestScoreSoFar = result.evaluation;
 	if (top >= 0) {
 		SearchTreeNode& rootNode = nodes.front();
 		rootNode.score = result.evaluation;
@@ -111,6 +119,11 @@ void SearchRecorder::leaveNode(EvalValue score) {
 		parent.lineLength = length + 1;
 	}
 
+	if (top == 1 && score > -frame.beta) {	//a new best root move
+		bestMoveSoFar = frame.move;
+		bestScoreSoFar = score;
+	}
+
 	parent.subtreeNodes += frame.subtreeNodes;
 	--top;
 }
@@ -144,8 +157,11 @@ void SearchRecorder::publish(bool finished) {
 	auto copy = std::make_shared<SearchSnapshot>();
 	copy->searchId = searchId;
 	copy->generation = ++generation;
+	copy->origin = origin;
+	copy->tag = tag;
 	copy->root = root;
 	copy->depth = depth;
+	copy->rootMoves = rootMoves;
 	copy->nodes = nodes;
 	for (int ply = 0; ply <= top; ++ply) {
 		const Frame& frame = frames[static_cast<std::size_t>(ply)];
@@ -165,6 +181,8 @@ void SearchRecorder::publish(bool finished) {
 	copy->truncated = truncated;
 	copy->bestMove = bestMove;
 	copy->bestScore = bestScore;
+	copy->bestMoveSoFar = bestMoveSoFar;
+	copy->bestScoreSoFar = bestScoreSoFar;
 
 	const std::lock_guard lock(snapshotMutex);
 	snapshot = std::move(copy);

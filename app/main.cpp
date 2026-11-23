@@ -1,5 +1,9 @@
 #include <algorithm>
 #include <bit>
+#include <cmath>
+#include <cstdint>
+#include <memory>
+#include <optional>
 #include <functional>
 #include <string>
 #include <thread>
@@ -20,6 +24,7 @@
 #include "BoardState.hpp"
 #include "Doorman.hpp"
 #include "LegalMoveGenerator.hpp"
+#include "MoveBits.hpp"
 #include "MainWindow.hpp"
 #include "MoveNotation.hpp"
 #include "PgnWriter.hpp"
@@ -117,19 +122,61 @@ int criterionSquaresFromEvalValue(EvalValue score) {
 	return score < 0 ? -crit_sq : crit_sq;
 }
 
+//the evaluator's criteria; the overall score comes from the engine's search instead, see showSearchScore()
 void showEvaluation(Doorman& dm, const BoardState& state, Evaluator& eval) {
 	const Position& pos = state.getPosition();
-	EvalValue overall_score = eval.overallScore(pos);
 	EvalValue weighted_material = eval.weightedMaterial(pos);
 
 	if (pos.side_to_move == BLACK) {
-		overall_score = -overall_score;
 		weighted_material = -weighted_material;
 	}
 	
 	dm.setCriterion(EvalCriterion::WEIGHTED_MATERIAL, criterionSquaresFromEvalValue(weighted_material));
-	dm.setOverallCentipawns(static_cast<int> (overall_score * 100));
+}
 
+//a search score (view of the side to move) as the overall card's centipawns or mate, from white's view
+void showSearchScore(Doorman& doorman, EvalValue score, Color sideToMove) {
+	constexpr EvalValue MATE_THRESHOLD = 900.0f;	//|score| above this is a mate, see SearchLimits::MATE
+	const EvalValue white = sideToMove == WHITE ? score : -score;
+	if (std::abs(white) >= MATE_THRESHOLD && std::abs(white) <= -SearchLimits::MATE) {
+		const int plies = static_cast<int>(std::lround(-SearchLimits::MATE - std::abs(white)));
+		const int moves = (plies + 1) / 2;
+		doorman.setOverallMate(white > 0 ? moves : -moves);
+		return;
+	}
+	doorman.setOverallCentipawns(static_cast<int>(std::lround(white * 100)));
+}
+
+//analysis with arrows drawn: only the moves the user drew are searched, each from the position after it, one ply
+//less deep. The searcher can't restrict its root moves, so the root is done here; the recorder is told about it
+//like the searcher would, so the search window shows the same tree shape
+SearchResult searchCandidates(Searcher& searcher, SearchObserver& observer, BoardState board, LegalMoveGenerator generator,
+	Evaluator evaluator, int depth, const std::vector<Move>& candidates) {
+	SearchResult best{0, SearchLimits::MINUS_INFINITY, depth};
+	for (Move move : candidates) {
+		const SearchInfo info{depth - 1, 1, -SearchLimits::PLUS_INFINITY, -best.evaluation, std::nullopt};
+		observer.enterNode(move, info);
+		board.makeMove(move);
+		const Position position = board.getPosition();	//copy: the generator makes and unmakes moves on board
+		const GameStatus status = board.getGameStatus(generator.generateLegalMovesInPosition(position, board));
+		EvalValue score = 0;
+		if (status.result == GameResult::WHITE_WIN || status.result == GameResult::BLACK_WIN) {
+			score = -(SearchLimits::MATE + 1);	//the opponent is mated right away
+		} else if (status.reason != GameEndingReason::NONE) {
+			score = 0;
+		} else if (depth <= 1) {
+			score = -evaluator.overallScore(position);
+		} else {
+			score = -searcher.searchPosition(board, generator, evaluator, depth - 1, SearchLimits::NO_SEARCH_TIME_LIMIT).evaluation;
+		}
+		board.unmakeMove();
+		observer.leaveNode(score);
+		if (score > best.evaluation) {
+			best.bestMove = move;
+			best.evaluation = score;
+		}
+	}
+	return best;
 }
 
 //a finished game goes into the app's data folder as a PGN file named after the time it ended
@@ -173,7 +220,11 @@ int main(int argc, char* argv[]) {
 	board.setStartingPosition();
 	LegalMoveGenerator legalMoveGenerator{};
 	MoveList legalMoves{};
-	unsigned positionVersion = 0;	//counts changes of the core's position, an engine answer for an older one is dropped
+	unsigned positionVersion = 0;	//counts changes that outdate a running search (position, arrows drawn), its answer is dropped then
+	unsigned scoreVersion = 0;	//the version the overall score was last shown for
+	Move engineArrowMove = 0;	//analysis: the engine's best move for that version, drawn if the user wants the arrow
+	bool replayingLine = false;	//a line from the search window is being played: no searches in between
+	std::function<void()> requestSearch;	//below: whatever the shown view wants from the engine for the core's position
 
 	doorman.setPosition(board.getPosition());
 	showDemoValues(doorman, board, legalMoveGenerator);
@@ -193,17 +244,30 @@ int main(int argc, char* argv[]) {
 		doorman.setGameStatus(board.getGameStatus(legalMoveGenerator.generateLegalMovesInPosition(position, board)));
 	};
 
+	//the core's position changed: the engine's arrow is outdated right away, the score once a new one is overdue
+	const auto onPositionChanged = [&] {
+		showDemoValues(doorman, board, legalMoveGenerator);
+		showEvaluation(doorman, board, evaluator);
+		legalMoves.count = 0;
+		++positionVersion;
+		updateGameStatus();
+		doorman.clearEngineAnnotations();
+		engineArrowMove = 0;
+		QTimer::singleShot(300, &doorman, [&, version = positionVersion] {
+			if (version == positionVersion && scoreVersion != version && window.getViewMode() == ViewMode::ANALYSIS) {
+				doorman.clearOverallEval();
+			}
+		});
+		requestSearch();
+	};
+
 	//a verified move, from the user or the engine
 	const auto applyMove = [&](Move move) {
 		const std::string label = MoveNotation::buildMoveString(move, board.getPosition());	//before the move is made
 		board.makeMove(move);
 		doorman.playMove(move, label);				//advances or forks the move tree
 		doorman.setPosition(board.getPosition());	//the core's position is authoritative
-		showDemoValues(doorman, board, legalMoveGenerator);
-		showEvaluation(doorman, board, evaluator);
-		legalMoves.count = 0;
-		++positionVersion;
-		updateGameStatus();
+		onPositionChanged();
 
 		//a game played in the play view just ended: keep it
 		const GameStatus status = doorman.getGameStatus();
@@ -220,67 +284,202 @@ int main(int argc, char* argv[]) {
 		applyMove(move);
 	});
 
-	//engine: searches a copy of the core's board in its own thread so the GUI stays responsive, the board is locked meanwhile
-	//the answer comes back to the GUI thread and is played like a user move, unless the position changed in between
+	//engine: one search at a time, on a copy of the core's board in its own thread so the GUI stays responsive
+	//	play view		the engine's side is to move: the answer is played like a user move, the board is locked meanwhile
+	//	analysis view	every position is searched: overall score and an arrow for the best move, both live while searching
+	//the answer comes back to the GUI thread and is dropped if it is outdated; a request while a search runs is
+	//remembered and started afterwards (searches can't be stopped yet)
+	enum class SearchPurpose { PLAY, ANALYSIS };
 	Searcher searcher;
-	SearchRecorder searchRecorder;	//writes down what the search does, for the search window (W)
+	SearchRecorder searchRecorder;	//writes down what the search does, for the search window (W) and the live arrow
 	searcher.setObserver(&searchRecorder);
 	window.setSearchRecorder(searchRecorder);
 	std::thread searchThread;
 	bool engineThinking = false;
-	bool searchAgain = false;	//asked again while thinking, e.g. after switching views back and forth
-	int searchDepth = DEFAULT_SEARCH_DEPTH;	//plies, the play view sends it with every request
-	std::function<void()> startSearch = [&] {
-		if (engineThinking) {
-			searchAgain = true;
-			return;
+	bool searchAgain = false;	//asked again while thinking
+	SearchPurpose runningPurpose = SearchPurpose::PLAY;
+	std::vector<Move> searchedCandidates;	//analysis: the moves of the last search, empty for all
+
+	const auto showEngineArrow = [&](Move move) {
+		engineArrowMove = move;
+		if (move != 0 && window.isEngineArrowShown()) {
+			doorman.setEngineArrows({Arrow(move)});
 		}
+	};
+
+	const auto getViewPurpose = [&] {
+		return window.getViewMode() == ViewMode::PLAY ? SearchPurpose::PLAY : SearchPurpose::ANALYSIS;
+	};
+
+	//analysis: the legal moves the user drew arrows for
+	const auto getCandidates = [&] {
+		std::vector<Move> candidates;
+		const std::vector<Arrow> arrows = doorman.getUserArrows();
+		if (arrows.empty()) {
+			return candidates;
+		}
+		const Position position = board.getPosition();	//copy: the generator makes and unmakes moves on board
+		const MoveList legal = legalMoveGenerator.generateLegalMovesInPosition(position, board);
+		for (std::size_t index = 0; index < legal.count; ++index) {
+			const Move move = legal.moves[index];
+			const bool drawn = std::any_of(arrows.begin(), arrows.end(), [move](const Arrow& arrow) {
+				return arrow.toMove() == moveBits::getFromTo(move);
+			});
+			if (drawn) {
+				candidates.push_back(move);	//all promotions of an arrow
+			}
+		}
+		return candidates;
+	};
+
+	const auto startSearch = [&](SearchPurpose purpose) {
 		if (searchThread.joinable()) {
 			searchThread.join();	//the previous search is done already, its answer has arrived
 		}
 		engineThinking = true;
 		searchAgain = false;
-		doorman.setBoardInteractive(false);
+		runningPurpose = purpose;
 		const unsigned version = positionVersion;
-		searchThread = std::thread([&, version, depth = searchDepth, boardCopy = board, generatorCopy = legalMoveGenerator, evaluatorCopy = evaluator]() mutable {
-			searchRecorder.begin(boardCopy, depth);
-			const SearchResult result = searcher.searchPosition(boardCopy, generatorCopy, evaluatorCopy,
-				depth, SearchLimits::NO_SEARCH_TIME_LIMIT);
+		const int depth = purpose == SearchPurpose::PLAY ? window.getPlayDepth() : window.getAnalysisDepth();
+		const NodeId origin = doorman.getCurrentTreeNode();
+		searchedCandidates = purpose == SearchPurpose::ANALYSIS ? getCandidates() : std::vector<Move>{};
+		searchThread = std::thread([&, version, depth, origin, purpose, candidates = searchedCandidates,
+			boardCopy = board, generatorCopy = legalMoveGenerator, evaluatorCopy = evaluator]() mutable {
+			searchRecorder.begin(boardCopy, depth, origin, version, candidates);
+			const SearchResult result = candidates.empty()
+				? searcher.searchPosition(boardCopy, generatorCopy, evaluatorCopy, depth, SearchLimits::NO_SEARCH_TIME_LIMIT)
+				: searchCandidates(searcher, searchRecorder, boardCopy, generatorCopy, evaluatorCopy, depth, candidates);
 			searchRecorder.finish(result);
-			QMetaObject::invokeMethod(&doorman, [&, version, result] {
+			QMetaObject::invokeMethod(&doorman, [&, version, purpose, result] {
 				engineThinking = false;
-				if (version == positionVersion && result.bestMove != 0) {
+				const bool again = searchAgain;
+				searchAgain = false;
+				const bool current = version == positionVersion && purpose == getViewPurpose();
+				if (current && purpose == SearchPurpose::PLAY && result.bestMove != 0) {
 					applyMove(result.bestMove);	//unlocks the board again through the game status
 					return;
 				}
-				//outdated (the user jumped around in the tree meanwhile) or no move at all
-				doorman.setBoardInteractive(doorman.getGameStatus().result == GameResult::NONE);
-				if (searchAgain && board.getPosition().side_to_move == ENGINE_COLOR && doorman.getGameStatus().result == GameResult::NONE) {
-					startSearch();
+				if (current && purpose == SearchPurpose::ANALYSIS) {
+					showSearchScore(doorman, result.evaluation, board.getPosition().side_to_move);
+					scoreVersion = version;
+					showEngineArrow(result.bestMove);
+				}
+				//outdated (position or view changed meanwhile), no move at all, or an analysis
+				if (getViewPurpose() == SearchPurpose::PLAY || purpose == SearchPurpose::PLAY) {
+					doorman.setBoardInteractive(doorman.getGameStatus().result == GameResult::NONE);
+				}
+				if (again || !current) {
+					requestSearch();
 				}
 			}, Qt::QueuedConnection);
 		});
 	};
 
-	//play view: the engine's side is to move
-	QObject::connect(&doorman, &Doorman::engineMoveRequested, &doorman, [&](const Position&, int depth) {
-		searchDepth = depth;
-		if (board.getPosition().side_to_move == ENGINE_COLOR) {	//the core's position is authoritative
-			startSearch();
+	requestSearch = [&] {
+		if (replayingLine) {
+			return;
 		}
+		const bool over = doorman.getGameStatus().result != GameResult::NONE;
+		const SearchPurpose purpose = getViewPurpose();
+		if (purpose == SearchPurpose::PLAY) {
+			if (over || board.getPosition().side_to_move != ENGINE_COLOR) {
+				return;
+			}
+			doorman.setBoardInteractive(false);	//right away, also while an earlier search still has to finish
+		} else if (over) {
+			return;
+		}
+		if (engineThinking) {
+			searchAgain = true;
+			return;
+		}
+		startSearch(purpose);
+	};
+
+	//analysis: the best move so far as an arrow and its score, twice a second while searching
+	QTimer liveTimer;
+	std::uint64_t liveGeneration = 0;
+	liveTimer.setInterval(500);
+	QObject::connect(&liveTimer, &QTimer::timeout, &doorman, [&] {
+		if (!engineThinking || runningPurpose != SearchPurpose::ANALYSIS || window.getViewMode() != ViewMode::ANALYSIS) {
+			return;
+		}
+		if (const std::shared_ptr<const SearchSnapshot> snapshot = searchRecorder.takeSnapshot(liveGeneration)) {
+			liveGeneration = snapshot->generation;
+			if (snapshot->tag == positionVersion && !snapshot->finished && snapshot->bestMoveSoFar != 0) {
+				showEngineArrow(snapshot->bestMoveSoFar);
+				showSearchScore(doorman, snapshot->bestScoreSoFar, snapshot->root.getPosition().side_to_move);
+				scoreVersion = positionVersion;
+			}
+		}
+		searchRecorder.requestSnapshot();	//picked up at the next tick
+	});
+	liveTimer.start();
+
+	//play view: the engine's side is to move (the depth is read from the window when the search starts)
+	QObject::connect(&doorman, &Doorman::engineMoveRequested, &doorman, [&](const Position&, int) {
+		requestSearch();
+	});
+
+	//analysis: arrows drawn or deleted change which moves are searched
+	QObject::connect(&doorman, &Doorman::userAnnotationsChanged, &doorman, [&](const std::vector<Highlight>&, const std::vector<Arrow>&) {
+		if (window.getViewMode() != ViewMode::ANALYSIS || getCandidates() == searchedCandidates) {
+			return;
+		}
+		++positionVersion;	//the running search answers another question now
+		requestSearch();
+	});
+
+	QObject::connect(&window, &MainWindow::engineArrowShownChanged, &doorman, [&](bool shown) {
+		if (shown && engineArrowMove != 0 && window.getViewMode() == ViewMode::ANALYSIS) {
+			doorman.setEngineArrows({Arrow(engineArrowMove)});
+		} else {
+			doorman.clearEngineAnnotations();
+		}
+	});
+
+	QObject::connect(&window, &MainWindow::analysisDepthChanged, &doorman, [&](int) {
+		++positionVersion;
+		requestSearch();
+	});
+
+	//the view changed: the analysis searches every position, the play view only when it is the engine's turn
+	QObject::connect(&window, &MainWindow::viewModeChanged, &doorman, [&](ViewMode mode) {
+		doorman.clearEngineAnnotations();
+		engineArrowMove = 0;
+		if (mode == ViewMode::ANALYSIS) {
+			doorman.setBoardInteractive(doorman.getGameStatus().result == GameResult::NONE);	//a play search may still run
+		}
+		requestSearch();
 	});
 
 	//the user jumped to another move in the tree: bring the core to the same position
 	QObject::connect(&doorman, &Doorman::treeNodeSelected, &doorman, [&](NodeId id, const Position&) {
 		replayMoves(board, doorman.getMovesToTreeNode(id));
-		++positionVersion;
-		showDemoValues(doorman, board, legalMoveGenerator);
-		showEvaluation(doorman, board, evaluator);
-		legalMoves.count = 0;
-		updateGameStatus();
+		onPositionChanged();
+	});
+
+	//a move was clicked in the search window: play the line up to it in the analysis
+	QObject::connect(&window, &MainWindow::searchLineChosen, &doorman, [&](NodeId origin, const std::vector<Move>& moves) {
+		replayingLine = true;
+		window.setViewMode(ViewMode::ANALYSIS);
+		doorman.setCurrentTreeNode(origin);
+		replayMoves(board, doorman.getMovesToTreeNode(origin));
+		onPositionChanged();
+		for (Move move : moves) {
+			const Position position = board.getPosition();	//copy: the generator makes and unmakes moves on board
+			if (!containsMove(legalMoveGenerator.generateLegalMovesInPosition(position, board), move)) {
+				break;	//the tree changed since that search
+			}
+			applyMove(move);
+		}
+		replayingLine = false;
+		doorman.setBoardInteractive(doorman.getGameStatus().result == GameResult::NONE);
+		requestSearch();
 	});
 
 	window.show();
+	requestSearch();	//the analysis of the starting position
 	//first start, or the marker file next to the saved games is gone or was changed
 	if (!TutorialOverlay::isMarkerCurrent()) {
 		QTimer::singleShot(400, &window, &MainWindow::startTutorial);	//once the window has settled

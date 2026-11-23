@@ -12,6 +12,7 @@ qt_add_library(ChessGui STATIC
     SearchTreeModel.hpp     SearchTreeModel.cpp
     SearchTreeView.hpp      SearchTreeView.cpp
     SearchWindow.hpp        SearchWindow.cpp
+    SearchStatusLine.hpp    SearchStatusLine.cpp
     PrincipleDrawer.hpp     PrincipleDrawer.cpp
     EvalSquareWidget.hpp    EvalSquareWidget.cpp
     EvalCriteriaWidget.hpp  EvalCriteriaWidget.cpp

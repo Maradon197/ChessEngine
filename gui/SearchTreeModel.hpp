@@ -29,7 +29,9 @@ public:
 	const SearchSnapshot& getSnapshot() const { return *snapshot; }
 	int getNodeCount() const { return static_cast<int>(snapshot->nodes.size()); }
 	const SearchTreeNode& getNode(int index) const { return snapshot->nodes[static_cast<std::size_t>(index)]; }
-	const std::vector<int>& getChildren(int index) const { return children[static_cast<std::size_t>(index)]; }	//in search order
+	std::vector<int> getChildren(int index) const;	//recorded ones, in search order
+	int getChildCount(int index) const { return childCounts[static_cast<std::size_t>(index)]; }	//recorded ones
+	int getLastChild(int index) const { return lastChildren[static_cast<std::size_t>(index)]; }	//-1 if none
 
 	SearchNodeKind getKind(int index) const { return kinds[static_cast<std::size_t>(index)]; }
 	bool isCutShort(int index) const;	//one of its moves caused a beta cutoff, the moves after it were never searched
@@ -62,7 +64,11 @@ private:
 	BoardState getBoard(int index) const;	//the root's board with the moves to the node made
 
 	std::shared_ptr<const SearchSnapshot> snapshot;
-	std::vector<std::vector<int>> children;
+	//children as linked lists in flat arrays: a vector per node would mean 250k allocations per snapshot
+	std::vector<int> firstChildren;
+	std::vector<int> lastChildren;
+	std::vector<int> nextSiblings;
+	std::vector<int> childCounts;
 	std::vector<SearchNodeKind> kinds;
 	std::vector<int> bestChildren;
 	std::vector<int> bestLine;

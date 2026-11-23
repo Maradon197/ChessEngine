@@ -3,13 +3,18 @@
 #include <algorithm>
 #include <cmath>
 
+#include <QCheckBox>
+#include <QHBoxLayout>
+#include <QLabel>
 #include <QScrollArea>
 #include <QSettings>
+#include <QSlider>
 #include <QVBoxLayout>
 #include <QVariantAnimation>
 
 #include "EvalCriteriaWidget.hpp"
 #include "EvalSquareWidget.hpp"
+#include "SearchStatusLine.hpp"
 #include "KeyBindings.hpp"
 
 namespace {
@@ -18,6 +23,13 @@ constexpr int SIDEBAR_WIDTH = 316;
 constexpr int GAP_TO_BOARD = 12;
 constexpr int SLIDE_DURATION = 240;
 const char* const SHOWN_KEY = "layout/analysisSidebarShown";
+const char* const DEPTH_KEY = "engine/analysisDepth";
+const char* const ARROW_KEY = "engine/showArrow";
+constexpr int DEFAULT_ANALYSIS_DEPTH = 4;
+
+QString getDepthText(int depth) {
+	return depth == 1 ? QObject::tr("1 ply") : QObject::tr("%1 plies").arg(depth);
+}
 
 } // !namespace
 
@@ -30,8 +42,56 @@ AnalysisSidebar::AnalysisSidebar(Doorman& doorman, KeyBindings& keyBindings, QWi
 	auto* layout = new QVBoxLayout(column);
 	layout->setContentsMargins(GAP_TO_BOARD, 0, 0, 0);
 	layout->setSpacing(10);
+	//how deep the engine analyses, like the play view's setting but its own
+	auto* depthSettings = new QWidget(column);
+	auto* depthLayout = new QVBoxLayout(depthSettings);
+	depthLayout->setContentsMargins(0, 0, 0, 0);
+	depthLayout->setSpacing(4);
+	auto* depthRow = new QHBoxLayout;
+	auto* depthCaption = new QLabel(tr("Analysis depth"), depthSettings);
+	QFont captionFont = depthCaption->font();
+	captionFont.setBold(true);
+	depthCaption->setFont(captionFont);
+	depthValue = new QLabel(depthSettings);
+	depthRow->addWidget(depthCaption);
+	depthRow->addStretch(1);
+	depthRow->addWidget(depthValue);
+	depthLayout->addLayout(depthRow);
+	auto* depthSlider = new QSlider(Qt::Horizontal, depthSettings);
+	depthSlider->setRange(MIN_SEARCH_DEPTH, MAX_SEARCH_DEPTH);
+	depthSlider->setPageStep(1);
+	depthSlider->setTickPosition(QSlider::TicksBelow);
+	depthSlider->setTickInterval(1);
+	depthSlider->setFocusPolicy(Qt::NoFocus);	//the arrow keys stay with the key bindings
+	depthSlider->setCursor(Qt::PointingHandCursor);
+	depthSlider->setToolTip(tr("How many half-moves the engine searches for the score and its arrow. Deeper is more exact, but slower."));
+	depthLayout->addWidget(depthSlider);
+	const int storedDepth = QSettings(SETTINGS_ORGANIZATION, SETTINGS_APPLICATION).value(DEPTH_KEY, DEFAULT_ANALYSIS_DEPTH).toInt();
+	searchDepth = std::clamp(storedDepth, MIN_SEARCH_DEPTH, MAX_SEARCH_DEPTH);
+	depthSlider->setValue(searchDepth);
+	depthValue->setText(getDepthText(searchDepth));
+	connect(depthSlider, &QSlider::valueChanged, this, &AnalysisSidebar::setSearchDepth);
+
+	engineArrow = new QCheckBox(tr("Show the engine's arrow"), depthSettings);
+	engineArrow->setFocusPolicy(Qt::NoFocus);
+	engineArrow->setCursor(Qt::PointingHandCursor);
+	QFont smallFont = engineArrow->font();
+	smallFont.setPointSizeF(smallFont.pointSizeF() * 0.9);
+	engineArrow->setFont(smallFont);
+	engineArrow->setChecked(QSettings(SETTINGS_ORGANIZATION, SETTINGS_APPLICATION).value(ARROW_KEY, true).toBool());
+	connect(engineArrow, &QCheckBox::toggled, this, [this](bool shown) {
+		QSettings(SETTINGS_ORGANIZATION, SETTINGS_APPLICATION).setValue(ARROW_KEY, shown);
+		emit engineArrowShownChanged(shown);
+	});
+	depthLayout->addWidget(engineArrow);
+
+	searchStatus = new SearchStatusLine(depthSettings);
+	depthLayout->addSpacing(2);
+	depthLayout->addWidget(searchStatus);
+
 	layout->addWidget(new EvalCriteriaWidget(doorman, column));
 	layout->addWidget(new EvalSquareWidget(doorman, column));
+	layout->addWidget(depthSettings);
 	layout->addStretch(1);
 
 	content = new QScrollArea(this);
@@ -80,6 +140,29 @@ void AnalysisSidebar::setShown(bool show) {
 
 bool AnalysisSidebar::isShown() const {
 	return shown;
+}
+
+int AnalysisSidebar::getSearchDepth() const {
+	return searchDepth;
+}
+
+bool AnalysisSidebar::isEngineArrowShown() const {
+	return engineArrow->isChecked();
+}
+
+void AnalysisSidebar::setSearchRecorder(SearchRecorder& recorder) {
+	searchStatus->setRecorder(recorder);
+}
+
+void AnalysisSidebar::setSearchStatusShown(bool shown) {
+	searchStatus->setVisible(shown);
+}
+
+void AnalysisSidebar::setSearchDepth(int depth) {
+	searchDepth = depth;
+	depthValue->setText(getDepthText(depth));
+	QSettings(SETTINGS_ORGANIZATION, SETTINGS_APPLICATION).setValue(DEPTH_KEY, depth);
+	emit searchDepthChanged(depth);
 }
 
 void AnalysisSidebar::resizeEvent(QResizeEvent* event) {

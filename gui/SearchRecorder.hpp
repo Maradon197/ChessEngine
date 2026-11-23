@@ -12,6 +12,7 @@
 #include "DataTypes.hpp"
 #include "BoardState.hpp"
 #include "EngineTypes.hpp"
+#include "GuiTypes.hpp"
 #include "SearchObserver.hpp"
 
 struct SearchResult;
@@ -33,8 +34,11 @@ struct SearchTreeNode {
 struct SearchSnapshot {
 	std::uint64_t searchId = 0;	//counts searches, a new one means the tree started over
 	std::uint64_t generation = 0;	//counts snapshots
+	NodeId origin = ROOT_NODE;	//the move tree node of the searched position
+	unsigned tag = 0;	//whatever the caller passed to begin(), e.g. which request this search answers
 	BoardState root;	//the searched position with its history, the window replays moves on copies for the move names
 	int depth = 0;	//plies, as requested
+	std::vector<Move> rootMoves;	//the root moves this search looks at, empty: all legal ones
 	std::vector<SearchTreeNode> nodes;	//parents before their children, children in search order
 	std::vector<std::int32_t> currentPath;	//recorded nodes from the root to where the engine is right now (empty when done)
 	int currentPly = 0;	//how deep the engine is right now, also beyond the recording
@@ -45,6 +49,8 @@ struct SearchSnapshot {
 	bool truncated = false;	//the node budget ran out, deeper parts of later moves are only counted
 	Move bestMove = 0;	//when finished
 	EvalValue bestScore = 0;	//when finished, view of the side to move at the root
+	Move bestMoveSoFar = 0;	//while searching: the root move that raised alpha last
+	EvalValue bestScoreSoFar = 0;	//its score, view of the side to move at the root
 };
 
 //the GUI's SearchObserver: writes down what the engine searches, for the search window
@@ -63,7 +69,8 @@ public:
 	SearchRecorder();
 
 	//engine thread, around Searcher::searchPosition
-	void begin(const BoardState& root, int depth);
+	void begin(const BoardState& root, int depth, NodeId origin = ROOT_NODE, unsigned tag = 0,
+		const std::vector<Move>& rootMoves = {});	//rootMoves: only these are searched, empty: all
 	void finish(const SearchResult& result);
 
 	//SearchObserver, engine thread
@@ -108,6 +115,11 @@ private:
 	bool truncated = false;
 	Move bestMove = 0;
 	EvalValue bestScore = 0;
+	Move bestMoveSoFar = 0;
+	EvalValue bestScoreSoFar = 0;
+	NodeId origin = ROOT_NODE;
+	unsigned tag = 0;
+	std::vector<Move> rootMoves;
 	std::chrono::steady_clock::time_point startTime;
 	std::uint64_t searchId = 0;
 	std::uint64_t generation = 0;

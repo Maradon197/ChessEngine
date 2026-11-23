@@ -3,8 +3,11 @@
 
 #include <cstdint>
 #include <memory>
+#include <vector>
 
 #include <QWidget>
+
+#include "GuiTypes.hpp"
 
 class KeyBindings;
 class QLabel;
@@ -30,6 +33,10 @@ public:
 	void toggle();
 
 	static constexpr int UPDATE_INTERVAL_MS = 250;	//4 times a second
+
+signals:
+	void lineChosen(NodeId origin, const std::vector<Move>& moves);	//a move in the tree was clicked: play these from origin
+	void shownChanged(bool shown);
 
 protected:
 	void showEvent(QShowEvent* event) override;
