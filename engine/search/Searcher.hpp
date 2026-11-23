@@ -22,6 +22,7 @@
 #include "BoardState.hpp"
 #include "LegalMoveGenerator.hpp"
 #include "Evaluator.hpp"
+#include <optional>
 
 struct SearchLimits {
 	//no search, not even iterative, should go beyond this 
@@ -34,9 +35,12 @@ struct SearchLimits {
 	static constexpr EvalValue MINUS_INFINITY = -1001.0f;
 	static constexpr EvalValue PLUS_INFINITY = 1001.0f;
 	
-	int maxDepth = ITERATIVE_DEEPENING;
+	static constexpr int MAX_DEPTH = ITERATIVE_DEEPENING;
 	int64_t timeMs = NO_SEARCH_TIME_LIMIT;
 	uint64_t maxNodes = NO_SEARCH_NODE_LIMIT;
+
+	static constexpr int MAX_QUIESCENCE_DEPTH = MAX_DEPTH;
+	static constexpr EvalValue NOISY_MOVE_MINIMUM_DELTA = 0.51f;
 };
 
 
@@ -45,8 +49,9 @@ struct SearchInfo {
 	int remainingDepth;
 	int currentDepth;
 
-	EvalValue min_guaranteed_score;	//alpha
-	EvalValue most_allowed_score;	//beta
+	EvalValue minGuaranteedScore;	//alpha
+	EvalValue mostAllowedScore;		//beta
+	std::optional<EvalValue> quiescenceEval;
 };
 
 //to be returned
@@ -65,14 +70,12 @@ private:
 	LegalMoveGenerator generator;
 	Evaluator evaluator;
 	EvalValue recursiveSearch(SearchInfo current_info);
-	EvalValue quiescenceSearch(SearchInfo current_info);
+	EvalValue quiescenceRecursiveSearch(SearchInfo current_info);
 
 public:
 	void setStopSearchFlag();
 	SearchResult searchPosition(BoardState& board, LegalMoveGenerator& gen, 
 		Evaluator& eval, int depth, int64_t max_time_ms);
 };
-
-//TODO: create source file, implement recursive search!
 
 #endif //!INCLUDED__CHESS_ENGINE__STRESSED_RHEA_HPP

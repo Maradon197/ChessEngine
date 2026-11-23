@@ -1,5 +1,8 @@
 #include "Searcher.hpp"
 
+#include <iostream>
+#include<algorithm>
+
 #include "DataTypes.hpp"
 #include "EngineTypes.hpp"
 
@@ -13,7 +16,8 @@ EvalValue Searcher::recursiveSearch(SearchInfo current_info) {
 
 	//am I a leaf vertex?
 	if (current_info.remainingDepth == 0)
-		return quiescenceSearch(current_info);
+		//TODO: return quiescenceRecursiveSearch(current_info);
+		return evaluator.overallScore(board.getPosition());
 
 	//guess I'll have to do the work if im here
 	//...
@@ -34,44 +38,53 @@ EvalValue Searcher::recursiveSearch(SearchInfo current_info) {
 	for (std::size_t i = 0; i < legal_moves.count; ++i) {
 		board.makeMove(legal_moves.moves[i]);
 
-		SearchInfo shove_down_there = {
+		SearchInfo child_node = {
 			current_info.remainingDepth -1,
 			current_info.currentDepth +1,
-			- current_info.most_allowed_score,		//new alpha = -beta
-			- current_info.min_guaranteed_score		//and vice versa
+			- current_info.mostAllowedScore,		//new alpha = -beta
+			- current_info.minGuaranteedScore		//and vice versa
 		};
 
-		//And way dooooown we goo (my RAM will hate me)
-		EvalValue search_result = - recursiveSearch(shove_down_there);
+		//And way dooooown we goo
+		EvalValue search_result = - recursiveSearch(child_node);
 
 		board.unmakeMove();
 
 		//is the move so good my opponent won't allow it?
 		// -> stop right here
 		// (beta cutoff)
-		if (search_result > current_info.most_allowed_score)
-			return current_info.most_allowed_score;
+		if (search_result >= current_info.mostAllowedScore)
+			return current_info.mostAllowedScore;
 
 		//is this my best move so far?
 		// -> raise alpha, keep searching
-		if (search_result > current_info.min_guaranteed_score)
-			current_info.min_guaranteed_score = search_result;
+		if (search_result > current_info.minGuaranteedScore)
+			current_info.minGuaranteedScore = search_result;
 	}
 
-	return current_info.min_guaranteed_score;
+	return current_info.minGuaranteedScore;
 }
 
+EvalValue Searcher::quiescenceRecursiveSearch(SearchInfo parent_node) {
+	std::cout << "Searcher::quiescenceRecursiveSearch: Searching at depth: " << parent_node.currentDepth << "\n";
+	EvalValue child_val = evaluator.overallScore(board.getPosition());
 
-//TODO: Actual quiescene search
-//this is just a lazy workaround to have the right 
-//structure established in recursiveSearch
-EvalValue Searcher::quiescenceSearch(SearchInfo) {
-	return evaluator.overallScore(board.getPosition());
+	if (parent_node.currentDepth == SearchLimits::MAX_DEPTH ||
+		parent_node.currentDepth == SearchLimits::MAX_QUIESCENCE_DEPTH ||
+		(parent_node.quiescenceEval &&
+			std::abs(parent_node.quiescenceEval.value() - child_val) < SearchLimits::NOISY_MOVE_MINIMUM_DELTA)) {
+		return child_val;
+	}
+	
+	//TODO: actually make the move
+	return quiescenceRecursiveSearch({ 0, ++parent_node.currentDepth,
+		parent_node.minGuaranteedScore, parent_node.mostAllowedScore, child_val });
 }
 
 
 SearchResult Searcher::searchPosition(BoardState& board, LegalMoveGenerator& gen,
 	Evaluator& eval, int depth, int64_t max_time_ms) {
+	int search_depth = std::min({ depth, SearchLimits::MAX_DEPTH });
 	stopSearchFlag = false;
 	this->board = board;
 	this->generator = gen;
@@ -87,7 +100,7 @@ SearchResult Searcher::searchPosition(BoardState& board, LegalMoveGenerator& gen
 		this->board.makeMove(legal_moves.moves[i]);
 
 		SearchInfo first_child = {
-			depth - 1,
+			search_depth - 1,
 			1,
 			-SearchLimits::PLUS_INFINITY,	//child's alpha = -root beta
 			-best_score						//child's beta  = -root alpha
@@ -103,5 +116,5 @@ SearchResult Searcher::searchPosition(BoardState& board, LegalMoveGenerator& gen
 		}
 	}
 
-	return { best_move, best_score, depth };
+	return { best_move, best_score, search_depth };
 }
