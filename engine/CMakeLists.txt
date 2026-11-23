@@ -10,6 +10,7 @@ add_library(ChessEngine STATIC
     eval/principles/AttackPrinciples.cpp
     eval/principles/EndgamePrinciples.cpp
     search/Searcher.hpp                             search/Searcher.cpp
+    search/SearchObserver.hpp
  "search/Searcher.cpp")
 
 target_include_directories(ChessEngine PUBLIC

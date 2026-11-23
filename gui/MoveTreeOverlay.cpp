@@ -3,7 +3,6 @@
 #include <algorithm>
 #include <cmath>
 #include <limits>
-#include <map>
 #include <utility>
 
 #include <QApplication>
@@ -16,6 +15,7 @@
 
 #include "Doorman.hpp"
 #include "KeyBindings.hpp"
+#include "TreeLayout.hpp"
 
 namespace {
 
@@ -44,27 +44,6 @@ constexpr int FLASH_ALPHA = 70;
 constexpr qreal FLASH_WIDTH = 70;
 
 } // !namespace
-
-struct MoveTreeOverlay::RowOccupancy {
-	std::map<int, std::vector<std::pair<int, int>>> rows;
-
-	bool isFree(int row, int firstColumn, int lastColumn) const {
-		const auto found = rows.find(row);
-		if (found == rows.end()) {
-			return true;
-		}
-		for (const auto& [first, last] : found->second) {
-			if (firstColumn <= last && first <= lastColumn) {
-				return false;
-			}
-		}
-		return true;
-	}
-
-	void occupy(int row, int firstColumn, int lastColumn) {
-		rows[row].emplace_back(firstColumn, lastColumn);
-	}
-};
 
 MoveTreeOverlay::MoveTreeOverlay(Doorman& doorman, KeyBindings& keyBindings, QWidget& window)
 	: QWidget(&window) {
@@ -241,58 +220,19 @@ void MoveTreeOverlay::setPanelColor(const QColor& color) {
 }
 
 void MoveTreeOverlay::relayout() {
-	RowOccupancy occupancy;
-	minRow = 0;
-	maxRow = 0;
-	maxColumn = 0;
-	layoutLine(ROOT_NODE, 0, occupancy);
+	const treeLayout::Bounds bounds = treeLayout::layoutRows(ROOT_NODE,
+		[this](NodeId id) -> const std::vector<NodeId>& { return nodes.at(id).children; },
+		[this](NodeId id) { return nodes.at(id).depth; },
+		[this](NodeId id, int row) {
+			Node& node = nodes.at(id);
+			node.column = node.depth;
+			node.row = row;
+		});
+	minRow = bounds.minRow;
+	maxRow = bounds.maxRow;
+	maxColumn = bounds.maxColumn;
 	clampPan();
 	update();
-}
-
-void MoveTreeOverlay::layoutLine(NodeId first, int row, RowOccupancy& occupancy) {
-	std::vector<NodeId> line;
-	for (NodeId id = first;;) {
-		Node& node = nodes.at(id);
-		node.column = node.depth;
-		node.row = row;
-		line.push_back(id);
-		if (node.children.empty()) {
-			break;
-		}
-		id = node.children.front();
-	}
-
-	const int firstColumn = nodes.at(first).column;
-	const int lastColumn = nodes.at(line.back()).column;
-	occupancy.occupy(row, firstColumn, lastColumn);
-	minRow = std::min(minRow, row);
-	maxRow = std::max(maxRow, row);
-	maxColumn = std::max(maxColumn, lastColumn);
-
-	for (NodeId id : line) {
-		const std::vector<NodeId> children = nodes.at(id).children;
-		for (std::size_t index = 1; index < children.size(); ++index) {
-			const NodeId child = children[index];
-			const int direction = row != 0 ? (row > 0 ? 1 : -1) : (index % 2 == 1 ? 1 : -1);	//nested variations move away from the main line
-			const int variationFirst = nodes.at(child).depth;
-			const int variationLast = variationFirst + getLineLength(child) - 1;
-
-			int targetRow = row + direction;
-			while (!occupancy.isFree(targetRow, variationFirst, variationLast)) {
-				targetRow += direction;
-			}
-			layoutLine(child, targetRow, occupancy);
-		}
-	}
-}
-
-int MoveTreeOverlay::getLineLength(NodeId first) const {
-	int length = 1;
-	for (const Node* node = &nodes.at(first); !node->children.empty(); node = &nodes.at(node->children.front())) {
-		++length;
-	}
-	return length;
 }
 
 QPointF MoveTreeOverlay::getNodeCenter(const Node& node) const {

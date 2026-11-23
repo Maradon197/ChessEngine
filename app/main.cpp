@@ -27,6 +27,7 @@
 
 #include "Evaluator.hpp"
 #include "Searcher.hpp"
+#include "SearchRecorder.hpp"
 
 //temporary includes -----------------
 
@@ -222,6 +223,9 @@ int main(int argc, char* argv[]) {
 	//engine: searches a copy of the core's board in its own thread so the GUI stays responsive, the board is locked meanwhile
 	//the answer comes back to the GUI thread and is played like a user move, unless the position changed in between
 	Searcher searcher;
+	SearchRecorder searchRecorder;	//writes down what the search does, for the search window (W)
+	searcher.setObserver(&searchRecorder);
+	window.setSearchRecorder(searchRecorder);
 	std::thread searchThread;
 	bool engineThinking = false;
 	bool searchAgain = false;	//asked again while thinking, e.g. after switching views back and forth
@@ -239,8 +243,10 @@ int main(int argc, char* argv[]) {
 		doorman.setBoardInteractive(false);
 		const unsigned version = positionVersion;
 		searchThread = std::thread([&, version, depth = searchDepth, boardCopy = board, generatorCopy = legalMoveGenerator, evaluatorCopy = evaluator]() mutable {
+			searchRecorder.begin(boardCopy, depth);
 			const SearchResult result = searcher.searchPosition(boardCopy, generatorCopy, evaluatorCopy,
 				depth, SearchLimits::NO_SEARCH_TIME_LIMIT);
+			searchRecorder.finish(result);
 			QMetaObject::invokeMethod(&doorman, [&, version, result] {
 				engineThinking = false;
 				if (version == positionVersion && result.bestMove != 0) {

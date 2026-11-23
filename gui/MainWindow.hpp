@@ -18,6 +18,8 @@ class QLabel;
 class QPropertyAnimation;
 class QStackedWidget;
 class QToolButton;
+class SearchRecorder;
+class SearchWindow;
 class ToolBarWidget;
 class TutorialOverlay;
 enum class TutorialTarget;
@@ -38,6 +40,8 @@ public:
 	bool isFocusMode() const;
 
 	void startTutorial();	//on the first start and from the toolbar button
+
+	void setSearchRecorder(SearchRecorder& recorder);	//what the search window (W) shows
 
 protected:
 	void changeEvent(QEvent* event) override;
@@ -65,6 +69,7 @@ private:
 	QPropertyAnimation* fade = nullptr;
 	QToolButton* tutorialButton = nullptr;
 	TutorialOverlay* tutorial = nullptr;
+	SearchWindow* searchWindow = nullptr;
 
 	ViewMode viewMode = ViewMode::ANALYSIS;
 	bool focusMode = false;

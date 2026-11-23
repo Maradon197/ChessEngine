@@ -38,7 +38,7 @@ inline constexpr const char* SETTINGS_APPLICATION = "ChessEngineGUI";
 
 enum class KeyAction {
 	TOGGLE_SIDEBAR, MOVE_TREE, PRINCIPLE_DRAWER, CLOSE_DRAWER, TREE_BACK, TREE_FORWARD,
-	SWITCH_MODE, FOCUS_MODE,
+	SWITCH_MODE, FOCUS_MODE, SEARCH_WINDOW,
 	COUNT
 };
 constexpr std::size_t KEY_ACTION_COUNT = static_cast<std::size_t>(KeyAction::COUNT);

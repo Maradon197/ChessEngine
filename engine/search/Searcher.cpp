@@ -1,4 +1,5 @@
 #include "Searcher.hpp"
+#include "SearchObserver.hpp"
 
 #include <iostream>
 #include<algorithm>
@@ -46,7 +47,9 @@ EvalValue Searcher::recursiveSearch(SearchInfo current_info) {
 		};
 
 		//And way dooooown we goo
+		if (observer) observer->enterNode(legal_moves.moves[i], child_node);
 		EvalValue search_result = - recursiveSearch(child_node);
+		if (observer) observer->leaveNode(search_result);
 
 		board.unmakeMove();
 
@@ -105,7 +108,9 @@ SearchResult Searcher::searchPosition(BoardState& board, LegalMoveGenerator& gen
 			-SearchLimits::PLUS_INFINITY,	//child's alpha = -root beta
 			-best_score						//child's beta  = -root alpha
 		};
+		if (observer) observer->enterNode(legal_moves.moves[i], first_child);
 		EvalValue search_result = -recursiveSearch(first_child);
+		if (observer) observer->leaveNode(search_result);
 
 		this->board.unmakeMove();
 

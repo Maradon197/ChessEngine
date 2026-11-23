@@ -17,6 +17,7 @@
 #include "MoveTreeOverlay.hpp"
 #include "PlayView.hpp"
 #include "PrincipleDrawer.hpp"
+#include "SearchWindow.hpp"
 #include "ToolBarWidget.hpp"
 #include "TutorialOverlay.hpp"
 
@@ -89,6 +90,9 @@ MainWindow::MainWindow(Doorman& doorman, QWidget* parent)
 	//move tree, shown over everything (analysis only)
 	moveTree = new MoveTreeOverlay(doorman, *keyBindings, *this);
 
+	//what the engine is thinking, its own window (both views)
+	searchWindow = new SearchWindow(*keyBindings, *this);
+
 	//tutorial, over everything else, so it is created last
 	tutorial = new TutorialOverlay(*this, buildTutorialLessons(), [this](TutorialTarget target) { return getTutorialTarget(target); });
 	connect(tutorial, &TutorialOverlay::lessonEntered, this, &MainWindow::enterTutorialLesson);
@@ -108,6 +112,9 @@ MainWindow::MainWindow(Doorman& doorman, QWidget* parent)
 			case KeyAction::CLOSE_DRAWER:
 				setFocusMode(false);
 				break;
+			case KeyAction::SEARCH_WINDOW:
+				searchWindow->toggle();
+				break;
 			default:
 				break;
 		}
@@ -116,6 +123,10 @@ MainWindow::MainWindow(Doorman& doorman, QWidget* parent)
 
 	updateKeyScope();
 	updateSwitchTip();
+}
+
+void MainWindow::setSearchRecorder(SearchRecorder& recorder) {
+	searchWindow->setRecorder(recorder);
 }
 
 void MainWindow::setViewMode(ViewMode mode) {

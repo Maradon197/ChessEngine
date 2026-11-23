@@ -6,7 +6,12 @@ qt_add_library(ChessGui STATIC
     ToolBarWidget.hpp       ToolBarWidget.cpp
     Doorman.hpp             Doorman.cpp
     BoardWidget.hpp         BoardWidget.cpp
+    TreeLayout.hpp
     MoveTreeOverlay.hpp     MoveTreeOverlay.cpp
+    SearchRecorder.hpp      SearchRecorder.cpp
+    SearchTreeModel.hpp     SearchTreeModel.cpp
+    SearchTreeView.hpp      SearchTreeView.cpp
+    SearchWindow.hpp        SearchWindow.cpp
     PrincipleDrawer.hpp     PrincipleDrawer.cpp
     EvalSquareWidget.hpp    EvalSquareWidget.cpp
     EvalCriteriaWidget.hpp  EvalCriteriaWidget.cpp

@@ -161,6 +161,7 @@ QKeyCombination KeyBindings::getDefaultKey(KeyAction action) {
 		case KeyAction::TREE_FORWARD: return Qt::Key_Right;
 		case KeyAction::SWITCH_MODE: return Qt::ControlModifier | Qt::Key_Tab;
 		case KeyAction::FOCUS_MODE: return Qt::Key_F;
+		case KeyAction::SEARCH_WINDOW: return Qt::Key_W;
 		default: return {};
 	}
 }
@@ -179,6 +180,7 @@ QString KeyBindings::getActionName(KeyAction action) {
 		case KeyAction::TREE_FORWARD: return tr("Next move");
 		case KeyAction::SWITCH_MODE: return tr("Switch Analysis / Play");
 		case KeyAction::FOCUS_MODE: return tr("Focus mode (Play)");
+		case KeyAction::SEARCH_WINDOW: return tr("What the engine is thinking");
 		default: return {};
 	}
 }

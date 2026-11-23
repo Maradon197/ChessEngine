@@ -63,11 +63,8 @@ private:
 		int column = 0;
 		int row = 0;
 	};
-	struct RowOccupancy;
 
-	void relayout();
-	void layoutLine(NodeId first, int row, RowOccupancy& occupancy);
-	int getLineLength(NodeId first) const;
+	void relayout();	//same line layout as the search window's tree, see TreeLayout.hpp
 	QPointF getNodeCenter(const Node& node) const;
 	QRectF getNodeRect(const Node& node) const;
 	QString getDisplayText(const Node& node) const;

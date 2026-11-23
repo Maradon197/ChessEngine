@@ -24,6 +24,8 @@
 #include "Evaluator.hpp"
 #include <optional>
 
+class SearchObserver;
+
 struct SearchLimits {
 	//no search, not even iterative, should go beyond this 
 	// -> signal value for iterative search and general limit in one value
@@ -65,6 +67,7 @@ struct SearchResult {
 class Searcher {
 private:
 	bool stopSearchFlag;
+	SearchObserver* observer = nullptr;	//optional, see SearchObserver.hpp
 	SearchLimits limits;
 	BoardState board;
 	LegalMoveGenerator generator;
@@ -74,6 +77,7 @@ private:
 
 public:
 	void setStopSearchFlag();
+	void setObserver(SearchObserver* new_observer) { observer = new_observer; }	//nullptr: nobody watches; only set while not searching
 	SearchResult searchPosition(BoardState& board, LegalMoveGenerator& gen, 
 		Evaluator& eval, int depth, int64_t max_time_ms);
 };
