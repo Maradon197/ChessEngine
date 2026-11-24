@@ -17,7 +17,8 @@ EvalValue Searcher::recursiveSearch(SearchInfo current_info) {
 
 	//am I a leaf vertex?
 	if (current_info.remainingDepth == 0)
-		return quiescenceRecursiveSearch(current_info);
+		//TODO: performance fix return quiescenceRecursiveSearch(current_info);
+		return evaluator.overallScore(board.getPosition());
 
 	//guess I'll have to do the work if im here
 	//...
