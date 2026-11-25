@@ -125,6 +125,8 @@ struct EvalContext {
 using PrincipleEvalFunction = float (*)(const EvalContext&);
 using EvalValue = float;
 
+
+//TODO: use std::optional for this
 struct PrincipleInfo {
 	PrincipleId id = PrincipleId::COUNT;	//primary key
 	std::string_view title;
