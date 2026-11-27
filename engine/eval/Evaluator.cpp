@@ -22,6 +22,8 @@ namespace {
 	//...
 	//...
 	//You should most definately not trust me
+	//Note: this underestimates pawns about to promote (solve through search tho?)
+	//		and it loves pushing g- and b pawns way too much
 	constexpr int PAWN_PST[64] = {
 		   0,   0,   0,   0,   0,   0,   0,   0,
 		   5,   5,   5,   0,   0,   5,   5,   5,
