@@ -26,7 +26,8 @@ struct SearchTreeNode {
 	EvalValue score = 0;	//view of the side that made the move (the root: view of the side to move); only valid when finished
 	std::uint32_t subtreeNodes = 1;	//this node and everything below it, also what wasn't recorded
 	std::uint16_t searchedChildren = 0;	//moves searched below it, also unrecorded ones
-	std::uint8_t ply = 0;	//0 = root
+	std::uint16_t order = 0;	//its place in the parent's move ordering: 0 = the move the engine tried first
+	std::uint8_t ply = 0;	//0 = root, beyond SearchSnapshot::depth: quiescence (captures behind the horizon)
 	bool finished = false;
 };
 
@@ -37,7 +38,8 @@ struct SearchSnapshot {
 	NodeId origin = ROOT_NODE;	//the move tree node of the searched position
 	unsigned tag = 0;	//whatever the caller passed to begin(), e.g. which request this search answers
 	BoardState root;	//the searched position with its history, the window replays moves on copies for the move names
-	int depth = 0;	//plies, as requested
+	int depth = 0;	//plies, as requested: the horizon
+	int quiescenceDepth = 0;	//plies of captures the engine may play out behind the horizon, 0 = off
 	std::vector<Move> rootMoves;	//the root moves this search looks at, empty: all legal ones
 	std::vector<SearchTreeNode> nodes;	//parents before their children, children in search order
 	std::vector<std::int32_t> currentPath;	//recorded nodes from the root to where the engine is right now (empty when done)
@@ -55,7 +57,8 @@ struct SearchSnapshot {
 
 //the GUI's SearchObserver: writes down what the engine searches, for the search window
 //
-//what is recorded: every node of the first ALWAYS_RECORDED_PLY plies, deeper ones while NODE_BUDGET lasts. On top of
+//what is recorded: every node of the first ALWAYS_RECORDED_PLY plies, deeper ones while NODE_BUDGET lasts (quiescence
+//nodes behind the horizon never, they only come in as parts of best lines). On top of
 //that, every recorded node gets its best continuation down to the horizon once it is finished, also where the budget
 //had run out: like an engine's PV table, each frame carries the best line found below it and hands it up when it raises
 //the parent's alpha. So the window can always show each move's best line, and the root's best line is complete.
@@ -70,7 +73,7 @@ public:
 
 	//engine thread, around Searcher::searchPosition
 	void begin(const BoardState& root, int depth, NodeId origin = ROOT_NODE, unsigned tag = 0,
-		const std::vector<Move>& rootMoves = {});	//rootMoves: only these are searched, empty: all
+		const std::vector<Move>& rootMoves = {}, int quiescenceDepth = 0);	//rootMoves: only these are searched, empty: all
 	void finish(const SearchResult& result);
 
 	//SearchObserver, engine thread
@@ -97,6 +100,7 @@ private:
 		EvalValue beta = 0;
 		std::uint32_t subtreeNodes = 1;
 		std::uint16_t searchedChildren = 0;
+		std::uint16_t order = 0;
 		int lineLength = 0;
 		std::array<LineEntry, MAX_LINE> line;	//best continuation below it so far
 	};
@@ -110,6 +114,7 @@ private:
 	int top = -1;
 	BoardState root;
 	int depth = 0;
+	int quiescenceDepth = 0;
 	int deepestPly = 0;
 	std::uint64_t totalNodes = 0;
 	bool truncated = false;

@@ -22,7 +22,9 @@ class SearchTreeModel;
 //	fill		evaluation from white's view, black <-> white
 //	outline		what the move turned out to be: caused a cutoff, cut short, raised alpha, failed low, still searching
 //	edges		get thicker the more nodes were searched below them
-//	columns		one lane per ply, the last one is the search horizon where positions are evaluated
+//	columns		one lane per ply up to the search horizon (dashed line) where positions are evaluated; behind it,
+//				barely visible, the captures the quiescence search played out on the shown lines
+//	order		a faint bar on a move's left edge: the brighter, the earlier the engine's move ordering tried it
 //
 //the layout holds still while the engine searches, so it can be watched:
 //	every root move gets a band of rows, top to bottom in search order (like the strip above); all bands exist from the
@@ -31,7 +33,8 @@ class SearchTreeModel;
 //	for the root move's other replies: a few on their own (with their best lines) and a group symbol for the rest. The
 //	MAX_LINES lines are split evenly between the bands once, when the search starts.
 //	Things only move when the user opens or folds something, and once when the search is done: rows that stayed empty
-//	are dropped and the view is framed again.
+//	are dropped and the view is framed again. The frame is set by the full search only; when quiescence lines reach
+//	past the right edge, the view slides left (never zooms) as far as the root stays visible.
 //Clicking a group opens it, the "fold" symbol closes it again, the "+N" badge shows a move's other replies.
 //Clicking a move asks to play the line up to it (see nodeActivated).
 //wheel zooms (with Shift only the rows), dragging pans, F fits everything, + / - switch between one and two plies
@@ -104,6 +107,7 @@ private:
 	void startFrames();
 	void onFrame();
 	void computeFit(QPointF& center, QPointF& scale) const;
+	qreal getSlideCenterX(qreal centeredX, qreal zoomX) const;	//centeredX moved left as far as quiescence needs and the root allows
 	QPointF toScreen(QPointF treePoint) const;
 	QPointF toTree(QPointF screenPoint) const;
 	int findItemAt(QPointF screenPoint) const;
@@ -126,7 +130,9 @@ private:
 	std::vector<Item> items;	//items[0] is the root, parents before children
 	int rowCount = 0;
 	std::unordered_map<int, int> itemOfNode;	//shown moves
-	treeLayout::Bounds bounds;
+	treeLayout::Bounds bounds;	//maxColumn includes quiescence
+	int mainMaxColumn = 0;	//deepest column up to the horizon
+	int quiescenceMaxColumn = 0;	//deepest quiescence column shown, 0 if none
 	qreal moveProgress = 1;
 	QElapsedTimer moveClock;
 

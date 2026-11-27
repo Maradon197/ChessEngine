@@ -61,9 +61,14 @@ SearchTreeModel::SearchTreeModel(std::shared_ptr<const SearchSnapshot> newSnapsh
 			bestChildren[parent] = child;
 		}
 	}
+	//the best line is cut at the horizon: what quiescence plays out behind it is kept apart, it isn't searched fully
 	if (count > 0) {
 		onBestLine[0] = true;
 		for (int index = bestChildren[0]; index >= 0; index = bestChildren[static_cast<std::size_t>(index)]) {
+			if (isQuiescence(index)) {
+				quiescenceTail.push_back(index);
+				continue;
+			}
 			bestLine.push_back(index);
 			onBestLine[static_cast<std::size_t>(index)] = true;
 		}
@@ -120,7 +125,11 @@ int SearchTreeModel::getSkippedMoves(int index) const {
 }
 
 bool SearchTreeModel::isLeaf(int index) const {
-	return getNode(index).ply >= snapshot->depth;
+	return getNode(index).ply == snapshot->depth;
+}
+
+bool SearchTreeModel::isQuiescence(int index) const {
+	return getNode(index).ply > snapshot->depth;
 }
 
 bool SearchTreeModel::isTerminal(int index) const {

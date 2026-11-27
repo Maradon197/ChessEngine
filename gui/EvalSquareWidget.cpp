@@ -5,6 +5,7 @@
 #include <cmath>
 #include <vector>
 
+#include <QFontMetricsF>
 #include <QLinearGradient>
 #include <QPainter>
 #include <QPainterPath>
@@ -37,7 +38,14 @@ constexpr float TILT_STRENGTH = 18.0f;
 
 constexpr qreal PADDING = 12;
 constexpr qreal HEADER_HEIGHT = 22;
-constexpr qreal LEGEND_HEIGHT = 26;
+constexpr qreal SCORE_HEIGHT = 34;	//the score tab under the map
+constexpr qreal SCORE_SPACE = SCORE_HEIGHT + 6;
+constexpr qreal SCORE_MIN_WIDTH = 104;
+constexpr int SCORE_EASE_DURATION = 260;
+//same curve lichess uses for its eval bar: centipawns to white's winning share; capped so full colour means mate
+constexpr double WIN_CHANCE_SLOPE = 0.00368208;
+constexpr double MIN_SHARE = 0.04;
+const QString MINUS_SIGN = QString::fromUtf8("−");
 constexpr qreal CARD_RADIUS = 12;
 constexpr qreal MAP_RADIUS = 6;
 constexpr int GRID_ALPHA = 70;
@@ -99,7 +107,48 @@ EvalSquareWidget::EvalSquareWidget(Doorman& doorman, QWidget* parent)
 		fadeProgress = value.toReal();
 		update();
 	});
+	scoreText = QString::fromUtf8("–");
+	scoreEase = new QVariantAnimation(this);
+	scoreEase->setDuration(SCORE_EASE_DURATION);
+	scoreEase->setEasingCurve(QEasingCurve::OutCubic);
+	connect(scoreEase, &QVariantAnimation::valueChanged, this, [this](const QVariant& value) {
+		scoreShare = value.toReal();
+		update();
+	});
 	doorman.attach(*this);
+}
+
+void EvalSquareWidget::setOverallCentipawns(int centipawns) {
+	const QString magnitude = QString::number(std::abs(centipawns) / 100.0, 'f', 2);
+	const QString sign = centipawns > 0 ? "+" : centipawns < 0 ? MINUS_SIGN : "";
+	const double share = 1.0 / (1.0 + std::exp(-WIN_CHANCE_SLOPE * centipawns));
+	setScore(sign + magnitude, std::clamp(share, MIN_SHARE, 1 - MIN_SHARE));
+}
+
+void EvalSquareWidget::setOverallMate(int movesToMate) {
+	const QString text = movesToMate == 0 ? QStringLiteral("#")
+		: "#" + (movesToMate < 0 ? MINUS_SIGN : QString()) + QString::number(std::abs(movesToMate));
+	setScore(text, movesToMate == 0 ? 0.5 : movesToMate > 0 ? 1.0 : 0.0);
+}
+
+void EvalSquareWidget::clearOverall() {
+	scoreEase->stop();
+	hasScore = false;
+	scoreShare = 0.5;
+	scoreText = QString::fromUtf8("–");
+	update();
+}
+
+void EvalSquareWidget::setScore(const QString& text, qreal share) {
+	scoreEase->stop();
+	scoreEase->setStartValue(hasScore ? scoreShare : 0.5);
+	scoreEase->setEndValue(share);
+	scoreEase->start();
+	hasScore = true;
+	scoreText = text;
+	setToolTip(tr("Board control: the brighter an area, the more it belongs to white; the darker, the more to black.\n"
+		"Below it the overall score, %1 from white's view, shaded the same way.").arg(text));
+	update();
 }
 
 void EvalSquareWidget::setValues(const SquareValues& values, float balance) {
@@ -186,7 +235,7 @@ bool EvalSquareWidget::hasHeightForWidth() const {
 }
 
 int EvalSquareWidget::heightForWidth(int width) const {
-	return static_cast<int>(std::ceil(PADDING + HEADER_HEIGHT + getMapSide(width) + LEGEND_HEIGHT + PADDING * 0.5));
+	return static_cast<int>(std::ceil(PADDING + HEADER_HEIGHT + getMapSide(width) + SCORE_SPACE + PADDING * 0.5));
 }
 
 QSize EvalSquareWidget::sizeHint() const {
@@ -198,7 +247,7 @@ QSize EvalSquareWidget::minimumSizeHint() const {
 }
 
 QRectF EvalSquareWidget::getMapRect() const {
-	const qreal side = std::min(getMapSide(width()), height() - PADDING * 1.5 - HEADER_HEIGHT - LEGEND_HEIGHT);
+	const qreal side = std::min(getMapSide(width()), height() - PADDING * 1.5 - HEADER_HEIGHT - SCORE_SPACE);
 	return {(width() - side) / 2, PADDING + HEADER_HEIGHT, side, side};
 }
 
@@ -232,6 +281,25 @@ void EvalSquareWidget::paintEvent(QPaintEvent* event) {
 	QPainterPath mapShape;
 	mapShape.addRoundedRect(mapRect, MAP_RADIUS, MAP_RADIUS);
 
+	//the score tab hangs from the map's bottom edge: square top corners, one outline around both
+	const QRectF scoreRect = getScoreRect(mapRect);
+	QPainterPath tabShape;
+	tabShape.addRoundedRect(scoreRect, MAP_RADIUS, MAP_RADIUS);
+	QPainterPath tabTop;
+	tabTop.addRect(scoreRect.adjusted(0, -2, 0, -scoreRect.height() / 2));
+	tabShape = tabShape.united(tabTop);
+	const int scoreGrey = toPerceivedGrey(static_cast<float>(scoreShare));
+	const QColor scoreFill = hasScore ? QColor(scoreGrey, scoreGrey, scoreGrey) : colors.color(QPalette::Base);
+	painter.setPen(Qt::NoPen);
+	painter.setBrush(scoreFill);
+	painter.drawPath(tabShape);
+	QFont scoreFont = font();
+	scoreFont.setBold(true);
+	scoreFont.setPointSizeF(scoreFont.pointSizeF() * 1.45);
+	painter.setFont(scoreFont);
+	painter.setPen(!hasScore ? colors.color(QPalette::Text) : scoreGrey > 140 ? QColor(25, 25, 28) : QColor(238, 238, 240));
+	painter.drawText(scoreRect.adjusted(0, 1, 0, 0), Qt::AlignCenter, scoreText);
+
 	painter.save();
 	painter.setClipPath(mapShape);
 	if (hasValues) {
@@ -258,7 +326,7 @@ void EvalSquareWidget::paintEvent(QPaintEvent* event) {
 
 	painter.setPen(QPen(colors.color(QPalette::Text), 1));
 	painter.setBrush(Qt::NoBrush);
-	painter.drawPath(mapShape);
+	painter.drawPath(mapShape.united(tabShape));
 
 	if (!hasValues) {
 		QFont dashFont = font();
@@ -274,6 +342,15 @@ QPixmap EvalSquareWidget::getScaled(const QImage& image, const QSize& target) co
 	QPixmap scaled = QPixmap::fromImage(oriented.scaled(target, Qt::IgnoreAspectRatio, Qt::SmoothTransformation));
 	scaled.setDevicePixelRatio(devicePixelRatioF());
 	return scaled;
+}
+
+//centered under the map, as wide as the score needs
+QRectF EvalSquareWidget::getScoreRect(const QRectF& mapRect) const {
+	QFont scoreFont = font();
+	scoreFont.setBold(true);
+	scoreFont.setPointSizeF(scoreFont.pointSizeF() * 1.45);
+	const qreal width = std::min(mapRect.width(), std::max(SCORE_MIN_WIDTH, QFontMetricsF(scoreFont).horizontalAdvance(scoreText) + 32));
+	return {mapRect.center().x() - width / 2, mapRect.bottom() - 0.5, width, SCORE_HEIGHT};
 }
 
 void EvalSquareWidget::paintGrid(QPainter& painter, const QRectF& mapRect) const {

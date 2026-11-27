@@ -23,6 +23,7 @@
 #include "LegalMoveGenerator.hpp"
 #include "Evaluator.hpp"
 #include <optional>
+#include <algorithm>
 
 class SearchObserver;
 
@@ -42,6 +43,7 @@ struct SearchLimits {
 	uint64_t maxNodes = NO_SEARCH_NODE_LIMIT;
 
 	static constexpr int MAX_QUIESCENCE_DEPTH = MAX_DEPTH;
+	static constexpr int DEFAULT_QUIESCENCE_DEPTH = 6;
 	static constexpr EvalValue NOISY_MOVE_MINIMUM_DELTA = 0.51f;
 };
 
@@ -68,6 +70,7 @@ class Searcher {
 private:
 	bool stopSearchFlag;
 	SearchObserver* observer = nullptr;	//optional, see SearchObserver.hpp
+	int maxQuiescenceDepth = SearchLimits::DEFAULT_QUIESCENCE_DEPTH;	//plies of captures after the horizon, 0 = off
 	SearchLimits limits;
 	BoardState board;
 	LegalMoveGenerator generator;
@@ -78,6 +81,7 @@ private:
 public:
 	void setStopSearchFlag();
 	void setObserver(SearchObserver* new_observer) { observer = new_observer; }	//nullptr: nobody watches; only set while not searching
+	void setMaxQuiescenceDepth(int depth) { maxQuiescenceDepth = std::clamp(depth, 0, SearchLimits::MAX_QUIESCENCE_DEPTH); }	//only set while not searching
 	SearchResult searchPosition(BoardState& board, LegalMoveGenerator& gen, 
 		Evaluator& eval, int depth, int64_t max_time_ms);
 };

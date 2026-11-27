@@ -8,6 +8,7 @@ class KeyBindings;
 class QCheckBox;
 class QLabel;
 class SearchRecorder;
+class SearchSettingsWidget;
 class SearchStatusLine;
 class QScrollArea;
 class QVariantAnimation;
@@ -23,6 +24,7 @@ public:
 	bool isShown() const;
 
 	int getSearchDepth() const;	//how deep the engine analyses every position, in plies
+	int getQuiescenceDepth() const;	//plies of captures behind that, 0 = off
 	bool isEngineArrowShown() const;	//the engine draws its best move
 
 	void setSearchRecorder(SearchRecorder& recorder);
@@ -30,6 +32,7 @@ public:
 
 signals:
 	void searchDepthChanged(int depth);
+	void quiescenceDepthChanged(int depth);
 	void engineArrowShownChanged(bool shown);
 
 protected:
@@ -38,13 +41,10 @@ protected:
 private:
 	void applyProgress();
 
-	void setSearchDepth(int depth);	//slider moved: shown, kept in the settings, announced
-
 	QScrollArea* content = nullptr;
-	QLabel* depthValue = nullptr;
+	SearchSettingsWidget* searchSettings = nullptr;
 	QCheckBox* engineArrow = nullptr;
 	SearchStatusLine* searchStatus = nullptr;
-	int searchDepth = 4;	//keeps its full width while the sidebar narrows, so nothing reflows mid-slide
 	QVariantAnimation* slide = nullptr;
 	qreal progress = 1;
 	bool shown = true;

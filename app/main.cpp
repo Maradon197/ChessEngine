@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <array>
 #include <bit>
 #include <cmath>
 #include <cstdint>
@@ -33,6 +34,7 @@
 #include "Evaluator.hpp"
 #include "Searcher.hpp"
 #include "SearchRecorder.hpp"
+#include "SearchTreeModel.hpp"
 
 //temporary includes -----------------
 
@@ -56,9 +58,14 @@ void replayMoves(BoardState& board, const std::vector<Move>& moves) {
 	}
 }
 
+struct ControlValues {
+	SquareValues values{};
+	float balance = 0;
+};
+
 //placeholder: generate simple values for the eval square (piece value + weighted attacks)
-//to be replaced by a similar concept but using the engine searches best move line
-void showDemoValues(Doorman& doorman, BoardState& board, LegalMoveGenerator& generator) {
+//blended along the engine's best line by showBestLineValues()
+ControlValues computeControlValues(BoardState& board, LegalMoveGenerator& generator) {
 	constexpr float PIECE_VALUES[] = {2, 5, 6, 10, 18};
 	const Position position = board.getPosition();	//copy: the generator makes and unmakes moves on board
 	SquareValues values{};
@@ -109,7 +116,63 @@ void showDemoValues(Doorman& doorman, BoardState& board, LegalMoveGenerator& gen
 	const float total = material[WHITE] + material[BLACK];
 	const float relative = total > 0 ? (material[WHITE] - material[BLACK]) / total : 0.0f;
 	const float emptiness = 1 - std::min(total / START_MATERIAL, 1.0f);
-	doorman.setSquareValues(values, relative * (1 + ENDGAME_BOOST * emptiness));
+	return {values, relative * (1 + ENDGAME_BOOST * emptiness)};
+}
+
+void showDemoValues(Doorman& doorman, BoardState& board, LegalMoveGenerator& generator) {
+	const ControlValues control = computeControlValues(board, generator);
+	doorman.setSquareValues(control.values, control.balance);
+}
+
+//the board control map with the next plies of the engine's best line (quiescence captures included) mixed in, so a
+//piece that is about to be taken already fades out. Nothing is searched or evaluated for this: each position on the
+//line gets the same vector as the current one, the vectors are averaged with these weights, then drawn as usual
+//	PLY_WEIGHTS[k]		the position after k plies of the line, k = 0 is the one on the board
+//	QUIET_FACTOR		a later position counts this much less as long as no capture happened on the way there:
+//						quiet plans of the engine shouldn't repaint the board, exchanges should
+//	UNSETTLED_FACTOR	a position whose next move on the line is a capture is mid-exchange and counts this much less,
+//						the position after the capture takes over
+//e.g. QxQ with the recapture coming: the current map only keeps ~25%, the queen's area turns to the recapturing side
+//e.g. a quiet line: the current map keeps ~75%
+void showBestLineValues(Doorman& doorman, const std::shared_ptr<const SearchSnapshot>& snapshot, const LegalMoveGenerator& generator) {
+	constexpr std::array<float, 4> PLY_WEIGHTS = {1.0f, 0.55f, 0.3f, 0.2f};
+	constexpr float QUIET_FACTOR = 0.35f;
+	constexpr float UNSETTLED_FACTOR = 0.35f;
+
+	const SearchTreeModel model(snapshot, nullptr);
+	std::vector<Move> line;
+	for (const std::vector<int>* part : {&model.getBestLine(), &model.getQuiescenceTail()}) {
+		for (int node : *part) {
+			if (line.size() + 1 < PLY_WEIGHTS.size()) {
+				line.push_back(model.getNode(node).move);
+			}
+		}
+	}
+
+	BoardState board = snapshot->root;
+	LegalMoveGenerator lineGenerator = generator;
+	ControlValues mixed;
+	float totalWeight = 0;
+	bool captured = false;	//a capture happened between the board and this position
+	for (std::size_t ply = 0; ply <= line.size(); ++ply) {
+		float weight = PLY_WEIGHTS[ply];
+		if (ply > 0 && !captured) weight *= QUIET_FACTOR;
+		if (ply < line.size() && moveBits::isCapture(line[ply])) weight *= UNSETTLED_FACTOR;
+
+		const ControlValues control = computeControlValues(board, lineGenerator);
+		for (std::size_t square = 0; square < control.values.size(); ++square) {
+			mixed.values[square] += weight * control.values[square];
+		}
+		mixed.balance += weight * control.balance;
+		totalWeight += weight;
+
+		if (ply < line.size()) {
+			captured = captured || moveBits::isCapture(line[ply]);
+			board.makeMove(line[ply]);
+		}
+	}
+	for (float& value : mixed.values) value /= totalWeight;
+	doorman.setSquareValues(mixed.values, mixed.balance / totalWeight);
 }
 
 int criterionSquaresFromEvalValue(EvalValue score) {
@@ -343,9 +406,11 @@ int main(int argc, char* argv[]) {
 		const int depth = purpose == SearchPurpose::PLAY ? window.getPlayDepth() : window.getAnalysisDepth();
 		const NodeId origin = doorman.getCurrentTreeNode();
 		searchedCandidates = purpose == SearchPurpose::ANALYSIS ? getCandidates() : std::vector<Move>{};
-		searchThread = std::thread([&, version, depth, origin, purpose, candidates = searchedCandidates,
+		const int quiescenceDepth = purpose == SearchPurpose::PLAY ? window.getPlayQuiescenceDepth() : window.getAnalysisQuiescenceDepth();
+		searcher.setMaxQuiescenceDepth(quiescenceDepth);
+		searchThread = std::thread([&, version, depth, quiescenceDepth, origin, purpose, candidates = searchedCandidates,
 			boardCopy = board, generatorCopy = legalMoveGenerator, evaluatorCopy = evaluator]() mutable {
-			searchRecorder.begin(boardCopy, depth, origin, version, candidates);
+			searchRecorder.begin(boardCopy, depth, origin, version, candidates, quiescenceDepth);
 			const SearchResult result = candidates.empty()
 				? searcher.searchPosition(boardCopy, generatorCopy, evaluatorCopy, depth, SearchLimits::NO_SEARCH_TIME_LIMIT)
 				: searchCandidates(searcher, searchRecorder, boardCopy, generatorCopy, evaluatorCopy, depth, candidates);
@@ -363,6 +428,11 @@ int main(int argc, char* argv[]) {
 					showSearchScore(doorman, result.evaluation, board.getPosition().side_to_move);
 					scoreVersion = version;
 					showEngineArrow(result.bestMove);
+					//the board control map looks a few plies down the best line now
+					const std::shared_ptr<const SearchSnapshot> snapshot = searchRecorder.takeSnapshot(0);
+					if (snapshot && snapshot->finished && snapshot->tag == version) {
+						showBestLineValues(doorman, snapshot, legalMoveGenerator);
+					}
 				}
 				//outdated (position or view changed meanwhile), no move at all, or an analysis
 				if (getViewPurpose() == SearchPurpose::PLAY || purpose == SearchPurpose::PLAY) {
@@ -439,6 +509,10 @@ int main(int argc, char* argv[]) {
 	});
 
 	QObject::connect(&window, &MainWindow::analysisDepthChanged, &doorman, [&](int) {
+		++positionVersion;
+		requestSearch();
+	});
+	QObject::connect(&window, &MainWindow::analysisQuiescenceDepthChanged, &doorman, [&](int) {
 		++positionVersion;
 		requestSearch();
 	});

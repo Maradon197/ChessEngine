@@ -142,15 +142,15 @@ void Doorman::clearEngineAnnotations() {
 }
 
 void Doorman::setOverallCentipawns(int centipawns) {
-	runInGuiThread([this, centipawns] { if (evalCriteria) evalCriteria->setOverallCentipawns(centipawns); });
+	runInGuiThread([this, centipawns] { if (evalSquare) evalSquare->setOverallCentipawns(centipawns); });
 }
 
 void Doorman::setOverallMate(int movesToMate) {
-	runInGuiThread([this, movesToMate] { if (evalCriteria) evalCriteria->setOverallMate(movesToMate); });
+	runInGuiThread([this, movesToMate] { if (evalSquare) evalSquare->setOverallMate(movesToMate); });
 }
 
 void Doorman::clearOverallEval() {
-	runInGuiThread([this] { if (evalCriteria) evalCriteria->clearOverall(); });
+	runInGuiThread([this] { if (evalSquare) evalSquare->clearOverall(); });
 }
 
 void Doorman::setGameStatus(GameStatus status) {
@@ -163,9 +163,9 @@ void Doorman::setGameStatus(GameStatus status) {
 	const bool isOver = status.result != GameResult::NONE;
 	runInGuiThread([this, status, wasOver, isOver] {
 		if (board) board->setInteractive(!isOver);
-		if (!evalCriteria) return;
-		if (status.reason == GameEndingReason::CHECKMATE) evalCriteria->setOverallMate(0);
-		else if (wasOver) evalCriteria->clearOverall();	//e.g. stepped back in the tree from a finished game
+		if (!evalSquare) return;	//the overall score sits under the board control map
+		if (status.reason == GameEndingReason::CHECKMATE) evalSquare->setOverallMate(0);
+		else if (wasOver) evalSquare->clearOverall();	//e.g. stepped back in the tree from a finished game
 	});
 }
 

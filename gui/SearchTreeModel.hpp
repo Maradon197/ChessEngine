@@ -36,12 +36,14 @@ public:
 	SearchNodeKind getKind(int index) const { return kinds[static_cast<std::size_t>(index)]; }
 	bool isCutShort(int index) const;	//one of its moves caused a beta cutoff, the moves after it were never searched
 	int getSkippedMoves(int index) const;	//how many moves that cutoff skipped, -1 if unknown
-	bool isLeaf(int index) const;		//at the search depth: evaluated, not searched further
+	bool isLeaf(int index) const;		//at the search depth (the horizon): evaluated, only captures may follow
+	bool isQuiescence(int index) const;	//behind the horizon: a capture played out by the quiescence search
 	bool isTerminal(int index) const;	//finished before the depth without a move: mate or stalemate
 	bool hasAllChildrenRecorded(int index) const;
 	int getBestChild(int index) const;	//the move it currently prefers, -1 if none
-	const std::vector<int>& getBestLine() const { return bestLine; }	//from the root's best move on
-	bool isOnBestLine(int index) const { return onBestLine[static_cast<std::size_t>(index)]; }
+	const std::vector<int>& getBestLine() const { return bestLine; }	//from the root's best move on, ends at the horizon
+	const std::vector<int>& getQuiescenceTail() const { return quiescenceTail; }	//the captures after that, if any
+	bool isOnBestLine(int index) const { return onBestLine[static_cast<std::size_t>(index)]; }	//up to the horizon
 	bool isOnCurrentPath(int index) const { return onCurrentPath[static_cast<std::size_t>(index)]; }
 	std::uint32_t getMaxSubtree() const { return maxSubtree; }	//biggest subtree below the root's children
 
@@ -72,6 +74,7 @@ private:
 	std::vector<SearchNodeKind> kinds;
 	std::vector<int> bestChildren;
 	std::vector<int> bestLine;
+	std::vector<int> quiescenceTail;
 	std::vector<bool> onBestLine;
 	std::vector<bool> onCurrentPath;
 	std::vector<RootMove> rootMoves;

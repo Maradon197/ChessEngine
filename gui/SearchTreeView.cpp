@@ -31,6 +31,13 @@ constexpr int MOVE_DURATION = 280;	//ms, items glide to their new place
 constexpr qreal VIEW_EASING = 0.22;	//share of the way the view moves per frame
 constexpr int GROUP_TIP_MOVES = 14;	//moves listed in a group's tooltip
 const char* const EXPAND_KEY = "searchWindow/expandPlies";
+constexpr qreal QUIESCENCE_PEEK = 1.0;	//columns kept free for quiescence when framing, so a slide has room
+constexpr qreal QUIESCENCE_OPACITY = 0.22;	//quiescence moves are only a hint
+constexpr qreal ROOT_MARGIN = 14;	//screen pixels the root keeps from the left edge when the view slides
+//the search window shows the root moves in search order, but the searcher doesn't order them yet (only below the
+//root): until it does, the order bar would claim a preference that isn't there, so it starts one ply deeper
+constexpr bool ROOT_MOVES_ORDERED = false;
+constexpr qreal ORDER_FALLOFF = 2.2;	//the order bar's strength is exp(-order / ORDER_FALLOFF): 1, 0.63, 0.40, 0.26, ...
 
 const QColor CUTOFF_COLOR(245, 166, 35);
 const QColor BEST_COLOR(80, 200, 140);
@@ -65,6 +72,14 @@ qreal easeOut(qreal t) {
 	return 1 - std::pow(1 - t, 3);
 }
 
+//how strongly the move ordering preferred a move, 0 where it says nothing
+qreal getOrderStrength(const SearchTreeNode& node) {
+	if (node.ply == 0 || (node.ply == 1 && !ROOT_MOVES_ORDERED)) {
+		return 0;
+	}
+	return std::exp(-node.order / ORDER_FALLOFF);
+}
+
 } // !namespace
 
 SearchTreeView::SearchTreeView(QWidget* parent)
@@ -92,7 +107,11 @@ void SearchTreeView::setModel(std::shared_ptr<const SearchTreeModel> newModel) {
 		emit followingChanged(true);
 	}
 	rebuildDisplay(sameSearch);
-	//the frame is set when the search starts and again when it is done, not while it runs
+	//the frame is set when the search starts and again when it is done, not while it runs; in between the view only
+	//slides left when quiescence lines need the room, never back and without zooming
+	if (sameSearch && !justFinished && following) {
+		targetCenter.setX(std::max(targetCenter.x(), getSlideCenterX(targetCenter.x(), targetZoom.x())));
+	}
 	if (!sameSearch || (justFinished && following)) {
 		QPointF center;
 		QPointF fitZoom;
@@ -127,6 +146,9 @@ int SearchTreeView::getContinuation(int node) const {
 	const int best = model->getBestChild(node);
 	if (best >= 0) {
 		return best;
+	}
+	if (model->getNode(node).ply >= model->getSnapshot().depth) {
+		return -1;	//quiescence only shows up once it is settled, it would flicker otherwise
 	}
 	const int last = model->getLastChild(node);	//nothing better yet: the move being searched shows where the engine is
 	return last >= 0 && !model->getNode(last).finished ? last : -1;
@@ -281,17 +303,24 @@ void SearchTreeView::rebuildDisplay(bool animate) {
 			continue;
 		}
 		const int shown = accounted[static_cast<std::size_t>(item.node)];
-		item.hidden = item.node == 0 ? 0 : static_cast<int>(model->getNode(item.node).searchedChildren) - shown;
-		item.hiddenRecorded = item.node == 0 ? 0 : model->getChildCount(item.node) - shown;
+		const bool noBadge = item.node == 0 || item.ply >= model->getSnapshot().depth;	//behind the horizon: only captures, not worth a badge
+		item.hidden = noBadge ? 0 : static_cast<int>(model->getNode(item.node).searchedChildren) - shown;
+		item.hiddenRecorded = noBadge ? 0 : model->getChildCount(item.node) - shown;
 	}
 
-	int maxPly = model->getSnapshot().depth;
+	const int depth = model->getSnapshot().depth;
+	mainMaxColumn = depth;
+	quiescenceMaxColumn = 0;
 	for (const Item& item : items) {
-		maxPly = std::max(maxPly, item.ply);
+		if (item.ply > depth) {
+			quiescenceMaxColumn = std::max(quiescenceMaxColumn, item.ply);
+		} else {
+			mainMaxColumn = std::max(mainMaxColumn, item.ply);
+		}
 	}
 	bounds.minRow = 0;
 	bounds.maxRow = std::max(0, rowCount - 1);
-	bounds.maxColumn = maxPly;
+	bounds.maxColumn = std::max(mainMaxColumn, quiescenceMaxColumn);
 
 	//things keep their place; only what changed place (folding, the end of the search) glides there
 	for (Item& item : items) {
@@ -306,15 +335,31 @@ void SearchTreeView::rebuildDisplay(bool animate) {
 	emit displayChanged();
 }
 
+//framed by the full search (up to the horizon) plus a little room for quiescence; deeper quiescence slides the view
 void SearchTreeView::computeFit(QPointF& center, QPointF& fitZoom) const {
 	const QRectF area(-BOX_WIDTH / 2, bounds.minRow * ROW_HEIGHT - BOX_HEIGHT / 2,
-		bounds.maxColumn * COLUMN_WIDTH + BOX_WIDTH + 40, (bounds.maxRow - bounds.minRow) * ROW_HEIGHT + BOX_HEIGHT);
+		mainMaxColumn * COLUMN_WIDTH + BOX_WIDTH + 40, (bounds.maxRow - bounds.minRow) * ROW_HEIGHT + BOX_HEIGHT);
+	const bool quiescence = model && model->getSnapshot().quiescenceDepth > 0;
+	const qreal peek = quiescence ? QUIESCENCE_PEEK * COLUMN_WIDTH : 0;
 	const qreal width = std::max(50.0, static_cast<qreal>(this->width()) - 60);
 	const qreal height = std::max(50.0, static_cast<qreal>(this->height()) - HEADER_HEIGHT - 40);
-	const qreal zoomX = std::clamp(width / area.width(), MIN_ZOOM, 1.2);
+	const qreal zoomX = std::clamp(width / (area.width() + peek), MIN_ZOOM, 1.2);
 	const qreal zoomY = std::clamp(height / area.height(), MIN_ZOOM, zoomX);	//rows never taller than the boxes are wide
 	fitZoom = {zoomX, zoomY};
 	center = area.center() - QPointF(0, HEADER_HEIGHT / 2 / zoomY);
+	center.setX(getSlideCenterX(center.x(), zoomX));
+}
+
+qreal SearchTreeView::getSlideCenterX(qreal centeredX, qreal zoomX) const {
+	if (quiescenceMaxColumn <= 0 || zoomX <= 0) {
+		return centeredX;
+	}
+	const qreal halfView = width() / 2.0 / zoomX;
+	const qreal neededRight = quiescenceMaxColumn * COLUMN_WIDTH + BOX_WIDTH / 2 + 20 / zoomX;
+	const qreal rootLeft = -BOX_WIDTH / 2 - ROOT_MARGIN / zoomX;
+	const qreal wanted = neededRight - halfView;	//the deepest quiescence column at the right edge
+	const qreal limit = rootLeft + halfView;	//the root at the left edge
+	return std::max(centeredX, std::min(wanted, limit));
 }
 
 void SearchTreeView::fitToView() {
@@ -663,10 +708,18 @@ void SearchTreeView::showItemTip(int index, QPoint globalPos) {
 		text += "<br>" + tr("<span style='color:%1'><b>Cut short:</b></span> %2 refutes it, so %3 other replies were skipped.")
 			.arg(CUTOFF_COLOR.name(), tree.getMoveName(tree.getLastChild(node)).toHtmlEscaped()).arg(skipped);
 	}
-	if (tree.isLeaf(node)) {
-		text += "<br>" + tr("At the search horizon: evaluated directly, not searched further.");
+	if (tree.isQuiescence(node)) {
+		text += "<br>" + tr("<b>Behind the horizon:</b> a capture the quiescence search played out, so the score doesn't "
+			"stop in the middle of an exchange. Only captures are looked at here, nothing else.");
+	} else if (tree.isLeaf(node)) {
+		text += "<br>" + (tree.getSnapshot().quiescenceDepth > 0
+			? tr("At the search horizon: evaluated here, only captures are played out after it.")
+			: tr("At the search horizon: evaluated directly, not searched further."));
 	} else if (tree.isTerminal(node)) {
 		text += "<br>" + tr("No legal moves: the game ends here.");
+	}
+	if (const qreal strength = getOrderStrength(data); strength > 0) {
+		text += "<br><span style='color:gray'>" + tr("Move ordering tried it as move %1 here.").arg(data.order + 1) + "</span>";
 	}
 	if (node > 0) {
 		const float alpha = -data.beta;	//the window from the mover's view, as the parent had it
@@ -717,7 +770,9 @@ void SearchTreeView::paintLanes(QPainter& painter) const {
 		const qreal left = toScreen({(ply - 0.5) * COLUMN_WIDTH, 0}).x();
 		const qreal right = toScreen({(ply + 0.5) * COLUMN_WIDTH, 0}).x();
 		const QRectF lane(left, 0, right - left, height());
-		if (ply % 2 == 1) {
+		if (ply > snapshot.depth) {
+			painter.fillRect(lane, withAlpha(palette().color(QPalette::Window), 120));	//quiescence: dimmed, outside the real search
+		} else if (ply % 2 == 1) {
 			painter.fillRect(lane, withAlpha(text, 10));
 		}
 		if (!snapshot.finished && ply == snapshot.currentPly) {
@@ -754,9 +809,13 @@ void SearchTreeView::paintLaneHeaders(QPainter& painter) const {
 			if (ply == snapshot.depth && right - left >= 150) {
 				label += tr(" · horizon");
 			}
+			if (ply > snapshot.depth) {
+				label = right - left < 90 ? QString("+%1").arg(ply - snapshot.depth) : tr("+%1 · captures").arg(ply - snapshot.depth);
+			}
 		}
 		const bool current = !snapshot.finished && ply == snapshot.currentPly;
-		painter.setPen(current ? SEARCHING_COLOR : withAlpha(text, ply == snapshot.depth ? 200 : 140));
+		const int alpha = ply > snapshot.depth ? 70 : ply == snapshot.depth ? 200 : 140;
+		painter.setPen(current ? SEARCHING_COLOR : withAlpha(text, alpha));
 		painter.drawText(QRectF(left, 0, right - left, HEADER_HEIGHT), Qt::AlignCenter, label);
 	}
 	painter.setPen(withAlpha(text, 40));
@@ -776,6 +835,7 @@ void SearchTreeView::paintEdges(QPainter& painter) const {
 		for (std::size_t index = 1; index < items.size(); ++index) {
 			const Item& item = items[index];
 			const bool real = !item.group && !item.placeholder;
+			const bool quiet = real && tree.isQuiescence(item.node);	//behind the horizon: barely there
 			const bool onLine = real && tree.isOnBestLine(item.node);
 			const bool current = real && tree.isOnCurrentPath(item.node);
 			if ((onLine || current) != (pass == 1)) {
@@ -802,7 +862,10 @@ void SearchTreeView::paintEdges(QPainter& painter) const {
 			}
 			const qreal effort = std::log(static_cast<qreal>(std::max<std::uint64_t>(1, effortNodes))) / logMax;
 			const qreal width = (0.7 + 3.6 * std::min<qreal>(effort, 1.2)) * zoomFactor;
-			if (current) {
+			if (quiet) {
+				const bool hovered = static_cast<int>(index) == hoveredItem;
+				painter.setPen(QPen(withAlpha(text, hovered ? 120 : 34), std::min(width, 1.4 * zoomFactor), Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
+			} else if (current) {
 				painter.setPen(QPen(withAlpha(SEARCHING_COLOR, static_cast<int>(120 + 100 * pulse)), width + 1.5, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
 			} else if (onLine) {
 				painter.setPen(QPen(withAlpha(LINE_COLOR, 60), width + 8 * zoomFactor, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
@@ -938,6 +1001,27 @@ void SearchTreeView::paintItems(QPainter& painter) const {
 		const bool cutShort = tree.isCutShort(node);
 		const QColor fill = getFill(tree, node);
 
+		if (tree.isQuiescence(node)) {	//a capture behind the horizon: grey, thin, nearly transparent, no badges
+			painter.setOpacity(hovered ? 0.85 : QUIESCENCE_OPACITY);
+			painter.setPen(QPen(withAlpha(text, 120), 1, Qt::DotLine));
+			painter.setBrush(fill);
+			if (!boxes) {
+				painter.setPen(Qt::NoPen);
+				painter.drawEllipse(center, 1.8, 1.8);
+				continue;
+			}
+			painter.drawRoundedRect(box, 2 * textZoom, 2 * textZoom);
+			if (detailed) {
+				const QColor ink = fill.lightness() > 140 ? QColor(25, 25, 28) : QColor(238, 238, 240);
+				const QRectF inner = box.adjusted(8 * textZoom, 0, -8 * textZoom, 0);
+				painter.setPen(ink);
+				painter.setFont(scoreFont);
+				painter.drawText(inner, Qt::AlignVCenter | Qt::AlignLeft, tree.getMoveName(node));
+				painter.drawText(inner, Qt::AlignVCenter | Qt::AlignRight, tree.getScoreText(node));
+			}
+			continue;
+		}
+
 		//outline: what the move turned out to be
 		QPen outline(withAlpha(text, 90), 1);
 		qreal opacity = 1;
@@ -978,11 +1062,20 @@ void SearchTreeView::paintItems(QPainter& painter) const {
 		painter.setBrush(fill);
 		const qreal corner = tree.isLeaf(node) ? 2 * textZoom : 6 * textZoom;	//leaves (evaluated at the horizon) are squarer
 		painter.drawRoundedRect(box, corner, corner);
+		const QColor ink = fill.lightness() > 140 ? QColor(25, 25, 28) : QColor(238, 238, 240);
+
+		//move ordering: a short bar inside the left edge, brightest on the move the engine tried first
+		if (const qreal strength = getOrderStrength(tree.getNode(node)); strength > 0.06 && boxWidth >= 30) {
+			const qreal barWidth = std::clamp(3.0 * textZoom, 1.5, 3.5);
+			const QRectF bar(box.left() + std::max(2.0, 3 * textZoom), box.center().y() - boxHeight * 0.3, barWidth, boxHeight * 0.6);
+			painter.setPen(Qt::NoPen);
+			painter.setBrush(withAlpha(ink, static_cast<int>(25 + 140 * strength)));
+			painter.drawRoundedRect(bar, barWidth / 2, barWidth / 2);
+		}
 
 		if (!detailed) {
 			continue;
 		}
-		const QColor ink = fill.lightness() > 140 ? QColor(25, 25, 28) : QColor(238, 238, 240);
 		const QRectF inner = box.adjusted(8 * textZoom, 0, -8 * textZoom, 0);
 		painter.setPen(ink);
 		painter.setFont(nameFont);

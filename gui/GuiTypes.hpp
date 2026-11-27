@@ -50,8 +50,13 @@ enum class ViewMode {ANALYSIS, PLAY};
 
 //how far the engine looks ahead in the play view, in plies (half-moves); chosen on the slider there
 constexpr int MIN_SEARCH_DEPTH = 1;
-constexpr int MAX_SEARCH_DEPTH = 6;
+constexpr int MAX_SEARCH_DEPTH = 10;	//no iterative deepening and no stopping yet: the top end is slow
 constexpr int DEFAULT_SEARCH_DEPTH = 5;
+constexpr int DEFAULT_ANALYSIS_DEPTH = 4;
+//plies of captures behind the horizon (quiescence search), 0 = off
+constexpr int MIN_QUIESCENCE_DEPTH = 0;
+constexpr int MAX_QUIESCENCE_DEPTH = 12;
+constexpr int DEFAULT_QUIESCENCE_DEPTH = 6;	//same as SearchLimits::DEFAULT_QUIESCENCE_DEPTH
 
 //own types so they can't be mixed up with Square and Move
 class Highlight {

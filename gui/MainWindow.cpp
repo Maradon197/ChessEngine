@@ -98,8 +98,12 @@ MainWindow::MainWindow(Doorman& doorman, QWidget* parent)
 		activateWindow();
 	});
 	connect(sidebar, &AnalysisSidebar::searchDepthChanged, this, &MainWindow::analysisDepthChanged);
+	connect(sidebar, &AnalysisSidebar::quiescenceDepthChanged, this, &MainWindow::analysisQuiescenceDepthChanged);
 	connect(sidebar, &AnalysisSidebar::engineArrowShownChanged, this, &MainWindow::engineArrowShownChanged);
-	connect(searchWindow, &SearchWindow::shownChanged, sidebar, [this](bool shown) { sidebar->setSearchStatusShown(!shown); });
+	connect(searchWindow, &SearchWindow::shownChanged, sidebar, [this](bool shown) {
+		sidebar->setSearchStatusShown(!shown);
+		playView->setSearchStatusShown(!shown);
+	});
 
 	//tutorial, over everything else, so it is created last
 	tutorial = new TutorialOverlay(*this, buildTutorialLessons(), [this](TutorialTarget target) { return getTutorialTarget(target); });
@@ -136,6 +140,7 @@ MainWindow::MainWindow(Doorman& doorman, QWidget* parent)
 void MainWindow::setSearchRecorder(SearchRecorder& recorder) {
 	searchWindow->setRecorder(recorder);
 	sidebar->setSearchRecorder(recorder);
+	playView->setSearchRecorder(recorder);
 }
 
 int MainWindow::getPlayDepth() const {
@@ -144,6 +149,14 @@ int MainWindow::getPlayDepth() const {
 
 int MainWindow::getAnalysisDepth() const {
 	return sidebar->getSearchDepth();
+}
+
+int MainWindow::getPlayQuiescenceDepth() const {
+	return playView->getQuiescenceDepth();
+}
+
+int MainWindow::getAnalysisQuiescenceDepth() const {
+	return sidebar->getQuiescenceDepth();
 }
 
 bool MainWindow::isEngineArrowShown() const {

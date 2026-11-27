@@ -4,9 +4,6 @@
 #include <cmath>
 #include <cstdlib>
 
-#include <QFontMetrics>
-#include <QHBoxLayout>
-#include <QLabel>
 #include <QPainter>
 #include <QPainterPath>
 #include <QVBoxLayout>
@@ -29,12 +26,7 @@ constexpr qreal TRACK_GAP = 6;	//between a criterion's name and its track
 constexpr qreal SEGMENT_GAP = 3;
 constexpr qreal SEGMENT_RADIUS = 4;
 
-//same curve lichess uses for its eval bar: centipawns to the share of the bar that is white
-constexpr double WIN_CHANCE_SLOPE = 0.00368208;
-constexpr double MIN_SHARE = 0.04;	//a bar that is completely one color is reserved for mates
-
 const QString MINUS_SIGN = QString::fromUtf8("−");
-const QString DASH = QString::fromUtf8("–");
 
 QString formatSigned(int value) {
 	if (value > 0) {
@@ -118,74 +110,6 @@ protected:
 private:
 	QString title;
 	QColor panelColor;
-};
-
-//one pill, black from the left and white from the right; the split shows who is ahead overall
-class BalanceBar : public QWidget {
-public:
-	explicit BalanceBar(QWidget* parent)
-		: QWidget(parent) {
-		setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
-		easing = makeEasing(this);
-		connect(easing, &QVariantAnimation::valueChanged, this, [this](const QVariant& value) {
-			shownShare = value.toReal();
-			update();
-		});
-	}
-
-	//share of the bar that is white, nullopt: no evaluation
-	void setShare(std::optional<qreal> share) {
-		if (!share) {
-			easing->stop();
-			hasShare = false;
-			shownShare = 0.5;
-			update();
-			return;
-		}
-		easeTo(*easing, hasShare ? shownShare : 0.5, std::clamp(*share, 0.0, 1.0));
-		hasShare = true;
-	}
-
-	QSize sizeHint() const override {
-		return {160, 10};
-	}
-
-protected:
-	void paintEvent(QPaintEvent* event) override {
-		Q_UNUSED(event);
-		QPainter painter(this);
-		painter.setRenderHint(QPainter::Antialiasing);
-		const QPalette& colors = palette();
-		const QRectF pill = QRectF(rect()).adjusted(1, 1, -1, -1);
-		const qreal radius = pill.height() / 2;
-		QPainterPath shape;
-		shape.addRoundedRect(pill, radius, radius);
-
-		if (hasShare) {
-			const qreal split = pill.left() + (1 - shownShare) * pill.width();
-			painter.save();
-			painter.setClipPath(shape);
-			painter.fillRect(QRectF(pill.left(), pill.top(), split - pill.left(), pill.height()), BLACK_SIDE);
-			painter.fillRect(QRectF(split, pill.top(), pill.right() - split, pill.height()), WHITE_SIDE);
-			painter.restore();
-		} else {
-			painter.fillPath(shape, colors.color(QPalette::Window).darker(115));
-		}
-
-		//the middle: equal position
-		const qreal middle = pill.center().x();
-		painter.setPen(QPen(QColor(128, 128, 128, 200), 1.5));
-		painter.drawLine(QPointF(middle, pill.top() + 3), QPointF(middle, pill.bottom() - 3));
-
-		painter.setPen(QPen(withAlpha(colors.color(QPalette::Text), 160), 1));
-		painter.setBrush(Qt::NoBrush);
-		painter.drawPath(shape);
-	}
-
-private:
-	QVariantAnimation* easing = nullptr;
-	qreal shownShare = 0.5;
-	bool hasShare = false;
 };
 
 //one track of three steps: it fills with the color of whoever is ahead on this criterion, empty means equal
@@ -280,24 +204,6 @@ EvalCriteriaWidget::EvalCriteriaWidget(Doorman& doorman, QWidget* parent)
 	layout->setContentsMargins(0, 0, 0, 0);
 	layout->setSpacing(10);
 
-	//overall: number and balance in one slim row, the criteria below carry the weight
-	overallCard = new Card(tr("Overall"), this);
-	auto* overallLayout = new QHBoxLayout(overallCard);
-	overallLayout->setContentsMargins(CARD_PADDING, CARD_PADDING + HEADER_HEIGHT - 6, CARD_PADDING, CARD_PADDING - 2);
-	overallLayout->setSpacing(10);
-
-	overallValueLabel = new QLabel(DASH, overallCard);
-	QFont valueFont = overallValueLabel->font();
-	valueFont.setBold(true);
-	overallValueLabel->setFont(valueFont);
-	overallValueLabel->setMinimumWidth(QFontMetrics(valueFont).horizontalAdvance("+00.00"));
-	overallLayout->addWidget(overallValueLabel);
-
-	balanceBar = new BalanceBar(overallCard);
-	balanceBar->setToolTip(tr("Black's share on the left, white's on the right. The line in the middle means equal."));
-	overallLayout->addWidget(balanceBar, 1, Qt::AlignVCenter);
-	layout->addWidget(overallCard);
-
 	//one three-step track per criterion
 	criteriaCard = new Card(tr("Why"), this);
 	auto* criteriaLayout = new QVBoxLayout(criteriaCard);
@@ -310,25 +216,6 @@ EvalCriteriaWidget::EvalCriteriaWidget(Doorman& doorman, QWidget* parent)
 	layout->addWidget(criteriaCard);
 
 	doorman.attach(*this);
-}
-
-void EvalCriteriaWidget::setOverallCentipawns(int centipawns) {
-	const QString magnitude = QString::number(std::abs(centipawns) / 100.0, 'f', 2);
-	const QString sign = centipawns > 0 ? "+" : centipawns < 0 ? MINUS_SIGN : "";
-	overallValueLabel->setText(sign + magnitude);
-	const double share = 1.0 / (1.0 + std::exp(-WIN_CHANCE_SLOPE * centipawns));
-	balanceBar->setShare(std::clamp(share, MIN_SHARE, 1 - MIN_SHARE));
-}
-
-void EvalCriteriaWidget::setOverallMate(int movesToMate) {
-	overallValueLabel->setText("#" + (movesToMate < 0 ? MINUS_SIGN : QString()) + QString::number(std::abs(movesToMate)));
-	const bool white = movesToMate > 0;
-	balanceBar->setShare(movesToMate == 0 ? 0.5 : white ? 1.0 : 0.0);
-}
-
-void EvalCriteriaWidget::clearOverall() {
-	overallValueLabel->setText(DASH);
-	balanceBar->setShare(std::nullopt);
 }
 
 void EvalCriteriaWidget::setCriterion(EvalCriterion criterion, int value) {
@@ -350,6 +237,5 @@ void EvalCriteriaWidget::clearCriteria() {
 }
 
 void EvalCriteriaWidget::setPanelColor(const QColor& color) {
-	overallCard->setColor(color);
 	criteriaCard->setColor(color);
 }

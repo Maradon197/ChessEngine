@@ -6,14 +6,15 @@
 
 SearchRecorder::SearchRecorder() {
 	nodes.reserve(NODE_BUDGET + 1);
-	frames.resize(SearchLimits::MAX_DEPTH + 2);
+	frames.resize(SearchLimits::MAX_DEPTH + SearchLimits::MAX_QUIESCENCE_DEPTH + 2);	//quiescence goes on behind the horizon
 }
 
 void SearchRecorder::begin(const BoardState& rootBoard, int searchDepth, NodeId searchOrigin, unsigned searchTag,
-	const std::vector<Move>& searchedRootMoves) {
+	const std::vector<Move>& searchedRootMoves, int searchQuiescenceDepth) {
 	nodes.clear();
 	root = rootBoard;
 	depth = searchDepth;
+	quiescenceDepth = searchQuiescenceDepth;
 	deepestPly = 0;
 	totalNodes = 1;
 	truncated = false;
@@ -58,17 +59,20 @@ void SearchRecorder::enterNode(Move move, const SearchInfo& childInfo) {
 	++totalNodes;
 	Frame& parent = frames[static_cast<std::size_t>(top)];
 	++parent.searchedChildren;
+	const auto order = static_cast<std::uint16_t>(parent.searchedChildren - 1);
 	const int ply = top + 1;
 	deepestPly = std::max(deepestPly, ply);
 
 	std::int32_t index = -1;
-	if (parent.node >= 0) {
+	//quiescence nodes (behind the horizon) don't eat the budget: only their best lines get recorded, see recordLine()
+	if (parent.node >= 0 && ply <= depth) {
 		if (ply <= ALWAYS_RECORDED_PLY || nodes.size() < NODE_BUDGET) {
 			SearchTreeNode node;
 			node.parent = parent.node;
 			node.move = move;
 			node.alpha = childInfo.minGuaranteedScore;
 			node.beta = childInfo.mostAllowedScore;
+			node.order = order;
 			node.ply = static_cast<std::uint8_t>(std::min(ply, 255));
 			nodes.push_back(node);
 			index = static_cast<std::int32_t>(nodes.size() - 1);
@@ -84,6 +88,7 @@ void SearchRecorder::enterNode(Move move, const SearchInfo& childInfo) {
 	frame.beta = childInfo.mostAllowedScore;
 	frame.subtreeNodes = 1;
 	frame.searchedChildren = 0;
+	frame.order = order;
 	frame.lineLength = 0;
 
 	if (snapshotRequested.load(std::memory_order_relaxed)) {
@@ -102,6 +107,7 @@ void SearchRecorder::leaveNode(EvalValue score) {
 	result.score = score;
 	result.subtreeNodes = frame.subtreeNodes;
 	result.searchedChildren = frame.searchedChildren;
+	result.order = frame.order;
 	result.ply = static_cast<std::uint8_t>(std::min(top, 255));
 	result.finished = true;
 
@@ -161,6 +167,7 @@ void SearchRecorder::publish(bool finished) {
 	copy->tag = tag;
 	copy->root = root;
 	copy->depth = depth;
+	copy->quiescenceDepth = quiescenceDepth;
 	copy->rootMoves = rootMoves;
 	copy->nodes = nodes;
 	for (int ply = 0; ply <= top; ++ply) {

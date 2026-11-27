@@ -8,22 +8,16 @@
 
 #include "GuiTypes.hpp"
 
-class BalanceBar;
 class Card;
 class CriterionBar;
 class Doorman;
-class QLabel;
 
-//overall evaluation as a slim number and black/white balance, then one three-step track per criterion
+//one three-step track per criterion; the overall score sits under the board control map (EvalSquareWidget)
 class EvalCriteriaWidget : public QWidget {
 	Q_OBJECT
 
 public:
 	explicit EvalCriteriaWidget(Doorman& doorman, QWidget* parent = nullptr);
-
-	void setOverallCentipawns(int centipawns);
-	void setOverallMate(int movesToMate);
-	void clearOverall();
 
 	void setCriterion(EvalCriterion criterion, int value);
 	std::optional<int> getCriterion(EvalCriterion criterion) const;
@@ -34,10 +28,7 @@ public:
 private:
 	static constexpr std::size_t CRITERION_COUNT = static_cast<std::size_t>(EvalCriterion::COUNT);
 
-	Card* overallCard = nullptr;
 	Card* criteriaCard = nullptr;
-	QLabel* overallValueLabel = nullptr;
-	BalanceBar* balanceBar = nullptr;
 	std::array<CriterionBar*, CRITERION_COUNT> bars{};
 };
 

@@ -93,8 +93,10 @@ protected:
 			const bool done = snapshot.finished;
 			tiles.push_back({done ? tr("Done") : tr("Thinking"), tr("status"), done ? BEST_COLOR : SEARCHING_COLOR});
 			tiles.push_back({QString::number(snapshot.depth), tr("Maximum depth"), {}});
-			tiles.push_back({done ? QString::fromUtf8("–") : QString::number(snapshot.currentPly), tr("Current depth"),
-				done ? QColor() : SEARCHING_COLOR});
+			const QString current = snapshot.currentPly > snapshot.depth	//in the quiescence search behind the horizon
+				? QString("%1 +%2").arg(snapshot.depth).arg(snapshot.currentPly - snapshot.depth) : QString::number(snapshot.currentPly);
+			tiles.push_back({done ? QString::fromUtf8("–") : current,
+				snapshot.quiescenceDepth > 0 ? tr("Current depth · +captures") : tr("Current depth"), done ? QColor() : SEARCHING_COLOR});
 			tiles.push_back({tr("Max"), tr("Target Elo"), {}});
 			tiles.push_back({formatCount(static_cast<double>(snapshot.totalNodes)),
 				snapshot.truncated ? tr("nodes · %1 recorded").arg(formatCount(static_cast<double>(snapshot.nodes.size()))) : tr("nodes"), {}});
@@ -395,7 +397,9 @@ protected:
 		if (model && !model->getBestLine().empty()) {
 			const SearchSnapshot& snapshot = model->getSnapshot();
 			line = model->getLineText(model->getBestLine().back(), 24);
-			if (model->isLeaf(model->getBestLine().back())) {
+			if (const std::vector<int>& tail = model->getQuiescenceTail(); !tail.empty()) {
+				line += tail.size() == 1 ? tr("   (+1 capture)") : tr("   (+%1 captures)").arg(tail.size());
+			} else if (model->isLeaf(model->getBestLine().back())) {
 				line += tr("   → evaluated");
 			}
 			score = snapshot.finished ? (snapshot.root.getPosition().side_to_move == WHITE ? snapshot.bestScore : -snapshot.bestScore)
@@ -470,6 +474,7 @@ protected:
 		item(QPen(BEST_COLOR, 1.8), tr("raised alpha"));
 		item(QPen(withAlpha(text, 90), 1), tr("not better"));
 		item(QPen(SEARCHING_COLOR, 2.4), tr("searching"));
+		item(QPen(withAlpha(text, 60), 1, Qt::DotLine), tr("captures behind the horizon"));
 	}
 
 private:

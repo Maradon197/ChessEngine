@@ -46,11 +46,14 @@ public:
 	void setSearchRecorder(SearchRecorder& recorder);	//what the search window (W) shows
 	int getPlayDepth() const;	//the engine's search depth in the play view, plies
 	int getAnalysisDepth() const;	//and in the analysis
+	int getPlayQuiescenceDepth() const;	//plies of captures behind the horizon, 0 = off
+	int getAnalysisQuiescenceDepth() const;
 	bool isEngineArrowShown() const;	//analysis: the engine draws its best move
 
 signals:
 	void viewModeChanged(ViewMode mode);
 	void analysisDepthChanged(int depth);
+	void analysisQuiescenceDepthChanged(int depth);
 	void engineArrowShownChanged(bool shown);
 	void searchLineChosen(NodeId origin, const std::vector<Move>& moves);	//clicked in the search window: play these from origin
 

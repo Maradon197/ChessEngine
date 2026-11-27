@@ -10,9 +10,10 @@ class BoardWidget;
 class Doorman;
 class KeyBindings;
 class QHBoxLayout;
-class QLabel;
-class QSlider;
 class QToolButton;
+class SearchRecorder;
+class SearchSettingsWidget;
+class SearchStatusLine;
 
 //the "play the engine" page: the shared board and nothing that evaluates
 //for now the user always plays white and the engine black; a new game means restarting the app
@@ -32,6 +33,10 @@ public:
 
 	QWidget* getEngineSettings() const;	//the tutorial points at it
 	int getSearchDepth() const;
+	int getQuiescenceDepth() const;	//plies of captures behind the horizon, 0 = off
+
+	void setSearchRecorder(SearchRecorder& recorder);	//for the small search status under the settings
+	void setSearchStatusShown(bool shown);	//hidden while the search window is open, it shows the same
 
 	static constexpr Color USER_COLOR = WHITE;
 
@@ -46,7 +51,6 @@ private:
 	void checkPosition();	//after every move: ask the engine when it's its turn
 	void rememberPosition(const Position& position);
 	void updateFocusButton();
-	void setSearchDepth(int depth);	//slider moved: shown and kept in the settings, used from the next engine move on
 
 	Doorman& doorman;
 	KeyBindings& keyBindings;
@@ -54,12 +58,11 @@ private:
 	QHBoxLayout* boardRow = nullptr;
 	QToolButton* focusButton = nullptr;
 	QWidget* engineSettings = nullptr;
-	QSlider* depthSlider = nullptr;
-	QLabel* depthValue = nullptr;
+	SearchSettingsWidget* searchSettings = nullptr;
+	SearchStatusLine* searchStatus = nullptr;
 
 	bool active = false;
 	bool focusMode = false;
-	int searchDepth = DEFAULT_SEARCH_DEPTH;
 	Color seenSide = WHITE;
 	Bitboard seenOccupancy = 0;
 };

@@ -137,7 +137,8 @@ EvalValue Searcher::recursiveSearch(SearchInfo current_info) {
 EvalValue Searcher::quiescenceRecursiveSearch(SearchInfo node) {
 	EvalValue stand_pat = evaluator.overallScore(board.getPosition());
 
-	if (node.currentDepth >= SearchLimits::MAX_QUIESCENCE_DEPTH)
+	//remainingDepth counts on below 0 in here: -remainingDepth = plies of captures since the horizon
+	if (-node.remainingDepth >= maxQuiescenceDepth)
 		return stand_pat;
 
 	//stand pat: I don't HAVE to capture
@@ -157,7 +158,9 @@ EvalValue Searcher::quiescenceRecursiveSearch(SearchInfo node) {
 
 		SearchInfo child = { node.remainingDepth - 1, node.currentDepth + 1,
 			-node.mostAllowedScore, -node.minGuaranteedScore };
+		if (observer) observer->enterNode(move, child);
 		EvalValue score = -quiescenceRecursiveSearch(child);
+		if (observer) observer->leaveNode(score);
 
 		board.unmakeMove();
 
