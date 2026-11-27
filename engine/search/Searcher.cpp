@@ -146,14 +146,12 @@ EvalValue Searcher::quiescenceRecursiveSearch(SearchInfo node) {
 	if (stand_pat > node.minGuaranteedScore)
 		node.minGuaranteedScore = stand_pat;
 
-	MoveList moves = getPseudoLegalMovesInPosition(board.getPosition());
+	MoveList moves = getPseudoLegalCapturesInPosition(board.getPosition());
 	orderMoves(moves, board.getPosition());
 
 	for (std::size_t i = 0; i < moves.count; ++i) {
 
 		const Move move = moves.moves[i];
-		if (!isCapture(move))
-			break;	//captures are ordered first -> only quiet moves left
 		if (!makeMoveIfLegal(board, move))
 			continue;
 

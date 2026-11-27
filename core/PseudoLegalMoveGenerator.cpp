@@ -26,7 +26,8 @@ MoveList getPseudoLegalMovesAtSquare(const Position& pos, Square source) {
 	return pseudo_legal_piece_moves;
 }
 
-MoveList getAllMovesForPieceType(const Position& pos, PieceType pieceType) {
+//targets: squares a move may land on (default: all) -> e.g. only enemy pieces for captures
+MoveList getAllMovesForPieceType(const Position& pos, PieceType pieceType, Bitboard targets = ~Bitboard{ 0 }) {
 	Bitboard to_consider_pieces = pos.pieces[pos.side_to_move][pieceType];
 	MoveList pseudo_legal_piece_moves{};
 
@@ -51,7 +52,7 @@ MoveList getAllMovesForPieceType(const Position& pos, PieceType pieceType) {
 
 				//quiet moves
 				Bitboard singlePushBB = is_white ? (currentSquare << 8) : (currentSquare >> 8);
-				if(!(pos.total_occupancy & singlePushBB)) { //square in front is empty
+				if(!(pos.total_occupancy & singlePushBB) && (targets & singlePushBB)) { //square in front is empty
 					Square dest = BB::getSquareFromOneSquareBitboard(singlePushBB);
 					Bitboard promotion_rank = is_white ? RANK_8 : 0x00000000000000FFULL;
 
@@ -76,7 +77,7 @@ MoveList getAllMovesForPieceType(const Position& pos, PieceType pieceType) {
 					Bitboard start_rank = is_white ? RANK_2 : RANK_7;
 					if(currentSquare & start_rank) {
 						Bitboard doublePushBB = is_white ? (currentSquare << 16) : (currentSquare >> 16);
-						if(!(pos.total_occupancy & doublePushBB)) {
+						if(!(pos.total_occupancy & doublePushBB) && (targets & doublePushBB)) {
 							Square ddest = BB::getSquareFromOneSquareBitboard(doublePushBB);
 							Move m = static_cast<Move>(current_source_square)
 								| (static_cast<Move>(ddest) << 6);
@@ -89,7 +90,7 @@ MoveList getAllMovesForPieceType(const Position& pos, PieceType pieceType) {
 				Bitboard pawn_attacks = getPawnAttacks(pos.side_to_move, current_source_square);
 
 				//non-EP
-				Bitboard captures = pawn_attacks & enemy_occ;
+				Bitboard captures = pawn_attacks & enemy_occ & targets;
 				while(captures) {
 					Bitboard capBB = BB::getLSBSquareBitboard(captures);
 					captures &= ~capBB;
@@ -116,7 +117,7 @@ MoveList getAllMovesForPieceType(const Position& pos, PieceType pieceType) {
 				}
 
 				//EP captures
-				if(pos.ep_square != NO_SQUARE && (pawn_attacks & BB::oneSquareBB(pos.ep_square))) {
+				if(pos.ep_square != NO_SQUARE && (pawn_attacks & targets & BB::oneSquareBB(pos.ep_square))) {
 					Move m = static_cast<Move>(current_source_square)
 						| (static_cast<Move>(pos.ep_square) << 6)
 						| (static_cast<Move>(1) << 13)
@@ -135,7 +136,7 @@ MoveList getAllMovesForPieceType(const Position& pos, PieceType pieceType) {
 
 			//find legal moves: knight cannot capture own pieces
 			Bitboard attackPattern = getKnightAttacks(current_source_square);
-			Bitboard move_candidates = attackPattern & ~(pos.color_occupancy[pos.side_to_move]);
+			Bitboard move_candidates = attackPattern & ~(pos.color_occupancy[pos.side_to_move]) & targets;
 
 			//convert bitboard to movelist entries
 			while(move_candidates) {
@@ -162,7 +163,7 @@ MoveList getAllMovesForPieceType(const Position& pos, PieceType pieceType) {
 
 			//find legal moves
 			Bitboard move_candidates = getBishopAttacks(current_source_square, pos.color_occupancy[pos.side_to_move],
-				pos.color_occupancy[!pos.side_to_move]);
+				pos.color_occupancy[!pos.side_to_move]) & targets;
 
 			while(move_candidates) {
 				Square current_destination_square = BB::getSquareFromOneSquareBitboard(BB::getLSBSquareBitboard(move_candidates));
@@ -186,7 +187,7 @@ MoveList getAllMovesForPieceType(const Position& pos, PieceType pieceType) {
 
 			//find legal moves
 			Bitboard move_candidates = getRookAttacks(current_source_square, pos.color_occupancy[pos.side_to_move],
-				pos.color_occupancy[!pos.side_to_move]);
+				pos.color_occupancy[!pos.side_to_move]) & targets;
 
 			while(move_candidates) {
 				Square current_destination_square = BB::getSquareFromOneSquareBitboard(BB::getLSBSquareBitboard(move_candidates));
@@ -213,6 +214,7 @@ MoveList getAllMovesForPieceType(const Position& pos, PieceType pieceType) {
 					pos.color_occupancy[!pos.side_to_move]) |
 				getBishopAttacks(current_source_square, pos.color_occupancy[pos.side_to_move],
 					pos.color_occupancy[!pos.side_to_move]);
+			move_candidates &= targets;
 
 			while (move_candidates) {
 				Square current_destination_square = BB::getSquareFromOneSquareBitboard(BB::getLSBSquareBitboard(move_candidates));
@@ -231,7 +233,7 @@ MoveList getAllMovesForPieceType(const Position& pos, PieceType pieceType) {
 		case PieceType::KING:
 		{
 			Square king_sq = BB::getSquareFromOneSquareBitboard(to_consider_pieces);
-			Bitboard move_candidates = getKingAttacks(king_sq) & ~(pos.color_occupancy[pos.side_to_move]);
+			Bitboard move_candidates = getKingAttacks(king_sq) & ~(pos.color_occupancy[pos.side_to_move]) & targets;
 
 			while (move_candidates) {
 				Square current_destination_square = BB::getSquareFromOneSquareBitboard(BB::getLSBSquareBitboard(move_candidates));
@@ -250,13 +252,13 @@ MoveList getAllMovesForPieceType(const Position& pos, PieceType pieceType) {
 			const Bitboard occ = pos.total_occupancy;
 			if(pos.side_to_move == WHITE) {
 				//white short castle (bit 1)
-				if((pos.castling_rights & 0x2) &&
+				if((pos.castling_rights & 0x2) && (targets & BB::oneSquareBB(6)) &&
 					!(occ & (BB::oneSquareBB(5) | BB::oneSquareBB(6)))) {
 					Move m = static_cast<Move>(4) | (static_cast<Move>(6) << 6) | (static_cast<Move>(1) << 12);
 					pseudo_legal_piece_moves.moves[pseudo_legal_piece_moves.count++] = m;
 				}
 				//white long castle (bit 0)
-				if((pos.castling_rights & 0x1) &&
+				if((pos.castling_rights & 0x1) && (targets & BB::oneSquareBB(2)) &&
 					!(occ & (BB::oneSquareBB(1) | BB::oneSquareBB(2) | BB::oneSquareBB(3)))) {
 					Move m = static_cast<Move>(4) | (static_cast<Move>(2) << 6) | (static_cast<Move>(1) << 12);
 					pseudo_legal_piece_moves.moves[pseudo_legal_piece_moves.count++] = m;
@@ -264,13 +266,13 @@ MoveList getAllMovesForPieceType(const Position& pos, PieceType pieceType) {
 			}
 			else {
 				//black short castle (bit 3)
-				if((pos.castling_rights & 0x8) &&
+				if((pos.castling_rights & 0x8) && (targets & BB::oneSquareBB(62)) &&
 					!(occ & (BB::oneSquareBB(61) | BB::oneSquareBB(62)))) {
 					Move m = static_cast<Move>(60) | (static_cast<Move>(62) << 6) | (static_cast<Move>(1) << 12);
 					pseudo_legal_piece_moves.moves[pseudo_legal_piece_moves.count++] = m;
 				}
 				//black long castle (bit 2)
-				if((pos.castling_rights & 0x4) &&
+				if((pos.castling_rights & 0x4) && (targets & BB::oneSquareBB(58)) &&
 					!(occ & (BB::oneSquareBB(57) | BB::oneSquareBB(58) | BB::oneSquareBB(59)))) {
 					Move m = static_cast<Move>(60) | (static_cast<Move>(58) << 6) | (static_cast<Move>(1) << 12);
 					pseudo_legal_piece_moves.moves[pseudo_legal_piece_moves.count++] = m;
@@ -299,4 +301,26 @@ MoveList getPseudoLegalMovesInPosition(const Position& pos) {
 	}
 
 	return pseudoLegalMoves;
+}
+
+MoveList getPseudoLegalCapturesInPosition(const Position& pos) {
+	const Bitboard enemies = pos.color_occupancy[!pos.side_to_move];
+
+	MoveList captures{};
+
+	for(int piece_type = PAWN; piece_type <= KING; ++piece_type) {
+
+		//en passant lands on an empty square -> allowed as a target, but only for pawns
+		Bitboard targets = enemies;
+		if(piece_type == PAWN && pos.ep_square != NO_SQUARE)
+			targets |= BB::oneSquareBB(pos.ep_square);
+
+		MoveList pieceMoves = getAllMovesForPieceType(pos, static_cast<PieceType>(piece_type), targets);
+
+		for(std::uint16_t i = 0; i < pieceMoves.count; ++i) {
+			captures.moves[captures.count++] = pieceMoves.moves[i];
+		}
+	}
+
+	return captures;
 }
