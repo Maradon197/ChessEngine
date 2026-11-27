@@ -9,6 +9,67 @@
 
 #include "BoardState.hpp"
 #include "LegalMoveGenerator.hpp"
+#include "PseudoLegalMoveGenerator.hpp"
+#include "AttackDetector.hpp"
+#include "Bitboard.hpp"
+
+
+namespace {
+	constexpr Move CAPTURE_FLAG = Move{ 1 } << 18;
+
+	bool isCapture(Move m) {
+		return (m & CAPTURE_FLAG) != 0;
+	}
+
+	PieceType pieceTypeAt(const Position& pos, Color color, Square sq) {
+		for (int type = PAWN; type <= KING; ++type)
+			if (pos.pieces[color][type] & BB::oneSquareBB(sq))
+				return static_cast<PieceType>(type);
+		return NONE;
+	}
+
+	int moveOrderScore(Move m, const Position& pos) {
+		if (!isCapture(m))
+			return 0;
+		PieceType victim = pieceTypeAt(pos, !pos.side_to_move, (m >> 6) & 0x3f);
+		if (victim == NONE)
+			victim = PAWN;	//en passant: the destination square is empty
+		const PieceType attacker = pieceTypeAt(pos, pos.side_to_move, m & 0x3f);
+		return (victim + 1) * 8 - attacker;
+	}
+
+	void orderMoves(MoveList& list, const Position& pos) {
+		int scores[MAX_MOVES];
+		for (std::size_t i = 0; i < list.count; ++i)
+			scores[i] = moveOrderScore(list.moves[i], pos);
+
+		for (std::size_t i = 1; i < list.count; ++i) {
+			const Move move = list.moves[i];
+			const int score = scores[i];
+			std::size_t j = i;
+			for (; j > 0 && scores[j - 1] < score; --j) {
+				list.moves[j] = list.moves[j - 1];
+				scores[j] = scores[j - 1];
+			}
+			list.moves[j] = move;
+			scores[j] = score;
+		}
+	}
+
+	//@return: whether m was made (if not, the board is unchanged)
+	bool makeMoveIfLegal(BoardState& board, Move m) {
+		const Color moving_side = board.getPosition().side_to_move;
+		if (isCastlingThroughCheck(m, board.getPosition()))
+			return false;
+
+		board.makeMove(m);
+		if (isInCheck(moving_side, board.getPosition())) {
+			board.unmakeMove();
+			return false;
+		}
+		return true;
+	}
+}//!namespace
 
 
 //"I" refers to the view of the currently examined player
@@ -17,27 +78,24 @@ EvalValue Searcher::recursiveSearch(SearchInfo current_info) {
 
 	//am I a leaf vertex?
 	if (current_info.remainingDepth == 0)
-		//TODO: performance fix return quiescenceRecursiveSearch(current_info);
-		return evaluator.overallScore(board.getPosition());
+		return quiescenceRecursiveSearch(current_info);
 
 	//guess I'll have to do the work if im here
 	//...
-	//get information about my current position
-	const Position& pos = board.getPosition();
-	MoveList legal_moves = generator.generateLegalMovesInPosition(pos, board);
-
-	GameStatus status = board.getGameStatus(legal_moves);
-
-	//did I get checkmated?
-	if (status.result == GameResult::WHITE_WIN || status.result == GameResult::BLACK_WIN)
-		return static_cast<EvalValue>(SearchLimits::MATE + current_info.currentDepth);
-
-	//is it a draw?
-	if (status.reason != GameEndingReason::NONE)
+	//is it a draw? (checked before the moves: a mate on the 100th halfmove counts as a draw here)
+	if (board.getDrawStatus().reason != GameEndingReason::NONE)
 		return static_cast<EvalValue>(0.0f);
 
-	for (std::size_t i = 0; i < legal_moves.count; ++i) {
-		board.makeMove(legal_moves.moves[i]);
+	//pseudo-legal moves, legality is only checked when a move is actually tried
+	MoveList moves = getPseudoLegalMovesInPosition(board.getPosition());
+	orderMoves(moves, board.getPosition());
+	bool found_legal_move = false;
+
+	for (std::size_t i = 0; i < moves.count; ++i) {
+		const Move move = moves.moves[i];
+		if (!makeMoveIfLegal(board, move))
+			continue;
+		found_legal_move = true;
 
 		SearchInfo child_node = {
 			current_info.remainingDepth -1,
@@ -47,7 +105,7 @@ EvalValue Searcher::recursiveSearch(SearchInfo current_info) {
 		};
 
 		//And way dooooown we goo
-		if (observer) observer->enterNode(legal_moves.moves[i], child_node);
+		if (observer) observer->enterNode(move, child_node);
 		EvalValue search_result = - recursiveSearch(child_node);
 		if (observer) observer->leaveNode(search_result);
 
@@ -65,6 +123,14 @@ EvalValue Searcher::recursiveSearch(SearchInfo current_info) {
 			current_info.minGuaranteedScore = search_result;
 	}
 
+	//no legal move at all: did I get checkmated, or is it stalemate?
+	if (!found_legal_move) {
+		const Position& pos = board.getPosition();
+		if (isInCheck(pos.side_to_move, pos))
+			return static_cast<EvalValue>(SearchLimits::MATE + current_info.currentDepth);
+		return static_cast<EvalValue>(0.0f);
+	}
+
 	return current_info.minGuaranteedScore;
 }
 
@@ -80,14 +146,16 @@ EvalValue Searcher::quiescenceRecursiveSearch(SearchInfo node) {
 	if (stand_pat > node.minGuaranteedScore)
 		node.minGuaranteedScore = stand_pat;
 
-	MoveList legal_moves = generator.generateLegalMovesInPosition(board.getPosition(), board);
+	MoveList moves = getPseudoLegalMovesInPosition(board.getPosition());
+	orderMoves(moves, board.getPosition());
 
-	for (std::size_t i = 0; i < legal_moves.count; ++i) {
+	for (std::size_t i = 0; i < moves.count; ++i) {
 
-		const Move move = legal_moves.moves[i];
-		if (!(move & (Move{ 1 } << 18))) continue;	//is capture?
-
-		board.makeMove(move);
+		const Move move = moves.moves[i];
+		if (!isCapture(move))
+			break;	//captures are ordered first -> only quiet moves left
+		if (!makeMoveIfLegal(board, move))
+			continue;
 
 		SearchInfo child = { node.remainingDepth - 1, node.currentDepth + 1,
 			-node.mostAllowedScore, -node.minGuaranteedScore };

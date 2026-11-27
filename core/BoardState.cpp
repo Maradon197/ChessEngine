@@ -226,6 +226,10 @@ GameStatus BoardState::getGameStatus(const MoveList& legalMoves) const {
 		return { GameResult::DRAW, GameEndingReason::STALEMATE };
 	}
 
+	return getDrawStatus();
+}
+
+GameStatus BoardState::getDrawStatus() const {
 	if (isInsufficientMaterial(position))
 		return { GameResult::DRAW, GameEndingReason::INSUFFICIENT_MATERIAL };
 

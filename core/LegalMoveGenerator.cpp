@@ -9,7 +9,7 @@
 
 //pseudo-legal castling only checks rights and empty squares: the king may not
 //castle out of check or through an attacked square (the destination is covered by the normal check test)
-static bool isCastlingThroughCheck(Move m, const Position& pos) {
+bool isCastlingThroughCheck(Move m, const Position& pos) {
 	if (!(m & (static_cast<Move>(1) << 12)))
 		return false;
 	const Square source = m & 0x3f;
